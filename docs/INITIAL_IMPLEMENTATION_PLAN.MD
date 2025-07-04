@@ -265,13 +265,17 @@ Note: Project folder names use `+` as separator for path components (e.g., `User
 
 ### Implementation Approach
 
-#### Option 1: Direct Claude Process Attachment (Recommended)
+We use tmux for all interactive sessions. This provides a clean solution that requires no changes to claude-swarm.
 
-This approach attaches directly to the running Claude instance:
+**Why tmux?**
+- Claude Code expects a real terminal (TTY)
+- tmux provides persistent sessions that survive page refreshes
+- Web terminals can attach/detach from tmux sessions easily
+- No modifications needed to claude-swarm
 
-**Backend Implementation:**
+**The Challenge (Historical Context)**
 
-This service demonstrates the challenge of attaching to Claude instances. Since Claude Code runs interactively and expects a real terminal, direct process attachment is complex. This implementation shows a theoretical approach, but the recommended solution (implemented later) is to launch all sessions through tmux from the start.
+Initially, we considered direct process attachment, but this approach had issues:
 
 ```ruby
 # app/services/terminal_service.rb
@@ -320,18 +324,15 @@ class TerminalService
 end
 ```
 
-**Challenge:** Claude Code runs interactively and expects a real terminal. We need to either:
-1. Launch Claude initially within a multiplexer (screen/tmux)
-2. Use process attachment techniques
-3. Modify claude-swarm to support a "headless" mode
+This shows why direct attachment doesn't work well. Claude Code needs a real terminal environment.
 
-#### Option 2: Proxy-Based Approach (More Flexible)
+### The Solution: tmux-based Implementation
 
-Create a proxy that sits between the web terminal and Claude:
+Rails launches ALL interactive sessions in tmux from the start. This is the implementation we use:
 
 **Backend Implementation:**
 
-This proxy service creates a bridge between the web terminal and the Claude session. It manages a pseudo-terminal (PTY) that connects to the tmux session where Claude is running. The service handles bidirectional I/O between the web client and the terminal process.
+This service creates the bridge between the web terminal and the tmux session. It manages a pseudo-terminal (PTY) that connects to the tmux session where Claude is running.
 
 ```ruby
 # app/services/claude_terminal_proxy.rb
@@ -367,12 +368,8 @@ class ClaudeTerminalProxy
   private
   
   def build_command
-    # Option 1: Attach to existing screen/tmux session
-    "screen -r claude-swarm-#{@session.session_id}"
-    
-    # Option 2: Create a new Claude instance that connects to existing session
-    # This would require claude-swarm to support a "terminal" mode
-    # "claude-swarm terminal --session-id #{@session.session_id}"
+    # Always attach to the tmux session we created at launch
+    "tmux attach-session -t claude-swarm-#{@session.session_id}"
   end
 end
 ```
@@ -512,11 +509,11 @@ export default class extends Controller {
 }
 ```
 
-### Solution: Rails-Side Terminal Management (No claude-swarm changes needed!)
+### Final Implementation: Rails + tmux
 
-The Rails app can handle all terminal multiplexer integration without any changes to claude-swarm:
+The Rails app handles all terminal management by launching claude-swarm inside tmux sessions:
 
-#### Implementation: Rails Launches Claude in Interactive or Non-Interactive Mode
+#### SwarmLauncher Service: Launches Claude in Interactive or Non-Interactive Mode
 
 This is the core service that launches claude-swarm sessions. It supports two modes:
 - **Interactive Mode**: Launches claude-swarm inside a tmux session, allowing full terminal access through the web UI
@@ -1053,16 +1050,23 @@ class TmuxManager
 end
 ```
 
-### Recommended Implementation Path
+### How It All Works Together
 
-1. **Rails launches all swarms in tmux**:
-   - Every `claude-swarm` command is wrapped in tmux
-   - Session names follow pattern: `claude-swarm-YYYYMMDD_HHMMSS`
-   - Rails tracks tmux session name in database
+1. **Launch Process**:
+   - User selects directory and configuration in Rails UI
+   - Rails creates a tmux session named `claude-swarm-YYYYMMDD_HHMMSS`
+   - Rails executes `claude-swarm` inside that tmux session
+   - Session metadata is saved to database
 
-2. **Rails Implementation**:
+2. **Terminal Access**:
+   - When user clicks "Open Terminal", Rails creates a PTY
+   - The PTY attaches to the existing tmux session
+   - xterm.js in the browser connects via WebSocket
+   - All I/O flows: Browser ↔ WebSocket ↔ PTY ↔ tmux ↔ claude-swarm
 
-The terminal controller and view provide a full-screen terminal interface for interactive sessions. The view uses a dark theme consistent with terminal applications and provides session information in the header.
+3. **Implementation Details**:
+
+The terminal controller and view provide a full-screen terminal interface for interactive sessions:
 
    ```ruby
    # app/controllers/terminals_controller.rb
@@ -1092,18 +1096,29 @@ The terminal controller and view provide a full-screen terminal interface for in
    </div>
    ```
 
-3. **tmux Installation & Setup**:
+4. **tmux Setup Requirements**:
    - Rails checks for tmux on startup
    - Shows clear error if tmux not found: "brew install tmux" or "apt-get install tmux"
    - System package managers handle tmux installation
+   - No tmux configuration needed - Rails uses default settings
 
-### Benefits of Rails-Side Implementation
+### Summary: The tmux Approach
 
-1. **No changes to claude-swarm** - Works with existing version
-2. **UI concerns stay in UI layer** - Terminal management is a presentation concern
-3. **More flexibility** - Rails can choose tmux settings, session names, etc.
-4. **Better error handling** - Rails can provide user-friendly messages
-5. **Easier upgrades** - Can update terminal handling without touching claude-swarm
+To be crystal clear, here's what we're doing:
+
+1. **Interactive Mode**: 
+   - Rails launches: `tmux new-session -d -s claude-swarm-[SESSION_ID] claude-swarm [args]`
+   - Web terminal attaches: `tmux attach-session -t claude-swarm-[SESSION_ID]`
+   
+2. **Non-Interactive Mode**:
+   - Rails launches: `claude-swarm -p "prompt" --stream-logs > output.log`
+   - No tmux needed, just capture output
+
+3. **Benefits**:
+   - No changes to claude-swarm
+   - Clean separation of concerns
+   - Works perfectly with web terminals
+   - Sessions persist across page refreshes
 
 
 ### Session View UI

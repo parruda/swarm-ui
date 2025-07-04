@@ -93,6 +93,36 @@ The project uses RuboCop with Shopify's style guide. Always run `bin/rubocop -A`
 - Use strong parameters in controllers
 - Follow RESTful routing conventions
 
+## UI Design Guidelines
+- Always use Tailwind CSS 4 utility classes for styling in views and components.
+- Follow the official Tailwind CSS 4 documentation that is in llm_docs/tailwind for syntax, features, and best practices.
+- Prefer semantic HTML and accessibility best practices alongside Tailwind classes.
+- Avoid custom CSS unless a design cannot be achieved with Tailwind utilities.
+- For custom themes, define variables using `@theme` in app/assets/tailwind/application.css.
+
+### Tailwind CSS 4 Documentation
+The `llm_docs/tailwind/` directory contains the complete Tailwind CSS 4 documentation split into individual MDX files. 
+
+**IMPORTANT**: Always consult `llm_docs/tailwind/INDEX.md` first to quickly find the right documentation file for any Tailwind utility class or concept.
+
+When you need to:
+- Look up a specific utility class → Read `llm_docs/tailwind/[utility-name].mdx` (e.g., `llm_docs/tailwind/background-color.mdx` for bg-* classes)
+- Understand responsive design → Read `llm_docs/tailwind/responsive-design.mdx`
+- Work with states (hover, focus, etc.) → Read `llm_docs/tailwind/hover-focus-and-other-states.mdx`
+- Customize the theme → Read `llm_docs/tailwind/theme.mdx`
+- Add custom styles → Read `llm_docs/tailwind/adding-custom-styles.mdx`
+- Use functions and directives → Read `llm_docs/tailwind/functions-and-directives.mdx`
+
+Common utility class files:
+- Colors: `llm_docs/tailwind/colors.mdx`, `llm_docs/tailwind/background-color.mdx`, `llm_docs/tailwind/color.mdx`
+- Layout: `llm_docs/tailwind/display.mdx`, `llm_docs/tailwind/position.mdx`, `llm_docs/tailwind/flex.mdx`, `llm_docs/tailwind/grid-template-columns.mdx`
+- Spacing: `llm_docs/tailwind/padding.mdx`, `llm_docs/tailwind/margin.mdx`, `llm_docs/tailwind/gap.mdx`
+- Typography: `llm_docs/tailwind/font-size.mdx`, `llm_docs/tailwind/font-weight.mdx`, `llm_docs/tailwind/text-align.mdx`
+- Borders: `llm_docs/tailwind/border-width.mdx`, `llm_docs/tailwind/border-color.mdx`, `llm_docs/tailwind/border-radius.mdx`
+- Effects: `llm_docs/tailwind/box-shadow.mdx`, `llm_docs/tailwind/opacity.mdx`, `llm_docs/tailwind/filter.mdx`
+
+When implementing UI features, proactively read the relevant Tailwind documentation files to ensure correct usage of Tailwind CSS 4 utilities.
+
 ## Code Style Guidelines
 
 - Follow Rails conventions and the rubocop-rails-omakase style guide
@@ -106,7 +136,7 @@ The project uses RuboCop with Shopify's style guide. Always run `bin/rubocop -A`
 - Follow RESTful controller patterns
 - Write meaningful tests for all functionality
 - When writing Javascript, use Stimulus Controllers. DO NOT WRITE INLINE JAVASCRIPT.
-- When writing CSS, use SASS and add it to app/assets/stylesheets/application.scss
+- IF you need to write custom CSS because Tailwind classes did not resolve the issue, add it to app/assets/stylesheets/application.css
 - Follow software engineering principles like SOLID
 - Write code with testability in mind from the start, with proper abstractions and environment-independent behavior. There's should be no special code paths for tests only.
 - Always use path/url helpers to render a Rails route - never hardcode Rails urls/paths

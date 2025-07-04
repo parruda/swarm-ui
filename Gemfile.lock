@@ -291,6 +291,9 @@ GEM
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 3.0)
       websocket (~> 1.0)
+    simple_form (5.3.1)
+      actionpack (>= 5.2)
+      activemodel (>= 5.2)
     solid_cable (3.0.11)
       actioncable (>= 7.2)
       activejob (>= 7.2)
@@ -390,6 +393,7 @@ DEPENDENCIES
   rubocop-rake
   rubocop-shopify
   selenium-webdriver
+  simple_form
   solid_cable
   solid_cache
   solid_queue

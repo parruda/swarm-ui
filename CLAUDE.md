@@ -93,6 +93,12 @@ The project uses RuboCop with Shopify's style guide. Always run `bin/rubocop -A`
 - Use strong parameters in controllers
 - Follow RESTful routing conventions
 
+## Forms
+- Use Simple Form for all forms in the application
+- Simple Form has been configured to work with Tailwind CSS
+- Refer to `docs/simple_form_tailwind.md` for usage guidelines and examples
+- The configuration uses custom wrappers for proper Tailwind styling
+
 ## UI Design Guidelines
 - Always use Tailwind CSS 4 utility classes for styling in views and components.
 - Follow the official Tailwind CSS 4 documentation that is in llm_docs/tailwind for syntax, features, and best practices.

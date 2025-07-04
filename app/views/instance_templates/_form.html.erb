@@ -1,0 +1,213 @@
+<%= simple_form_for instance_template, html: { data: { turbo: false, controller: "instance-form" } } do |f| %>
+  <div class="space-y-6">
+    <%# Basic Information %>
+    <div class="bg-white px-4 py-5 shadow sm:rounded-lg sm:p-6">
+      <div class="md:grid md:grid-cols-3 md:gap-6">
+        <div class="md:col-span-1">
+          <h3 class="text-lg font-medium leading-6 text-gray-900">Basic Information</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Define the template name and type.
+          </p>
+        </div>
+        <div class="mt-5 md:col-span-2 md:mt-0">
+          <div class="grid grid-cols-6 gap-6">
+            <div class="col-span-6">
+              <%= f.input :name,
+                  label: "Template Name",
+                  placeholder: "Frontend Developer",
+                  input_html: { class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" } %>
+            </div>
+            
+            <div class="col-span-6">
+              <%= f.input :description,
+                  as: :text,
+                  label: "Description",
+                  placeholder: "A template for frontend development tasks...",
+                  input_html: { rows: 3, class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" } %>
+            </div>
+            
+            <div class="col-span-6 sm:col-span-3">
+              <%= f.input :instance_type,
+                  collection: %w[frontend backend devops database testing documentation research],
+                  prompt: "Select type",
+                  label: "Instance Type",
+                  input_html: { class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" } %>
+            </div>
+            
+            <div class="col-span-6 sm:col-span-3">
+              <%= f.input :provider,
+                  collection: [['Claude', 'claude'], ['OpenAI', 'openai']],
+                  label_method: :first,
+                  value_method: :second,
+                  selected: instance_template.provider || 'claude',
+                  label: "AI Provider",
+                  input_html: { 
+                    class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm",
+                    data: { action: "change->instance-form#updateProvider" }
+                  } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Model Configuration %>
+    <div class="bg-white px-4 py-5 shadow sm:rounded-lg sm:p-6">
+      <div class="md:grid md:grid-cols-3 md:gap-6">
+        <div class="md:col-span-1">
+          <h3 class="text-lg font-medium leading-6 text-gray-900">Model Configuration</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Configure the AI model settings.
+          </p>
+        </div>
+        <div class="mt-5 md:col-span-2 md:mt-0">
+          <div class="space-y-6">
+            <%# Claude-specific fields %>
+            <div id="claude-fields" class="<%= instance_template.provider == 'openai' ? 'hidden' : '' %>">
+              <div class="grid grid-cols-6 gap-6">
+                <div class="col-span-6 sm:col-span-3">
+                  <%= f.input :model,
+                      collection: %w[opus sonnet haiku],
+                      selected: instance_template.model || 'sonnet',
+                      label: "Model",
+                      input_html: { class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" } %>
+                </div>
+                
+                <div class="col-span-6 sm:col-span-3">
+                  <%= f.input :vibe,
+                      as: :boolean,
+                      label: "Enable Vibe Mode",
+                      input_html: { class: "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" } %>
+                </div>
+              </div>
+            </div>
+            
+            <%# OpenAI-specific fields %>
+            <div id="openai-fields" class="<%= instance_template.provider != 'openai' ? 'hidden' : '' %>">
+              <div class="grid grid-cols-6 gap-6">
+                <div class="col-span-6 sm:col-span-3">
+                  <%= f.input :model,
+                      label: "Model",
+                      placeholder: "gpt-4",
+                      input_html: { class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" } %>
+                </div>
+                
+                <div class="col-span-6 sm:col-span-3">
+                  <%= f.input :temperature,
+                      label: "Temperature",
+                      placeholder: "0.3",
+                      hint: "0.0 to 2.0 (default: 0.3)",
+                      input_html: { type: "number", step: "0.1", min: "0", max: "2", class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" } %>
+                </div>
+                
+                <div class="col-span-6 sm:col-span-3">
+                  <%= f.input :api_version,
+                      collection: [['Chat Completion', 'chat_completion'], ['Responses', 'responses']],
+                      label_method: :first,
+                      value_method: :second,
+                      label: "API Version",
+                      input_html: { class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" } %>
+                </div>
+                
+                <div class="col-span-6 sm:col-span-3">
+                  <%= f.input :openai_token_env,
+                      label: "API Key Environment Variable",
+                      placeholder: "OPENAI_API_KEY",
+                      input_html: { class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" } %>
+                </div>
+                
+                <div class="col-span-6">
+                  <%= f.input :base_url,
+                      label: "Custom API Base URL",
+                      placeholder: "https://api.openai.com/v1",
+                      hint: "Optional - leave blank to use default",
+                      input_html: { class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" } %>
+                </div>
+              </div>
+            </div>
+            
+            <%# Common prompt field %>
+            <div class="col-span-6">
+              <%= f.input :prompt,
+                  as: :text,
+                  label: "System Prompt",
+                  placeholder: "You are a helpful assistant specializing in...",
+                  input_html: { rows: 6, class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-mono" } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Tools Configuration %>
+    <div class="bg-white px-4 py-5 shadow sm:rounded-lg sm:p-6">
+      <div class="md:grid md:grid-cols-3 md:gap-6">
+        <div class="md:col-span-1">
+          <h3 class="text-lg font-medium leading-6 text-gray-900">Tools Configuration</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Select which tools this instance can use.
+          </p>
+        </div>
+        <div class="mt-5 md:col-span-2 md:mt-0" data-controller="tools-builder">
+          <div class="space-y-4">
+            <div>
+              <h4 class="text-sm font-medium text-gray-900 mb-3">Allowed Tools</h4>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <% %w[Read Edit Write Bash Git Search Browse Test Debug].each do |tool| %>
+                  <label class="flex items-center">
+                    <%= check_box_tag "instance_template[allowed_tools][]", 
+                        tool, 
+                        instance_template.allowed_tools&.include?(tool),
+                        class: "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                    <span class="ml-2 text-sm text-gray-700"><%= tool %></span>
+                  </label>
+                <% end %>
+              </div>
+              
+              <%# Custom tool input %>
+              <div class="mt-4 flex gap-2">
+                <input type="text" 
+                       placeholder="Custom tool or pattern (e.g., Bash(npm:*))"
+                       data-tools-builder-target="customTool"
+                       class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                <button type="button"
+                        data-action="click->tools-builder#addCustom"
+                        class="inline-flex items-center rounded-md bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                  Add Tool
+                </button>
+              </div>
+            </div>
+            
+            <div>
+              <h4 class="text-sm font-medium text-gray-900 mb-3">Disallowed Tools</h4>
+              <p class="text-sm text-gray-500 mb-2">Usually empty - prefer using allowed_tools instead</p>
+              <div class="space-y-2">
+                <% (instance_template.disallowed_tools || []).each do |tool| %>
+                  <div class="flex items-center gap-2">
+                    <input type="text" 
+                           name="instance_template[disallowed_tools][]" 
+                           value="<%= tool %>"
+                           class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    <button type="button" 
+                            onclick="this.parentElement.remove()"
+                            class="text-red-600 hover:text-red-700">
+                      Remove
+                    </button>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Form Actions %>
+    <div class="flex justify-end space-x-3">
+      <%= link_to "Cancel", instance_templates_path, 
+          class: "rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" %>
+      <%= f.button :submit, 
+          class: "inline-flex justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" %>
+    </div>
+  </div>
+<% end %>

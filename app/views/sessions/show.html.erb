@@ -1,0 +1,115 @@
+<div class="h-screen flex flex-col bg-gray-900">
+  <%# Session Header %>
+  <div class="p-4 bg-gray-800 text-white flex justify-between items-center">
+    <div>
+      <h1 class="text-xl">Claude Swarm - <%= @session.swarm_name || "Unnamed" %></h1>
+      <p class="text-sm text-gray-400">
+        Session: <%= @session.session_id %> | Mode: <%= @session.mode.humanize %>
+      </p>
+    </div>
+    <div class="flex gap-2">
+      <%= link_to "View Logs", logs_session_path(@session), 
+          class: "px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm" %>
+      <%= button_to "Stop Session", session_path(@session), 
+          method: :delete,
+          data: { confirm: "Are you sure you want to stop this session?" },
+          class: "px-4 py-2 bg-red-600 rounded hover:bg-red-700 text-sm cursor-pointer" %>
+    </div>
+  </div>
+  
+  <%# Main Content Area %>
+  <div class="flex-1 p-4">
+    <% if @session.mode == 'interactive' %>
+      <%# Interactive Mode: Full Terminal %>
+      <div id="terminal-container" 
+           class="h-full bg-black rounded"
+           data-controller="terminal"
+           data-session-id="<%= @session.session_id %>">
+        <div class="flex items-center justify-center h-full text-gray-500">
+          <div class="text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-2">Connecting to terminal...</p>
+          </div>
+        </div>
+      </div>
+    <% else %>
+      <%# Non-Interactive Mode: Output Viewer %>
+      <div class="h-full bg-black rounded p-4 overflow-auto font-mono text-sm text-gray-300"
+           data-controller="output-viewer"
+           data-session-id="<%= @session.session_id %>">
+        <div id="output-content">
+          <%# Output will be streamed here %>
+        </div>
+        <% if @session.status == 'active' %>
+          <div class="mt-2 text-yellow-400">
+            <span class="animate-pulse">●</span> Running...
+          </div>
+        <% else %>
+          <div class="mt-2 text-green-400">
+            ✓ Completed
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+  
+  <%# Session Info Panel (collapsible) %>
+  <div class="bg-gray-800 text-white border-t border-gray-700">
+    <details class="group">
+      <summary class="p-4 cursor-pointer flex justify-between items-center hover:bg-gray-700">
+        <span class="text-sm font-medium">Session Details</span>
+        <svg class="h-5 w-5 text-gray-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </summary>
+      <div class="px-4 pb-4 space-y-4">
+        <%# Status and Cost %>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span class="text-gray-400">Status:</span>
+            <span class="ml-2">
+              <% if @active %>
+                <span class="text-green-400">Active</span>
+              <% else %>
+                <span class="text-gray-500">Inactive</span>
+              <% end %>
+            </span>
+          </div>
+          <div>
+            <span class="text-gray-400">Total Cost:</span>
+            <span class="ml-2">$<%= "%.4f" % (@total_cost || 0) %></span>
+          </div>
+        </div>
+        
+        <%# Instance Hierarchy %>
+        <% if @instance_hierarchy.present? %>
+          <div>
+            <h3 class="text-sm font-medium text-gray-400 mb-2">Instances</h3>
+            <div class="space-y-1">
+              <% @instance_hierarchy.each do |name, info| %>
+                <div class="flex justify-between text-sm">
+                  <span>
+                    <%= name %>
+                    <% if info[:is_main] %>
+                      <span class="text-xs text-blue-400">(main)</span>
+                    <% end %>
+                  </span>
+                  <span class="text-gray-400">$<%= "%.4f" % (info[:costs] || 0) %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        
+        <%# Session Path %>
+        <div class="text-sm">
+          <span class="text-gray-400">Session Path:</span>
+          <code class="ml-2 text-xs bg-gray-700 px-2 py-1 rounded"><%= @session.session_path %></code>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>

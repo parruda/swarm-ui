@@ -1,0 +1,161 @@
+<div class="py-6">
+  <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+    <%# Page Header %>
+    <div class="md:flex md:items-center md:justify-between">
+      <div class="min-w-0 flex-1">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+          Launch New Session
+        </h2>
+      </div>
+    </div>
+
+    <%# Form %>
+    <div class="mt-8 bg-white shadow sm:rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <%= form_with url: sessions_path, local: true, data: { turbo: false } do |f| %>
+          <div class="space-y-6">
+            <%# Directory Selection %>
+            <div>
+              <%= f.label :directory_path, "Working Directory", class: "block text-sm font-medium text-gray-700" %>
+              <div class="mt-1" data-controller="directory-picker">
+                <%= f.text_field :directory_path, 
+                    placeholder: "/path/to/directory",
+                    class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm",
+                    data: { "directory-picker-target": "input" } %>
+                <p class="mt-2 text-sm text-gray-500">
+                  Can be any directory (Git repository or regular folder)
+                </p>
+              </div>
+            </div>
+
+            <%# Configuration Selection %>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Configuration</label>
+              <fieldset class="mt-2">
+                <div class="space-y-2">
+                  <div class="flex items-center">
+                    <%= f.radio_button :configuration_source, "file", checked: true, class: "h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                    <%= f.label :configuration_source_file, "Use configuration file from repository", class: "ml-3 block text-sm font-medium text-gray-700" %>
+                  </div>
+                  <div class="flex items-center">
+                    <%= f.radio_button :configuration_source, "saved", class: "h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                    <%= f.label :configuration_source_saved, "Use saved configuration", class: "ml-3 block text-sm font-medium text-gray-700" %>
+                  </div>
+                  <div class="flex items-center">
+                    <%= f.radio_button :configuration_source, "new", class: "h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                    <%= f.label :configuration_source_new, "Create new configuration", class: "ml-3 block text-sm font-medium text-gray-700" %>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+
+            <%# Configuration File (shown for 'file' source) %>
+            <div id="config-file-field">
+              <%= f.label :config_path, "Configuration File", class: "block text-sm font-medium text-gray-700" %>
+              <%= f.select :config_path, 
+                  options_for_select(@config_files || []),
+                  { prompt: "Select claude-swarm.yml" },
+                  class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" %>
+            </div>
+
+            <%# Saved Configuration (shown for 'saved' source) %>
+            <div id="saved-config-field" class="hidden">
+              <%= f.label :swarm_configuration_id, "Saved Configuration", class: "block text-sm font-medium text-gray-700" %>
+              <%= f.select :swarm_configuration_id,
+                  options_from_collection_for_select(@saved_configurations || [], :id, :name),
+                  { prompt: "Select a configuration" },
+                  class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" %>
+            </div>
+
+            <%# Mode Selection %>
+            <div class="bg-gray-50 p-4 rounded-lg" data-controller="mode-selector">
+              <label class="block text-sm font-medium text-gray-700 mb-3">Execution Mode</label>
+              <fieldset>
+                <div class="space-y-4">
+                  <div class="relative flex items-start">
+                    <div class="flex h-5 items-center">
+                      <%= f.radio_button :mode, "interactive", checked: true, 
+                          class: "h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500",
+                          data: { action: "change->mode-selector#updateMode" } %>
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <%= f.label :mode_interactive, class: "font-medium text-gray-700" do %>
+                        Interactive Mode
+                      <% end %>
+                      <p class="text-gray-500">Launch with full terminal access. You can interact with Claude in real-time.</p>
+                    </div>
+                  </div>
+                  <div class="relative flex items-start">
+                    <div class="flex h-5 items-center">
+                      <%= f.radio_button :mode, "non-interactive",
+                          class: "h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500",
+                          data: { action: "change->mode-selector#updateMode" } %>
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <%= f.label :mode_non_interactive, class: "font-medium text-gray-700" do %>
+                        Non-Interactive Mode
+                      <% end %>
+                      <p class="text-gray-500">Run with a specific prompt. Claude completes the task and exits.</p>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+
+            <%# Prompt Field (shown only for non-interactive) %>
+            <div id="prompt-field" class="hidden" data-mode-selector-target="promptField">
+              <%= f.label :prompt, "Task Prompt", class: "block text-sm font-medium text-gray-700" %>
+              <%= f.text_area :prompt,
+                  rows: 4,
+                  placeholder: "Enter the task for Claude to complete...",
+                  class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" %>
+            </div>
+
+            <%# Worktree Option %>
+            <div class="relative flex items-start">
+              <div class="flex h-5 items-center">
+                <%= f.check_box :use_worktree, class: "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+              </div>
+              <div class="ml-3 text-sm">
+                <%= f.label :use_worktree, "Create in Git worktree", class: "font-medium text-gray-700" %>
+                <p class="text-gray-500">Isolate changes in a separate Git worktree (only for Git repositories)</p>
+              </div>
+            </div>
+
+            <%# Submit Button %>
+            <div class="flex justify-end">
+              <%= link_to "Cancel", sessions_path, class: "rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" %>
+              <%= f.submit "Launch Swarm", 
+                  class: "ml-3 inline-flex justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# JavaScript to handle dynamic form fields %>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle configuration source changes
+    const configSourceRadios = document.querySelectorAll('input[name="configuration_source"]');
+    const configFileField = document.getElementById('config-file-field');
+    const savedConfigField = document.getElementById('saved-config-field');
+    
+    configSourceRadios.forEach(radio => {
+      radio.addEventListener('change', function() {
+        if (this.value === 'file') {
+          configFileField.classList.remove('hidden');
+          savedConfigField.classList.add('hidden');
+        } else if (this.value === 'saved') {
+          configFileField.classList.add('hidden');
+          savedConfigField.classList.remove('hidden');
+        } else {
+          configFileField.classList.add('hidden');
+          savedConfigField.classList.add('hidden');
+        }
+      });
+    });
+  });
+</script>

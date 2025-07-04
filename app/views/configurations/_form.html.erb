@@ -1,0 +1,135 @@
+<%= simple_form_for configuration, html: { data: { turbo: false } } do |f| %>
+  <div class="space-y-6">
+    <%# Basic Information %>
+    <div class="bg-white px-4 py-5 shadow sm:rounded-lg sm:p-6">
+      <div class="md:grid md:grid-cols-3 md:gap-6">
+        <div class="md:col-span-1">
+          <h3 class="text-lg font-medium leading-6 text-gray-900">Basic Information</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Provide a name and description for this configuration.
+          </p>
+        </div>
+        <div class="mt-5 md:col-span-2 md:mt-0">
+          <div class="grid grid-cols-6 gap-6">
+            <div class="col-span-6">
+              <%= f.input :name,
+                  label: "Configuration Name",
+                  placeholder: "My Development Swarm",
+                  input_html: { class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" },
+                  wrapper_html: { class: "mb-4" } %>
+            </div>
+            
+            <div class="col-span-6">
+              <%= f.input :description,
+                  as: :text,
+                  label: "Description",
+                  placeholder: "A brief description of what this swarm configuration does...",
+                  input_html: { rows: 3, class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" },
+                  wrapper_html: { class: "mb-4" } %>
+            </div>
+            
+            <div class="col-span-6">
+              <%= f.input :is_template,
+                  as: :boolean,
+                  label: "Save as Template",
+                  hint: "Templates can be reused as starting points for new configurations",
+                  input_html: { class: "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" },
+                  wrapper_html: { class: "mb-4" } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# YAML Configuration %>
+    <div class="bg-white px-4 py-5 shadow sm:rounded-lg sm:p-6">
+      <div class="md:grid md:grid-cols-3 md:gap-6">
+        <div class="md:col-span-1">
+          <h3 class="text-lg font-medium leading-6 text-gray-900">YAML Configuration</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Define your swarm configuration in YAML format.
+          </p>
+          <div class="mt-3">
+            <a href="#" class="text-sm text-blue-600 hover:text-blue-500">View YAML documentation →</a>
+          </div>
+        </div>
+        <div class="mt-5 md:col-span-2 md:mt-0">
+          <%= f.input :config_yaml,
+              as: :text,
+              label: false,
+              placeholder: "version: 1\nswarm:\n  name: \"My Swarm\"\n  main: lead\n  instances:\n    lead:\n      description: \"Lead developer\"\n      model: \"opus\"",
+              input_html: { 
+                rows: 20, 
+                class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm font-mono",
+                data: { controller: "yaml-editor" }
+              },
+              wrapper_html: { class: "mb-0" } %>
+          
+          <div class="mt-2 text-sm text-gray-500">
+            <p>Tip: Use Ctrl+Space for auto-completion (when implemented)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Before Commands (optional) %>
+    <div class="bg-white px-4 py-5 shadow sm:rounded-lg sm:p-6">
+      <div class="md:grid md:grid-cols-3 md:gap-6">
+        <div class="md:col-span-1">
+          <h3 class="text-lg font-medium leading-6 text-gray-900">Before Commands</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Optional commands to run before launching the swarm.
+          </p>
+        </div>
+        <div class="mt-5 md:col-span-2 md:mt-0">
+          <div id="before-commands" data-controller="dynamic-fields">
+            <% (configuration.before || []).each_with_index do |command, index| %>
+              <div class="mb-2 flex items-center" data-dynamic-fields-target="field">
+                <input type="text" 
+                       name="swarm_configuration[before][]" 
+                       value="<%= command %>"
+                       placeholder="npm install"
+                       class="block flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                <button type="button" 
+                        data-action="click->dynamic-fields#removeField"
+                        class="ml-2 inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100">
+                  Remove
+                </button>
+              </div>
+            <% end %>
+            
+            <% if configuration.before.blank? %>
+              <div class="mb-2 flex items-center" data-dynamic-fields-target="field">
+                <input type="text" 
+                       name="swarm_configuration[before][]" 
+                       value=""
+                       placeholder="npm install"
+                       class="block flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                <button type="button" 
+                        data-action="click->dynamic-fields#removeField"
+                        class="ml-2 inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100">
+                  Remove
+                </button>
+              </div>
+            <% end %>
+          </div>
+          
+          <button type="button"
+                  data-action="click->dynamic-fields#addField"
+                  data-dynamic-fields-template-value='<div class="mb-2 flex items-center" data-dynamic-fields-target="field"><input type="text" name="swarm_configuration[before][]" value="" placeholder="npm install" class="block flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"><button type="button" data-action="click->dynamic-fields#removeField" class="ml-2 inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100">Remove</button></div>'
+                  class="mt-2 inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100">
+            + Add Command
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <%# Form Actions %>
+    <div class="flex justify-end space-x-3">
+      <%= link_to "Cancel", configurations_path, 
+          class: "rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" %>
+      <%= f.button :submit, 
+          class: "inline-flex justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" %>
+    </div>
+  </div>
+<% end %>

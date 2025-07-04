@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html class="h-full">
   <head>
-    <title><%= content_for(:title) || "Swarm Ui" %></title>
+    <title><%= content_for(:title) || "Claude Swarm UI" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -22,9 +22,65 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
-    <main class="container mx-auto mt-28 px-5 flex">
-      <%= yield %>
-    </main>
+  <body class="h-full bg-gray-50">
+    <div class="min-h-full">
+      <%# Navigation Header %>
+      <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between h-16">
+            <div class="flex">
+              <%# Logo and Main Navigation %>
+              <div class="flex-shrink-0 flex items-center">
+                <%= link_to root_path, class: "text-xl font-semibold text-gray-900" do %>
+                  Claude Swarm UI
+                <% end %>
+              </div>
+              <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                <%= link_to "Sessions", sessions_path, 
+                    class: "#{current_page?(sessions_path) ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" %>
+                <%= link_to "Configurations", configurations_path,
+                    class: "#{current_page?(configurations_path) ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" %>
+                <%= link_to "Templates", instance_templates_path,
+                    class: "#{current_page?(instance_templates_path) ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" %>
+                <%= link_to "Directories", directories_path,
+                    class: "#{current_page?(directories_path) ? 'border-blue-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" %>
+              </div>
+            </div>
+            
+            <%# Right side actions %>
+            <div class="flex items-center">
+              <%= link_to "New Session", new_session_path,
+                  class: "ml-8 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <%# Flash Messages %>
+      <% if notice.present? %>
+        <div class="bg-green-50 border-l-4 border-green-400 p-4 m-4">
+          <div class="flex">
+            <div class="ml-3">
+              <p class="text-sm text-green-700"><%= notice %></p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+      
+      <% if alert.present? %>
+        <div class="bg-red-50 border-l-4 border-red-400 p-4 m-4">
+          <div class="flex">
+            <div class="ml-3">
+              <p class="text-sm text-red-700"><%= alert %></p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%# Main Content Area %>
+      <main>
+        <%= yield %>
+      </main>
+    </div>
   </body>
 </html>

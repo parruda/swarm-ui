@@ -1,0 +1,216 @@
+class SessionsController < ApplicationController
+  def index
+    # Merge database sessions with discovered sessions
+    @sessions = merge_sessions_with_discovery
+  end
+  
+  def new
+    @config_files = find_config_files
+    @saved_configurations = SwarmConfiguration.all
+    @directories = Directory.order(last_accessed_at: :desc).limit(10)
+  end
+  
+  def create
+    launcher = SwarmLauncher.new(session_params)
+    session_id = launcher.launch
+    
+    redirect_to session_path(session_id)
+  rescue => e
+    flash[:error] = e.message
+    redirect_to new_session_path
+  end
+  
+  def restore
+    @sessions = SessionDiscoveryService.list_all_sessions(limit: 50)
+    @sessions = @sessions.map do |session_data|
+      # Enrich with database info if exists
+      db_session = Session.find_by(session_id: session_data[:session_id])
+      
+      # Check if session is still active
+      monitor = SessionMonitorService.new(session_data[:session_path])
+      active = monitor.active?
+      
+      session_data.merge(db_session: db_session, active: active)
+    end
+  end
+  
+  def do_restore
+    session_id = params[:session_id]
+    
+    # Check original session mode from metadata
+    session_path = find_session_path(session_id)
+    metadata_file = File.join(session_path, "session_metadata.json")
+    original_mode = 'interactive'  # default assumption
+    
+    if File.exist?(metadata_file)
+      metadata = JSON.parse(File.read(metadata_file))
+      # Check if original session was non-interactive by looking for prompt in first launch
+      # This would need to be stored in metadata during initial launch
+      original_mode = metadata['mode'] || 'interactive'
+    end
+    
+    cmd = ["claude-swarm", "--session-id", session_id]
+    
+    if original_mode == 'interactive' || params[:force_interactive]
+      # Launch in tmux for interactive restoration
+      tmux_session = "claude-swarm-#{session_id}"
+      tmux_cmd = ["tmux", "new-session", "-d", "-s", tmux_session, *cmd]
+      
+      if system(*tmux_cmd)
+        # Update or create session record
+        session = Session.find_or_create_by(session_id: session_id)
+        session.update!(
+          session_path: session_path,
+          status: 'active',
+          tmux_session: tmux_session,
+          mode: 'interactive'
+        )
+        redirect_to session_path(session_id)
+      else
+        flash[:error] = "Failed to restore session"
+        redirect_to restore_sessions_path
+      end
+    else
+      # Non-interactive restoration needs a prompt
+      flash[:alert] = "Original session was non-interactive. Restoration would require a new prompt."
+      redirect_to restore_sessions_path
+    end
+  end
+  
+  def show
+    @session = Session.find_by!(session_id: params[:id])
+    
+    # Get real-time session info from file system
+    if @session.session_path && File.exist?(@session.session_path)
+      monitor = SessionMonitorService.new(@session.session_path)
+      @costs = monitor.calculate_costs
+      @instance_hierarchy = monitor.instance_hierarchy
+      @active = monitor.active?
+      @total_cost = @costs.values.sum
+    else
+      @costs = {}
+      @instance_hierarchy = {}
+      @active = false
+      @total_cost = 0.0
+    end
+  end
+  
+  def logs
+    @session = Session.find_by!(session_id: params[:id])
+    
+    # Stream logs via ActionCable or return recent logs
+    if request.headers['Accept'].include?('text/event-stream')
+      # SSE streaming
+      response.headers['Content-Type'] = 'text/event-stream'
+      response.headers['Cache-Control'] = 'no-cache'
+      
+      monitor = SessionMonitorService.new(@session.session_path)
+      monitor.stream_events do |event|
+        response.stream.write("data: #{event.to_json}\n\n")
+      end
+    else
+      # Return recent log events
+      parser = LogParserService.new(File.join(@session.session_path, "session.log.json"))
+      @events = parser.event_timeline(start_time: 1.hour.ago)
+      render json: @events
+    end
+  ensure
+    response.stream.close if response.stream.respond_to?(:close)
+  end
+  
+  def destroy
+    @session = Session.find_by!(session_id: params[:id])
+    TerminalAttachmentService.new(@session.session_id).kill_session
+    @session.update!(status: 'terminated')
+    
+    redirect_to sessions_path
+  end
+  
+  # GET /sessions/:id/output
+  # Get output for non-interactive sessions
+  def output
+    @session = Session.find_by!(session_id: params[:id])
+    
+    if @session.mode == 'non-interactive' && @session.output_file && File.exist?(@session.output_file)
+      render plain: File.read(@session.output_file)
+    else
+      render plain: "No output available for this session"
+    end
+  end
+  
+  private
+  
+  def session_params
+    params.permit(:directory_path, :configuration_source, :config_path, 
+                  :swarm_configuration_id, :mode, :prompt, :worktree, 
+                  :worktree_name, :global_vibe, :debug_mode)
+  end
+  
+  def find_config_files
+    # Logic to find claude-swarm.yml files in the repository
+    config_files = []
+    
+    if params[:directory_path].present?
+      Dir.glob(File.join(params[:directory_path], '**/claude-swarm.yml')).each do |path|
+        config_files << {
+          path: path,
+          name: path.sub(params[:directory_path] + '/', ''),
+          modified_at: File.mtime(path)
+        }
+      end
+    end
+    
+    config_files.sort_by { |f| -f[:modified_at].to_i }
+  end
+  
+  def merge_sessions_with_discovery
+    # Get sessions from database
+    db_sessions = Session.includes(:swarm_configuration).to_a
+    
+    # Get active sessions from file system
+    active_session_ids = SessionDiscoveryService.active_sessions.map { |s| s[:session_id] }
+    
+    # Update database records with active status
+    db_sessions.each do |session|
+      session.status = active_session_ids.include?(session.session_id) ? 'active' : 'inactive'
+    end
+    
+    # Find any active sessions not in database
+    known_ids = db_sessions.map(&:session_id)
+    SessionDiscoveryService.active_sessions.each do |discovered|
+      next if known_ids.include?(discovered[:session_id])
+      
+      # Create temporary session object for display
+      db_sessions << Session.new(
+        session_id: discovered[:session_id],
+        session_path: discovered[:session_path],
+        swarm_name: discovered[:swarm_name],
+        created_at: discovered[:start_time],
+        status: 'active',
+        mode: 'interactive'  # Assume interactive for discovered sessions
+      )
+    end
+    
+    db_sessions.sort_by { |s| -s.created_at.to_i }
+  end
+  
+  def find_session_path(session_id)
+    # Try to find session path from database first
+    session = Session.find_by(session_id: session_id)
+    return session.session_path if session&.session_path
+    
+    # Otherwise look in file system
+    sessions_dir = File.expand_path("~/.claude-swarm/sessions")
+    session_path = File.join(sessions_dir, session_id)
+    
+    return session_path if File.exist?(session_path)
+    
+    # Check if it's a symlink in run directory
+    run_link = File.expand_path("~/.claude-swarm/run/#{session_id}")
+    if File.exist?(run_link) && File.symlink?(run_link)
+      return File.readlink(run_link)
+    end
+    
+    raise "Session path not found for #{session_id}"
+  end
+end

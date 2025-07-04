@@ -57,6 +57,8 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+  # Listen to file modifications
+  gem "listen", "~> 3.0"
 end
 
 group :test do

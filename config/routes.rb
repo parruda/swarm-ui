@@ -10,5 +10,36 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   # Defines the root path route ("/")
-  # root "posts#index"
+  root "sessions#index"
+  
+  resources :sessions do
+    collection do
+      get :restore
+      post :do_restore
+    end
+    member do
+      get :logs
+      get :output
+    end
+    resource :terminal, only: [:show]
+  end
+  
+  resources :configurations do
+    member do
+      post :clone
+      get :export
+    end
+  end
+  
+  resources :instance_templates
+  resources :directories
+  
+  # API endpoints for session discovery
+  namespace :api do
+    resources :sessions, only: [:index] do
+      collection do
+        get :discover
+      end
+    end
+  end
 end

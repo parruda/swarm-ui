@@ -1,0 +1,23 @@
+<div class="h-screen flex flex-col bg-gray-900">
+  <%# Terminal Header %>
+  <div class="p-4 bg-gray-800 text-white flex justify-between items-center">
+    <div>
+      <h1 class="text-xl">Claude Swarm Terminal - <%= @session.swarm_name %></h1>
+      <p class="text-sm text-gray-400">Session: <%= @session.session_id %></p>
+    </div>
+    <div class="flex gap-2">
+      <%= link_to "Back to Session", session_path(@session.session_id), 
+          class: "px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm" %>
+    </div>
+  </div>
+  
+  <%# Full Screen Terminal %>
+  <div class="flex-1 p-4">
+    <div id="terminal-container" 
+         class="h-full bg-black rounded"
+         data-controller="terminal"
+         data-session-id="<%= @session.session_id %>">
+      <%# Terminal will be initialized here by Stimulus controller %>
+    </div>
+  </div>
+</div>

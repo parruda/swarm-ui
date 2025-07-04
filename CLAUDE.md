@@ -96,7 +96,7 @@ The project uses RuboCop with Shopify's style guide. Always run `bin/rubocop -A`
 ## Forms
 - Use Simple Form for all forms in the application
 - Simple Form has been configured to work with Tailwind CSS
-- Refer to `docs/simple_form_tailwind.md` for usage guidelines and examples
+- Refer to `llm_docs/simple_form_tailwind.md` for usage guidelines and examples
 - The configuration uses custom wrappers for proper Tailwind styling
 
 ## UI Design Guidelines

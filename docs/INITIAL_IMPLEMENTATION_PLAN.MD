@@ -6,8 +6,8 @@ This document outlines the plan for building a Rails application with Tailwind C
 
 ## Core Requirements
 
-1. **Repository Selection**: Browse and select cloned repositories on the local machine
-2. **Swarm Launching**: Launch swarms in Git worktrees with visual configuration
+1. **Directory Selection**: Browse and select directories on the local machine (Git repositories or regular directories)
+2. **Swarm Launching**: Launch swarms with optional Git worktrees for repository isolation
 3. **Web Terminal**: Access main instance through web-based terminal interface
 4. **Session Management**: Run multiple concurrent sessions with easy switching
 5. **Session Monitoring**: Real-time visibility into instance activities through log parsing
@@ -94,13 +94,15 @@ CREATE TABLE swarm_instance_templates (
   UNIQUE(swarm_configuration_id, instance_name)
 );
 
--- repositories table (for quick access)
--- Purpose: Tracks frequently used repositories for quick selection in the UI.
--- Stores the last selected swarm configuration for each repository.
-CREATE TABLE repositories (
+-- directories table (for quick access)
+-- Purpose: Tracks frequently used directories for quick selection in the UI.
+-- Stores the last selected swarm configuration for each directory.
+-- Directories can be Git repositories or regular folders.
+CREATE TABLE directories (
   id SERIAL PRIMARY KEY,
   path TEXT UNIQUE NOT NULL,
   name VARCHAR(255),
+  is_git_repository BOOLEAN DEFAULT false,
   default_swarm_configuration_id INTEGER REFERENCES swarm_configurations(id),
   last_accessed_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -139,11 +141,12 @@ CREATE TABLE repositories (
    - Solid Queue for background job processing (Rails 8 default)
    - simple_form for form handling
 
-2. **Repository Browser**
+2. **Directory Browser**
    - File system browser component (Stimulus)
    - Directory tree navigation
-   - Recent repositories list
-   - Git repository detection
+   - Recent directories list
+   - Git repository detection (for worktree support)
+   - Support for non-Git directories
 
 3. **Swarm Configuration Interface**
    - YAML editor with syntax highlighting
@@ -177,9 +180,14 @@ CREATE TABLE repositories (
 1. **Swarm Launcher Service**
    - Execute `claude-swarm` command with proper arguments
    - Use saved configurations or templates
-   - Capture session ID and path
+   - Capture session ID (format: YYYYMMDD_HHMMSS) and path
    - Track process PIDs
    - Handle worktree creation (--worktree accepts optional value)
+     - Only creates worktrees for Git repositories
+     - Non-Git directories are used as-is
+   - Support global vibe mode (--vibe flag at swarm level)
+   - Support debug mode (--debug flag)
+   - Handle --stream-logs flag for non-interactive mode
 
 2. **Session Tracking**
    - Monitor `~/.claude-swarm/run/` for active sessions
@@ -899,10 +907,11 @@ The form uses Stimulus controllers to provide dynamic behavior without page relo
 <!-- app/views/sessions/new.html.erb -->
 <%= simple_form_for :session, url: sessions_path, html: { data: { turbo: false } } do |f| %>
   <div class="space-y-6">
-    <!-- Repository Selection -->
-    <%= f.input :repository_path, 
-        label: "Repository Path",
-        placeholder: "/path/to/repository",
+    <!-- Directory Selection -->
+    <%= f.input :directory_path, 
+        label: "Working Directory",
+        placeholder: "/path/to/directory",
+        hint: "Can be any directory (Git repository or regular folder)",
         input_html: { 
           data: { controller: "directory-picker" } 
         } %>
@@ -1270,6 +1279,12 @@ These ActiveRecord models provide the data layer for the UI:
 - **SwarmConfiguration**: Stores complete YAML configurations for reuse. The `to_file` method enables writing configs for claude-swarm
 - **InstanceTemplate**: Pre-configured instance definitions that can be dragged into swarm configurations
 
+**Important Distinction - Instance Names vs Instance IDs**:
+- **Instance Name**: User-defined identifier in the YAML config (e.g., "frontend", "backend")
+- **Instance ID**: Runtime-generated UUID created when the instance launches
+- **Usage**: Instance names are used for connections and references in configuration. Instance IDs are used for state tracking and internal MCP communication
+- **Example**: An instance named "frontend" might have instance_id "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
    ```ruby
    # app/models/session.rb
    class Session < ApplicationRecord
@@ -1345,7 +1360,7 @@ These ActiveRecord models provide the data layer for the UI:
          'description' => description,
          'model' => model,
          'prompt' => prompt,
-         'allowed_tools' => allowed_tools,
+         'allowed_tools' => allowed_tools,  # Can include patterns like "Bash(npm:*)"
          'disallowed_tools' => disallowed_tools,
          'vibe' => vibe,
          'provider' => provider,
@@ -1856,6 +1871,10 @@ These Solid Queue jobs handle long-running operations asynchronously:
    - Log viewer with filtering
    - Instance tree visualization
    - Real-time charts (Chart.js)
+   - Directory list manager (multiple directories per instance)
+   - Tool pattern builder (supports patterns like "Bash(npm:*)")
+   - MCP server configuration forms
+   - Provider-specific configuration toggles
 
 5. **Controllers**
 
@@ -1864,7 +1883,7 @@ The controllers handle HTTP requests and coordinate between models, services, an
 - **SessionsController**: Main controller for session management including launching, viewing, and restoring sessions
 - **TerminalsController**: Handles terminal views for interactive sessions
 - **ConfigurationsController**: Manages saved swarm configurations
-- **RepositoriesController**: Tracks frequently used repositories
+- **DirectoriesController**: Tracks frequently used directories (Git repos or regular folders)
 
 This implementation shows key methods from SessionsController, demonstrating:
 - Session discovery that merges database records with file system data
@@ -1883,7 +1902,7 @@ This implementation shows key methods from SessionsController, demonstrating:
      def new
        @config_files = find_config_files
        @saved_configurations = SwarmConfiguration.all
-       @repositories = Repository.order(last_accessed_at: :desc).limit(10)
+       @directories = Directory.order(last_accessed_at: :desc).limit(10)
      end
      
      def create
@@ -2005,8 +2024,9 @@ This implementation shows key methods from SessionsController, demonstrating:
      private
      
      def session_params
-       params.permit(:repository_path, :configuration_source, :config_path, 
-                     :swarm_configuration_id, :mode, :prompt, :worktree)
+       params.permit(:directory_path, :configuration_source, :config_path, 
+                     :swarm_configuration_id, :mode, :prompt, :worktree, 
+                     :worktree_name, :global_vibe, :debug_mode)
      end
      
      def find_config_files
@@ -2063,6 +2083,8 @@ This implementation shows key methods from SessionsController, demonstrating:
 3. **Log Access**: Structured logs in JSONL format
 4. **Active Sessions**: Symlinks in `~/.claude-swarm/run/` directory
 5. **Instance States**: JSON files in `state/` subdirectory with instance_id (UUID) and claude_session_id
+6. **Provider Support**: Both Claude and OpenAI instances are fully supported
+7. **Generate Command**: While claude-swarm has a `generate` command to create configs via Claude, the UI provides its own visual configuration builder
 
 **Rails UI Implementation Strategy**:
 
@@ -2073,6 +2095,14 @@ Instead of relying on claude-swarm CLI commands, the Rails app should implement 
 - Calculate costs from session.log.json events
 - Build instance hierarchies from MCP configurations
 - Monitor file changes for real-time updates using Listen gem or Rails' built-in file watcher
+
+**Understanding Instance Communication**:
+The `mcp-serve` command is used internally when instances connect to each other:
+- Main instance launches connected instances via MCP protocol
+- Each connection spawns a `claude-swarm mcp-serve` process
+- The mcp-serve process launches Claude with the instance configuration
+- Instance names become MCP tool names with `mcp__` prefix (e.g., `mcp__frontend`)
+- This happens automatically - the UI doesn't need to manage it
 
 This approach provides:
 - Better performance (no subprocess overhead)
@@ -2109,6 +2139,10 @@ This approach provides:
    - Worktrees might have been manually deleted
    - Original directories might no longer exist
    - Handle partial restoration gracefully
+   - Claude session IDs are different from swarm session IDs:
+     - Session ID: Timestamp (YYYYMMDD_HHMMSS) identifying the swarm session
+     - Instance ID: Runtime UUID for each instance (filename in state/)
+     - Claude Session ID: Claude's internal session ID for `--resume`
 
 **Key Configuration Notes** (verified from codebase):
 - **Before commands**: Use `before` field at swarm level (array of commands)
@@ -2130,6 +2164,12 @@ This approach provides:
     └── [other_repo-hash]/
         └── [worktree_name]/     # Same worktree name for different repo
 ```
+
+**Important Worktree Behavior**:
+- Worktrees are ONLY created for Git repositories
+- Non-Git directories are used as-is, regardless of the --worktree flag
+- The UI should detect if a directory is a Git repository before showing worktree options
+- Instance directories can be a mix of Git and non-Git directories in the same swarm
 
 ## Rails Application Setup
 
@@ -2271,7 +2311,7 @@ Rails.application.routes.draw do
   end
   
   resources :instance_templates
-  resources :repositories
+  resources :directories
   
   # API endpoints for session discovery
   namespace :api do
@@ -2372,8 +2412,10 @@ swarm:
       directory: "."  # Can be string or array ["./src", "./docs"]
       model: "opus"
       prompt: "You are the lead developer"
-      allowed_tools: ["Read", "Edit", "Bash"]
-      disallowed_tools: ["Delete"]
+      allowed_tools: ["Read", "Edit", "Bash", "Write"]
+      # Tool patterns are supported for fine-grained control:
+      # allowed_tools: ["Read", "Edit", "Write", "Bash(npm:*)", "Bash(yarn:*)", "Bash(pnpm:*)"]
+      disallowed_tools: []  # Usually empty, as allowed_tools is preferred
       connections: ["frontend", "backend"]
       vibe: false
       worktree: true  # Can be boolean, string, or nil
@@ -2392,6 +2434,133 @@ swarm:
       openai_token_env: "OPENAI_API_KEY"
 ```
 
+### Additional Frontend Components
+
+These Stimulus controllers handle dynamic UI behaviors for configuration editing:
+
+```javascript
+// app/javascript/controllers/directory_list_controller.js
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  add(event) {
+    event.preventDefault()
+    const template = `
+      <div class="flex gap-2 mb-2">
+        <input type="text" 
+               name="instance[directories][]"
+               class="flex-1 form-input"
+               placeholder="./path/to/directory" />
+        <button type="button" 
+                class="px-3 py-1 bg-red-500 text-white rounded"
+                data-action="click->directory-list#remove">Remove</button>
+      </div>
+    `
+    this.element.insertAdjacentHTML('beforeend', template)
+  }
+  
+  remove(event) {
+    event.preventDefault()
+    event.target.closest('div').remove()
+  }
+}
+
+// app/javascript/controllers/tools_builder_controller.js
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static targets = ["customTool"]
+  
+  addCustom(event) {
+    event.preventDefault()
+    const value = this.customToolTarget.value.trim()
+    
+    if (value) {
+      const checkbox = document.createElement('label')
+      checkbox.className = 'flex items-center'
+      checkbox.innerHTML = `
+        <input type="checkbox" 
+               name="instance[allowed_tools][]"
+               value="${value}"
+               checked />
+        <span class="ml-2">${value}</span>
+      `
+      
+      this.element.querySelector('.grid').appendChild(checkbox)
+      this.customToolTarget.value = ''
+    }
+  }
+}
+
+// app/javascript/controllers/mcp_builder_controller.js
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  add(event) {
+    event.preventDefault()
+    const template = `
+      <div class="border p-3 rounded mb-2">
+        <div class="grid grid-cols-2 gap-3">
+          <input type="text" 
+                 name="instance[mcps][][name]"
+                 placeholder="MCP server name"
+                 class="form-input" />
+          
+          <select name="instance[mcps][][type]" class="form-select">
+            <option value="stdio">stdio</option>
+            <option value="sse">sse</option>
+          </select>
+          
+          <input type="text"
+                 name="instance[mcps][][command]"
+                 placeholder="Command (for stdio)"
+                 class="form-input col-span-2" />
+          
+          <input type="text"
+                 name="instance[mcps][][args]"
+                 placeholder="Arguments (comma-separated)"
+                 class="form-input col-span-2" />
+          
+          <input type="text"
+                 name="instance[mcps][][url]"
+                 placeholder="URL (for sse)"
+                 class="form-input col-span-2" />
+        </div>
+        
+        <button type="button"
+                class="mt-2 px-3 py-1 bg-red-500 text-white rounded text-sm"
+                data-action="click->mcp-builder#removeMcp">Remove</button>
+      </div>
+    `
+    this.element.insertAdjacentHTML('beforeend', template)
+  }
+  
+  removeMcp(event) {
+    event.preventDefault()
+    event.target.closest('.border').remove()
+  }
+}
+
+// app/javascript/controllers/instance_form_controller.js
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  updateProvider(event) {
+    const provider = event.target.value
+    const claudeFields = document.getElementById('claude-fields')
+    const openaiFields = document.getElementById('openai-fields')
+    
+    if (provider === 'openai') {
+      claudeFields.classList.add('hidden')
+      openaiFields.classList.remove('hidden')
+    } else {
+      claudeFields.classList.remove('hidden')
+      openaiFields.classList.add('hidden')
+    }
+  }
+}
+```
+
 ## Summary
 
 This Rails UI application provides a web-based interface for Claude Swarm without requiring any modifications to the claude-swarm gem itself. Key features:
@@ -2401,5 +2570,7 @@ This Rails UI application provides a web-based interface for Claude Swarm withou
 - **Real-Time Monitoring**: Live session logs, instance communication tracking, and cost analysis
 - **Web Terminal**: Full terminal access to interactive Claude sessions through the browser
 - **Zero Claude-Swarm Changes**: Works with the existing claude-swarm implementation
+- **Flexible Directory Support**: Works with both Git repositories and regular directories
+- **Smart Worktree Handling**: Automatically detects Git repos and only creates worktrees where applicable
 
 The application acts as a "pane of glass" over claude-swarm, reading session files directly and managing processes through system commands. This approach maintains separation of concerns and allows independent evolution of both projects.

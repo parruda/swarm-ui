@@ -29,4 +29,14 @@ class TerminalsController < ApplicationController
       active: @session.active?
     }
   end
+  
+  def test
+    # Test page for WebSocket connection
+    @session = Session.find_by!(session_id: params[:session_id])
+  end
+  
+  def test2
+    # Direct WebSocket test
+    @session = Session.find_by!(session_id: params[:session_id])
+  end
 end

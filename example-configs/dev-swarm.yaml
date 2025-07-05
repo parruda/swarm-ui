@@ -1,0 +1,16 @@
+swarm:
+  name: Development Swarm
+  main: architect
+  instances:
+    - name: architect
+      description: System architect and coordinator
+      model: sonnet
+      temperature: 0.3
+    - name: frontend_dev
+      description: Frontend developer
+      model: haiku
+      temperature: 0.7
+    - name: backend_dev
+      description: Backend developer
+      model: opus
+      temperature: 0.5

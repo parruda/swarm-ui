@@ -31,7 +31,7 @@ export default class extends Controller {
       
       if (response.ok) {
         const data = await response.json()
-        this.updateConfigSelect(data.config_files || [])
+        this.updateConfigSelect(data.data.config_files || [])
       } else {
         console.error('Failed to load config files')
         this.clearConfigFiles()
@@ -47,7 +47,7 @@ export default class extends Controller {
     const select = this.configSelectTarget
     
     // Clear existing options
-    select.innerHTML = '<option value="">Select claude-swarm.yml</option>'
+    select.innerHTML = '<option value="">Select a configuration file</option>'
     
     // Add new options
     configFiles.forEach(file => {
@@ -71,6 +71,6 @@ export default class extends Controller {
   // Clear the config file dropdown
   clearConfigFiles() {
     const select = this.configSelectTarget
-    select.innerHTML = '<option value="">Select claude-swarm.yml</option>'
+    select.innerHTML = '<option value="">Select a configuration file</option>'
   }
 }

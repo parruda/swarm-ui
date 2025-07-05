@@ -1,3 +1,5 @@
+require 'yaml'
+
 module Api
   class SessionsController < BaseController
     # GET /api/sessions
@@ -101,16 +103,59 @@ module Api
       
       return config_files unless directory_path.present? && Dir.exist?(directory_path)
       
-      Dir.glob(File.join(directory_path, '**/claude-swarm.yml')).each do |path|
-        relative_path = path.sub(directory_path + '/', '')
-        config_files << {
-          path: path,
-          name: relative_path,
-          modified_at: File.mtime(path)
-        }
+      # Find all YAML files
+      yaml_patterns = ['**/*.yml', '**/*.yaml']
+      yaml_files = yaml_patterns.flat_map { |pattern| Dir.glob(File.join(directory_path, pattern)) }
+      
+      yaml_files.each do |path|
+        begin
+          # Try to parse the YAML file
+          content = File.read(path)
+          config = YAML.safe_load(content)
+          
+          # Check if it's a valid swarm configuration
+          if valid_swarm_config?(config)
+            relative_path = path.sub(directory_path + '/', '')
+            swarm_name = config.dig('swarm', 'name') || 'Unnamed Swarm'
+            
+            config_files << {
+              path: path,
+              name: "#{relative_path} - #{swarm_name}",
+              relative_path: relative_path,
+              swarm_name: swarm_name,
+              modified_at: File.mtime(path)
+            }
+          end
+        rescue => e
+          # Skip files that can't be parsed
+          Rails.logger.debug "Skipping #{path}: #{e.message}"
+        end
       end
       
       config_files.sort_by { |f| -f[:modified_at].to_i }
+    end
+    
+    def valid_swarm_config?(config)
+      return false unless config.is_a?(Hash)
+      
+      # Check for swarm key
+      return false unless config['swarm'].is_a?(Hash)
+      
+      swarm = config['swarm']
+      
+      # Must have instances
+      return false unless swarm['instances'].present?
+      
+      # Instances can be either an array or a hash
+      if swarm['instances'].is_a?(Array)
+        # Array format: each instance should have a name
+        swarm['instances'].all? { |i| i.is_a?(Hash) && i['name'].present? }
+      elsif swarm['instances'].is_a?(Hash)
+        # Hash format: keys are instance names
+        swarm['instances'].keys.any?
+      else
+        false
+      end
     end
   end
 end

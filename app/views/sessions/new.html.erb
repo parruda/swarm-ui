@@ -12,7 +12,7 @@
     <%# Form %>
     <div class="mt-8 bg-white shadow sm:rounded-lg">
       <div class="px-4 py-5 sm:p-6">
-        <%= form_with url: sessions_path, local: true, data: { turbo: false, controller: "configuration-loader" } do |f| %>
+        <%= form_with url: sessions_path, local: true, data: { turbo: false, controller: "configuration_loader" } do |f| %>
           <div class="space-y-6">
             <%# Directory Selection %>
             <div>
@@ -23,8 +23,8 @@
                     class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm",
                     data: { 
                       "directory-picker-target": "input",
-                      "configuration-loader-target": "directoryInput",
-                      "action": "input->configuration-loader#directoryChanged"
+                      "configuration_loader_target": "directoryInput",
+                      "action": "input->configuration_loader#directoryChanged"
                     } %>
                 <p class="mt-2 text-sm text-gray-500">
                   Can be any directory (Git repository or regular folder)
@@ -54,13 +54,13 @@
             </div>
 
             <%# Configuration File (shown for 'file' source) %>
-            <div id="config-file-field" data-configuration-loader-target="configFileField">
+            <div id="config-file-field" data-configuration_loader_target="configFileField">
               <%= f.label :config_path, "Configuration File", class: "block text-sm font-medium text-gray-700" %>
               <%= f.select :config_path, 
                   options_for_select(@config_files || []),
                   { prompt: "Select claude-swarm.yml" },
                   class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm",
-                  data: { "configuration-loader-target": "configSelect" } %>
+                  data: { "configuration_loader_target": "configSelect" } %>
             </div>
 
             <%# Saved Configuration (shown for 'saved' source) %>

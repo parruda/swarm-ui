@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import consumer from "../channels/consumer"
+import consumer from "channels/consumer"
 
 // Output viewer controller for non-interactive session output
 // Streams and displays output from background Claude Swarm processes

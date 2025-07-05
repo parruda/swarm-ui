@@ -3,4 +3,13 @@
 
 import { createConsumer } from "@rails/actioncable"
 
-export default createConsumer()
+const consumer = createConsumer()
+
+// Debug logging
+console.log("ActionCable consumer created", consumer)
+
+// Make it available globally for debugging
+window.App = window.App || {}
+window.App.cable = consumer
+
+export default consumer

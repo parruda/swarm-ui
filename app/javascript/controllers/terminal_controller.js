@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import { WebLinksAddon } from 'xterm-addon-web-links'
-import consumer from "../channels/consumer"
+import consumer from "channels/consumer"
 
 // Terminal controller for xterm.js integration
 // Manages web-based terminal emulation for interactive Claude Swarm sessions
@@ -36,6 +36,10 @@ export default class extends Controller {
     if (loadingElement) {
       loadingElement.remove()
     }
+    
+    // Show initial message
+    this.terminal.writeln('Connecting to terminal...')
+    this.terminal.writeln('')
     
     // Set up WebSocket connection
     this.setupWebSocket()
@@ -82,8 +86,11 @@ export default class extends Controller {
     
     if (!sessionId) {
       console.error("No session ID provided for terminal")
+      this.terminal.writeln('\r\n\x1b[31mError: No session ID provided\x1b[0m\r\n')
       return
     }
+    
+    console.log(`Creating WebSocket subscription for session: ${sessionId}`)
     
     this.subscription = consumer.subscriptions.create(
       { 
@@ -94,6 +101,7 @@ export default class extends Controller {
         connected: () => {
           console.log("Terminal WebSocket connected")
           this.channel = this.subscription
+          this.terminal.writeln('\r\n\x1b[32mWebSocket connected!\x1b[0m\r\n')
           
           // Send initial terminal size
           this.handleResize()
@@ -105,12 +113,18 @@ export default class extends Controller {
         },
         
         received: (data) => {
+          console.log("Received data:", data)
           if (data.type === 'output') {
             const decoded = atob(data.data)
             this.terminal.write(decoded)
           } else if (data.type === 'error') {
             this.showError(data.message)
           }
+        },
+        
+        rejected: () => {
+          console.error("WebSocket subscription rejected")
+          this.terminal.writeln('\r\n\x1b[31mWebSocket connection rejected by server\x1b[0m\r\n')
         }
       }
     )

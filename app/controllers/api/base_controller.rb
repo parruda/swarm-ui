@@ -22,7 +22,7 @@ module Api
     
     # Standard success response
     def render_success(data = {}, status = :ok)
-      render json: data, status: status
+      render json: { success: true, data: data }, status: status
     end
   end
 end

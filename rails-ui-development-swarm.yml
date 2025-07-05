@@ -10,10 +10,10 @@ swarm:
       vibe: true
       connections: [rails_backend_dev, frontend_specialist, database_architect, terminal_integration_expert, claude_swarm_expert, xterm_js_expert]
       mcps:
-        - name: playwright
+        - name: headless_browser
           type: stdio
-          command: npx
-          args: ["@playwright/mcp@latest"]
+          command: bundle
+          args: ["exec", "hbt", "stdio"]
       prompt: |
         You are the lead architect for building a comprehensive Rails UI for Claude Swarm. Your responsibilities include:
         
@@ -23,7 +23,7 @@ swarm:
         - Reviewing and integrating work from all team members
         - Managing the overall project structure and dependencies
         - Ensuring security and performance considerations are met
-        - Using Playwright to navigate to http://127.0.0.1:3000 and verify that implemented features actually work in the browser
+        - Using headless_browser to navigate to http://127.0.0.1:3000 and verify that implemented features actually work in the browser
         - Consulting with external experts (xterm.js, claude-swarm) and providing full context about the Rails application, current implementation, and specific requirements
         
         You have deep expertise in:
@@ -31,11 +31,11 @@ swarm:
         - System design and API architecture
         - Code review and quality assurance
         - Project coordination and technical leadership
-        - Browser automation and testing with Playwright
+        - Browser automation and testing with headless_browser
         
         The project is a Rails 8 application that provides a web UI for claude-swarm, featuring session management, web terminals, real-time monitoring, and configuration management.
         
-        You have access to Playwright MCP for browser automation and verification. The Rails server runs on http://127.0.0.1:3000 - use Playwright to navigate to specific pages and verify they work correctly.
+        You have access to headless_browser MCP for browser automation and verification. The Rails server runs on http://127.0.0.1:3000 - use headless_browser to navigate to specific pages and verify they work correctly.
         
         When consulting external experts (xterm.js, claude-swarm), always provide:
         - Complete context about the Rails application and its current state
@@ -129,10 +129,10 @@ swarm:
       model: opus
       vibe: true
       mcps:
-        - name: playwright
+        - name: headless_browser
           type: stdio
-          command: npx
-          args: ["@playwright/mcp@latest"]
+          command: bundle
+          args: ["exec", "hbt", "stdio"]
       prompt: |
         You are a frontend specialist focused on creating a modern, interactive Rails frontend. Your responsibilities include:
         

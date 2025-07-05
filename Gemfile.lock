@@ -181,6 +181,17 @@ GEM
     globalid (1.2.1)
       activesupport (>= 6.1)
     hashdiff (1.2.0)
+    headless_browser_tool (0.1.2)
+      capybara
+      fast-mcp-annotations (~> 1.5)
+      json
+      ostruct
+      puma
+      rackup
+      selenium-webdriver
+      sinatra
+      sinatra-contrib
+      thor
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
     importmap-rails (2.1.0)
@@ -218,7 +229,10 @@ GEM
     mocha (2.7.1)
       ruby2_keywords (>= 0.0.5)
     msgpack (1.8.0)
+    multi_json (1.15.0)
     multipart-post (2.4.1)
+    mustermann (3.0.3)
+      ruby2_keywords (~> 0.0.1)
     net-http (0.6.0)
       uri
     net-imap (0.5.9)
@@ -247,6 +261,7 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.8-x86_64-linux-musl)
       racc (~> 1.4)
+    ostruct (0.6.2)
     parallel (1.27.0)
     parser (3.3.8.0)
       ast (~> 2.4.1)
@@ -270,6 +285,9 @@ GEM
     raabro (1.4.0)
     racc (1.8.1)
     rack (2.2.17)
+    rack-protection (3.2.0)
+      base64 (>= 0.1.0)
+      rack (~> 2.2, >= 2.2.4)
     rack-session (1.0.2)
       rack (< 3)
     rack-test (2.2.0)
@@ -366,6 +384,17 @@ GEM
     simple_form (5.3.1)
       actionpack (>= 5.2)
       activemodel (>= 5.2)
+    sinatra (3.2.0)
+      mustermann (~> 3.0)
+      rack (~> 2.2, >= 2.2.4)
+      rack-protection (= 3.2.0)
+      tilt (~> 2.0)
+    sinatra-contrib (3.2.0)
+      multi_json (>= 0.0.2)
+      mustermann (~> 3.0)
+      rack-protection (= 3.2.0)
+      sinatra (= 3.2.0)
+      tilt (~> 2.0)
     solid_cable (3.0.11)
       actioncable (>= 7.2)
       activejob (>= 7.2)
@@ -401,6 +430,7 @@ GEM
     thruster (0.1.14-arm64-darwin)
     thruster (0.1.14-x86_64-darwin)
     thruster (0.1.14-x86_64-linux)
+    tilt (2.6.0)
     timeout (0.4.3)
     turbo-rails (2.0.16)
       actionpack (>= 7.1.0)
@@ -453,6 +483,7 @@ DEPENDENCIES
   debug
   dotenv-rails
   factory_bot_rails
+  headless_browser_tool
   importmap-rails
   jbuilder
   minitest

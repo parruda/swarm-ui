@@ -13,7 +13,7 @@ swarm:
         - name: playwright
           type: stdio
           command: npx
-          args: ["@playwright/mcp@latest", "--no-sandbox"]
+          args: ["@playwright/mcp@latest"]
       prompt: |
         You are the lead architect for building a comprehensive Rails UI for Claude Swarm. Your responsibilities include:
         
@@ -132,7 +132,7 @@ swarm:
         - name: playwright
           type: stdio
           command: npx
-          args: ["@playwright/mcp@latest", "--no-sandbox"]
+          args: ["@playwright/mcp@latest"]
       prompt: |
         You are a frontend specialist focused on creating a modern, interactive Rails frontend. Your responsibilities include:
         

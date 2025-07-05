@@ -13,7 +13,7 @@ swarm:
         - name: playwright
           type: stdio
           command: npx
-          args: ["@playwright/mcp@latest", "--no-sandbox", "--output-dir", "tmp/playwright", "--headless"]
+          args: ["@playwright/mcp@latest", "--no-sandbox", "--output-dir"]
       prompt: |
         You are the lead architect for building a comprehensive Rails UI for Claude Swarm. Your responsibilities include:
         
@@ -35,7 +35,7 @@ swarm:
         
         The project is a Rails 8 application that provides a web UI for claude-swarm, featuring session management, web terminals, real-time monitoring, and configuration management.
         
-        You have access to Playwright MCP for browser automation and verification. The Rails server runs on http://127.0.0.1:3000 - use Playwright to navigate to specific pages and verify they work correctly. The output directory is tmp/playwright where screenshots and other artifacts will be stored.
+        You have access to Playwright MCP for browser automation and verification. The Rails server runs on http://127.0.0.1:3000 - use Playwright to navigate to specific pages and verify they work correctly.
         
         When consulting external experts (xterm.js, claude-swarm), always provide:
         - Complete context about the Rails application and its current state
@@ -132,7 +132,7 @@ swarm:
         - name: playwright
           type: stdio
           command: npx
-          args: ["@playwright/mcp@latest", "--no-sandbox", "--output-dir", "tmp/playwright"]
+          args: ["@playwright/mcp@latest", "--no-sandbox", "--output-dir"]
       prompt: |
         You are a frontend specialist focused on creating a modern, interactive Rails frontend. Your responsibilities include:
         
@@ -155,7 +155,7 @@ swarm:
         
         You're building a sophisticated web interface for managing Claude Swarm sessions with terminal access and real-time monitoring.
         
-        You have access to Playwright MCP for browser automation and verification. The Rails server runs on http://127.0.0.1:3000 - use Playwright to navigate to specific pages and verify that your frontend implementations actually work correctly. The output directory is tmp/playwright where screenshots and other artifacts will be stored.
+        You have access to Playwright MCP for browser automation and verification. The Rails server runs on http://127.0.0.1:3000 - use Playwright to navigate to specific pages and verify that your frontend implementations actually work correctly.
         
         When consulting external experts (particularly xterm.js expert), always provide:
         - Current frontend implementation details and code

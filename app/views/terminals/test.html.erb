@@ -1,0 +1,64 @@
+<div class="p-8">
+  <h1 class="text-2xl mb-4">WebSocket Test</h1>
+  
+  <div id="status" class="mb-4 p-4 bg-gray-100 rounded">
+    Status: <span id="status-text">Not connected</span>
+  </div>
+  
+  <div id="messages" class="p-4 bg-gray-900 text-green-400 rounded h-64 overflow-auto font-mono text-sm">
+    Waiting for connection...
+  </div>
+  
+  <script type="module">
+    import consumer from "channels/consumer"
+    
+    const statusEl = document.getElementById('status-text');
+    const messagesEl = document.getElementById('messages');
+    
+    function log(message) {
+      const time = new Date().toLocaleTimeString();
+      messagesEl.innerHTML += `\n[${time}] ${message}`;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    
+    log('Script loaded');
+    log('Consumer: ' + (consumer ? 'Found' : 'Not found'));
+    
+    if (consumer) {
+      log('Creating test subscription...');
+      
+      const subscription = consumer.subscriptions.create(
+        { channel: "TestChannel" },
+        {
+          connected() {
+            log('Connected to TestChannel!');
+            statusEl.textContent = 'Connected';
+            statusEl.className = 'text-green-600 font-bold';
+          },
+          
+          disconnected() {
+            log('Disconnected from TestChannel');
+            statusEl.textContent = 'Disconnected';
+            statusEl.className = 'text-red-600 font-bold';
+          },
+          
+          received(data) {
+            log('Received: ' + JSON.stringify(data));
+          },
+          
+          rejected() {
+            log('Subscription rejected');
+            statusEl.textContent = 'Rejected';
+            statusEl.className = 'text-red-600 font-bold';
+          }
+        }
+      );
+      
+      log('Subscription created');
+    } else {
+      log('ERROR: Consumer not available');
+      statusEl.textContent = 'Error - No consumer';
+      statusEl.className = 'text-red-600 font-bold';
+    }
+  </script>
+</div>

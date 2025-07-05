@@ -24,8 +24,13 @@ default: &default
   port: 5432
 
 development:
-  <<: *default
-  database: swarm_ui_development
+  primary:
+    <<: *default
+    database: swarm_ui_development
+  cable:
+    <<: *default
+    database: swarm_ui_development_cable
+    migrations_paths: db/cable_migrate
 
   # The specified database role being used to connect to PostgreSQL.
   # To create additional roles in PostgreSQL see `$ createuser --help`.
@@ -58,8 +63,13 @@ development:
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
 test:
-  <<: *default
-  database: swarm_ui_test
+  primary:
+    <<: *default
+    database: swarm_ui_test
+  cable:
+    <<: *default
+    database: swarm_ui_test_cable
+    migrations_paths: db/cable_migrate
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is

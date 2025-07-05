@@ -1,4 +1,16 @@
-# production:
+development:
+  cleanup_stale_sessions:
+    class: CleanupStaleSessionsJob
+    queue: maintenance
+    args: [ { days: 7 } ]
+    schedule: at 3am every day
+
+production:
+  cleanup_stale_sessions:
+    class: CleanupStaleSessionsJob
+    queue: maintenance
+    args: [ { days: 7 } ]
+    schedule: at 3am every day
 #   periodic_cleanup:
 #     class: CleanSoftDeletedRecordsJob
 #     queue: background

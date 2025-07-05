@@ -1,0 +1,120 @@
+<div class="py-6">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+    <%# Page Header %>
+    <div class="md:flex md:items-center md:justify-between">
+      <div class="min-w-0 flex-1">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+          Restore Session
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+          Select a previous session to restore
+        </p>
+      </div>
+      <div class="mt-4 flex md:ml-4 md:mt-0">
+        <%= link_to "Back to Sessions", sessions_path,
+            class: "inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" %>
+      </div>
+    </div>
+
+    <%# Sessions List %>
+    <div class="mt-8">
+      <% if @sessions.present? %>
+        <div class="overflow-hidden bg-white shadow sm:rounded-md">
+          <ul role="list" class="divide-y divide-gray-200">
+            <% @sessions.each do |session| %>
+              <li>
+                <div class="px-4 py-4 sm:px-6">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                          <% if session[:active] %>
+                            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-green-500">
+                              <span class="h-3 w-3 rounded-full bg-white"></span>
+                            </span>
+                          <% else %>
+                            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-400">
+                              <span class="h-3 w-3 rounded-full bg-white"></span>
+                            </span>
+                          <% end %>
+                        </div>
+                        <div class="ml-4">
+                          <h3 class="text-base font-medium text-gray-900">
+                            <%= session[:swarm_name] || "Unnamed Swarm" %>
+                          </h3>
+                          <p class="text-sm text-gray-500">
+                            Session ID: <%= session[:session_id] %>
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div class="mt-2 sm:flex sm:items-center sm:justify-between">
+                        <div class="sm:flex sm:space-x-6">
+                          <p class="flex items-center text-sm text-gray-500">
+                            <svg class="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                            </svg>
+                            <%= session[:start_directory] || "Unknown directory" %>
+                          </p>
+                          <p class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                            <svg class="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Started <%= session[:start_time].strftime("%B %d, %Y at %I:%M %p") %>
+                          </p>
+                        </div>
+                        
+                        <% if session[:worktree] %>
+                          <div class="mt-2 sm:mt-0">
+                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                              Worktree: <%= session[:worktree] %>
+                            </span>
+                          </div>
+                        <% end %>
+                      </div>
+                    </div>
+                    
+                    <div class="ml-5 flex-shrink-0">
+                      <% if session[:active] %>
+                        <%= link_to "View Active", session_path(session[:session_id]),
+                            class: "inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500" %>
+                      <% else %>
+                        <%= button_to "Restore", do_restore_sessions_path,
+                            params: { session_id: session[:session_id] },
+                            method: :post,
+                            data: { turbo: false },
+                            class: "inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 cursor-pointer" %>
+                      <% end %>
+                    </div>
+                  </div>
+                  
+                  <% if session[:db_session] %>
+                    <div class="mt-2">
+                      <p class="text-xs text-gray-500">
+                        Mode: <%= session[:db_session].mode.humanize %> | 
+                        Project: <%= session[:project_name] %>
+                      </p>
+                    </div>
+                  <% end %>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% else %>
+        <%# Empty State %>
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-semibold text-gray-900">No sessions to restore</h3>
+          <p class="mt-1 text-sm text-gray-500">All sessions are either active or have been cleaned up.</p>
+          <div class="mt-6">
+            <%= link_to "New Session", new_session_path,
+                class: "inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

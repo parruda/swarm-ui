@@ -1,0 +1,22 @@
+<div class="py-6">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <%# Page Header %>
+    <div class="md:flex md:items-center md:justify-between mb-8">
+      <div class="min-w-0 flex-1">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+          Edit Configuration
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+          Update <%= @configuration.name %>
+        </p>
+      </div>
+      <div class="mt-4 flex md:ml-4 md:mt-0">
+        <%= link_to "Export YAML", export_configuration_path(@configuration),
+            class: "inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" %>
+      </div>
+    </div>
+
+    <%# Form %>
+    <%= render 'form', configuration: @configuration %>
+  </div>
+</div>

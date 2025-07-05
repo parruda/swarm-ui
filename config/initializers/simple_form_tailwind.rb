@@ -121,7 +121,7 @@ SimpleForm.setup do |config|
   config.default_form_class = 'space-y-6'
 
   # Custom inputs discovery
-  config.custom_inputs_namespaces << "SimpleForm::Tailwind::Inputs"
+  # config.custom_inputs_namespaces << "SimpleForm::Tailwind::Inputs"
 end
 
 # Custom form builder class for additional Tailwind styling if needed

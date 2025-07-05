@@ -58,7 +58,9 @@ class SessionsController < ApplicationController
       
       if system(*tmux_cmd)
         # Update or create session record
-        session = Session.find_or_create_by(session_id: session_id)
+        session = Session.find_or_create_by(session_id: session_id) do |s|
+          s.session_path = session_path
+        end
         session.update!(
           session_path: session_path,
           status: 'active',

@@ -93,6 +93,10 @@ class DirectoriesController < ApplicationController
   end
 
   def directory_params
-    params.require(:directory).permit(:path, :name, :default_swarm_configuration_id)
+    if action_name == 'create'
+      params.require(:directory).permit(:path, :name, :default_swarm_configuration_id)
+    else
+      params.require(:directory).permit(:name, :default_swarm_configuration_id)
+    end
   end
 end

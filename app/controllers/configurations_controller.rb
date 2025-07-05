@@ -46,7 +46,7 @@ class ConfigurationsController < ApplicationController
   # Update an existing configuration
   def update
     if validate_yaml(configuration_params[:config_yaml]) && @configuration.update(configuration_params)
-      redirect_to @configuration, notice: 'Configuration was successfully updated.'
+      redirect_to configuration_path(@configuration), notice: 'Configuration was successfully updated.'
     else
       @instance_templates = InstanceTemplate.all.order(:instance_type, :name)
       render :edit
@@ -76,7 +76,8 @@ class ConfigurationsController < ApplicationController
       # Copy instance template associations
       @configuration.swarm_instance_templates.each do |sit|
         new_config.swarm_instance_templates.create(
-          instance_template_id: sit.instance_template_id
+          instance_template_id: sit.instance_template_id,
+          instance_name: sit.instance_name
         )
       end
       
@@ -104,7 +105,7 @@ class ConfigurationsController < ApplicationController
   end
 
   def configuration_params
-    params.require(:swarm_configuration).permit(:name, :description, :config_yaml, :is_template)
+    params.require(:swarm_configuration).permit(:name, :description, :config_yaml, :is_template, before: [])
   end
   
   def validate_yaml(yaml_content)

@@ -12,6 +12,9 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     # Note: We're using factories instead of fixtures
     # fixtures :all
+    
+    # Include route helpers in tests
+    include Rails.application.routes.url_helpers
 
     # Include Factory Bot methods
     include FactoryBot::Syntax::Methods
@@ -32,10 +35,12 @@ module ActiveSupport
       FileUtils.mkdir_p(@test_run_path)
       FileUtils.mkdir_p(@test_worktrees_path)
       
-      # Override Rails configuration for tests
-      Rails.configuration.claude_swarm.sessions_path = @test_sessions_path.to_s
-      Rails.configuration.claude_swarm.run_path = @test_run_path.to_s
-      Rails.configuration.claude_swarm.worktrees_path = @test_worktrees_path.to_s
+      # Override Rails configuration for tests if claude_swarm config exists
+      if Rails.configuration.respond_to?(:claude_swarm)
+        Rails.configuration.claude_swarm.sessions_path = @test_sessions_path.to_s
+        Rails.configuration.claude_swarm.run_path = @test_run_path.to_s
+        Rails.configuration.claude_swarm.worktrees_path = @test_worktrees_path.to_s
+      end
       
     end
     
@@ -64,7 +69,7 @@ module ActiveSupport
       
       File.write(
         File.join(session_path, "session_metadata.json"),
-        JSON.pretty_generate(metadata)
+        metadata.to_json
       )
       
       # Create config.yml

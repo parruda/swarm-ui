@@ -1,0 +1,57 @@
+<%= simple_form_for directory do |f| %>
+  <div class="space-y-6">
+    <%# Basic Information %>
+    <div class="bg-white px-4 py-5 shadow sm:rounded-lg sm:p-6">
+      <div class="md:grid md:grid-cols-3 md:gap-6">
+        <div class="md:col-span-1">
+          <h3 class="text-lg font-medium leading-6 text-gray-900">Directory Information</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Add a directory for quick access to your projects.
+          </p>
+        </div>
+        <div class="mt-5 md:col-span-2 md:mt-0">
+          <div class="grid grid-cols-6 gap-6">
+            <div class="col-span-6">
+              <%= f.input :path,
+                  label: "Directory Path",
+                  placeholder: "/home/user/projects/my-app",
+                  hint: "Full path to the directory on your system",
+                  input_html: { 
+                    class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm",
+                    data: { controller: "directory-picker" }
+                  },
+                  wrapper_html: { class: "mb-4" } %>
+            </div>
+            
+            <div class="col-span-6">
+              <%= f.input :name,
+                  label: "Display Name",
+                  placeholder: "My Application",
+                  hint: "A friendly name for this directory (optional - will use directory name if blank)",
+                  input_html: { class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" },
+                  wrapper_html: { class: "mb-4" } %>
+            </div>
+            
+            <div class="col-span-6">
+              <%= f.association :default_swarm_configuration,
+                  label: "Default Configuration",
+                  collection: @swarm_configurations,
+                  include_blank: "None",
+                  hint: "Automatically use this configuration when launching from this directory",
+                  input_html: { class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" },
+                  wrapper_html: { class: "mb-4" } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Form Actions %>
+    <div class="flex justify-end space-x-3">
+      <%= link_to "Cancel", directories_path, 
+          class: "rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" %>
+      <%= f.button :submit, 
+          class: "inline-flex justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" %>
+    </div>
+  </div>
+<% end %>

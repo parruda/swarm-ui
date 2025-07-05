@@ -1,4 +1,4 @@
-<%= simple_form_for configuration, html: { data: { turbo: false } } do |f| %>
+<%= simple_form_for configuration, as: :swarm_configuration, url: configuration.persisted? ? configuration_path(configuration) : configurations_path, html: { data: { turbo: false } } do |f| %>
   <div class="space-y-6">
     <%# Basic Information %>
     <div class="bg-white px-4 py-5 shadow sm:rounded-lg sm:p-6">

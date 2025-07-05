@@ -49,6 +49,17 @@ module Api
     # GET /api/sessions/discover
     # Discover sessions from file system without database records
     def discover
+      # If directory_path is provided, find config files
+      if params[:directory_path].present?
+        config_files = find_config_files(params[:directory_path])
+        render_success({
+          config_files: config_files,
+          directory_path: params[:directory_path]
+        })
+        return
+      end
+      
+      # Otherwise, discover sessions
       # Use SessionDiscoveryService to find all sessions
       all_sessions = SessionDiscoveryService.list_all_sessions(limit: 100)
       
@@ -83,6 +94,23 @@ module Api
     
     def session_params
       params.permit(:status, :limit, :offset)
+    end
+    
+    def find_config_files(directory_path)
+      config_files = []
+      
+      return config_files unless directory_path.present? && Dir.exist?(directory_path)
+      
+      Dir.glob(File.join(directory_path, '**/claude-swarm.yml')).each do |path|
+        relative_path = path.sub(directory_path + '/', '')
+        config_files << {
+          path: path,
+          name: relative_path,
+          modified_at: File.mtime(path)
+        }
+      end
+      
+      config_files.sort_by { |f| -f[:modified_at].to_i }
     end
   end
 end

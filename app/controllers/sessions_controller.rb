@@ -1,3 +1,5 @@
+require 'yaml'
+
 class SessionsController < ApplicationController
   def index
     # Merge database sessions with discovered sessions
@@ -11,12 +13,49 @@ class SessionsController < ApplicationController
   end
   
   def create
-    launcher = SwarmLauncher.new(session_params)
-    session_id = launcher.launch
+    # Generate session ID
+    session_id = Time.now.strftime("%Y%m%d_%H%M%S")
+    
+    # Create session path
+    project_name = File.basename(session_params[:directory_path] || 'default')
+    session_path = File.expand_path("~/.claude-swarm/sessions/#{project_name}/#{session_id}")
+    
+    # Determine configuration
+    config = determine_configuration
+    
+    # Create session record
+    @session = Session.create!(
+      session_id: session_id,
+      session_path: session_path,
+      swarm_configuration: config[:swarm_configuration],
+      swarm_name: config[:swarm_name] || "New Swarm",
+      mode: session_params[:mode] || 'interactive',
+      status: 'starting',
+      working_directory: session_params[:directory_path],
+      worktree_path: session_params[:use_worktree] ? generate_worktree_path(session_id) : nil
+    )
+    
+    # Set configuration hash if using file or new config
+    if config[:configuration_hash]
+      @session.define_singleton_method(:configuration_hash) do
+        config[:configuration_hash]
+      end
+    end
+    
+    # Launch the session
+    launcher = SwarmLauncher.new(@session)
+    
+    if @session.mode == 'interactive'
+      launcher.launch_interactive
+    else
+      launcher.launch_non_interactive(session_params[:prompt])
+    end
     
     redirect_to session_path(session_id)
   rescue => e
-    flash[:error] = e.message
+    Rails.logger.error "Failed to create session: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+    flash[:error] = "Failed to launch session: #{e.message}"
     redirect_to new_session_path
   end
   
@@ -144,8 +183,65 @@ class SessionsController < ApplicationController
   
   def session_params
     params.permit(:directory_path, :configuration_source, :config_path, 
-                  :swarm_configuration_id, :mode, :prompt, :worktree, 
+                  :swarm_configuration_id, :mode, :prompt, :use_worktree, 
                   :worktree_name, :global_vibe, :debug_mode)
+  end
+  
+  def determine_configuration
+    case session_params[:configuration_source]
+    when 'saved'
+      config = SwarmConfiguration.find(session_params[:swarm_configuration_id])
+      {
+        swarm_configuration: config,
+        swarm_name: config.name,
+        configuration_hash: nil
+      }
+    when 'file'
+      # Load from file
+      config_content = File.read(session_params[:config_path])
+      config_hash = YAML.safe_load(config_content)
+      {
+        swarm_configuration: nil,
+        swarm_name: config_hash.dig('swarm', 'name') || 'File Config',
+        configuration_hash: config_hash
+      }
+    when 'new'
+      # Create basic config
+      {
+        swarm_configuration: nil,
+        swarm_name: 'New Swarm',
+        configuration_hash: {
+          'swarm' => {
+            'name' => 'New Swarm',
+            'main' => 'leader',
+            'instances' => {
+              'leader' => {
+                'description' => 'Main Claude instance',
+                'model' => 'sonnet'
+              }
+            }
+          }
+        }
+      }
+    else
+      # Default to looking for claude-swarm.yml in directory
+      config_path = File.join(session_params[:directory_path], 'claude-swarm.yml')
+      if File.exist?(config_path)
+        config_content = File.read(config_path)
+        config_hash = YAML.safe_load(config_content)
+        {
+          swarm_configuration: nil,
+          swarm_name: config_hash.dig('swarm', 'name') || 'Default Config',
+          configuration_hash: config_hash
+        }
+      else
+        raise "No configuration found. Please select a configuration option."
+      end
+    end
+  end
+  
+  def generate_worktree_path(session_id)
+    File.expand_path("~/.claude-swarm/worktrees/#{session_id}")
   end
   
   def find_config_files

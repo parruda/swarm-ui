@@ -32,15 +32,13 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   test "should create session with interactive mode" do
     # Mock SwarmLauncher
     mock_launcher = mock()
-    mock_launcher.expects(:launch).returns("20250104_120000")
-    SwarmLauncher.expects(:new).with(has_entries(
-      'mode' => 'interactive',
-      'directory_path' => '/tmp/test',
-      'configuration_source' => 'saved',
-      'swarm_configuration_id' => @swarm_config.id.to_s
-    )).returns(mock_launcher)
+    mock_launcher.expects(:launch_interactive).returns(true)
+    SwarmLauncher.expects(:new).with(instance_of(Session)).returns(mock_launcher)
     
-    assert_difference('Session.count', 0) do # SwarmLauncher creates the session
+    # Freeze time for predictable session_id
+    Time.stubs(:now).returns(Time.new(2025, 1, 4, 12, 0, 0))
+    
+    assert_difference('Session.count', 1) do
       post sessions_url, params: {
         directory_path: '/tmp/test',
         configuration_source: 'saved',
@@ -50,46 +48,62 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     end
     
     assert_redirected_to session_path("20250104_120000")
+    
+    # Verify session was created correctly
+    session = Session.last
+    assert_equal "20250104_120000", session.session_id
+    assert_equal "interactive", session.mode
+    assert_equal @swarm_config, session.swarm_configuration
   end
 
   test "should create session with non-interactive mode" do
     # Mock SwarmLauncher
     mock_launcher = mock()
-    mock_launcher.expects(:launch).returns("20250104_120001")
-    SwarmLauncher.expects(:new).with(has_entries(
-      'mode' => 'non-interactive',
-      'prompt' => 'Test prompt',
-      'directory_path' => '/tmp/test',
-      'configuration_source' => 'saved',
-      'swarm_configuration_id' => @swarm_config.id.to_s
-    )).returns(mock_launcher)
+    mock_launcher.expects(:launch_non_interactive).with('Test prompt').returns(true)
+    SwarmLauncher.expects(:new).with(instance_of(Session)).returns(mock_launcher)
     
-    post sessions_url, params: {
-      directory_path: '/tmp/test',
-      configuration_source: 'saved',
-      swarm_configuration_id: @swarm_config.id,
-      mode: 'non-interactive',
-      prompt: 'Test prompt'
-    }
+    # Freeze time for predictable session_id
+    Time.stubs(:now).returns(Time.new(2025, 1, 4, 12, 0, 1))
+    
+    assert_difference('Session.count', 1) do
+      post sessions_url, params: {
+        directory_path: '/tmp/test',
+        configuration_source: 'saved',
+        swarm_configuration_id: @swarm_config.id,
+        mode: 'non-interactive',
+        prompt: 'Test prompt'
+      }
+    end
     
     assert_redirected_to session_path("20250104_120001")
+    
+    # Verify session was created correctly
+    session = Session.last
+    assert_equal "20250104_120001", session.session_id
+    assert_equal "non-interactive", session.mode
   end
 
   test "should handle launch errors gracefully" do
     # Mock SwarmLauncher to raise error
     mock_launcher = mock()
-    mock_launcher.expects(:launch).raises(StandardError.new("Launch failed"))
-    SwarmLauncher.expects(:new).returns(mock_launcher)
+    mock_launcher.expects(:launch_interactive).raises(StandardError.new("Launch failed"))
+    SwarmLauncher.expects(:new).with(instance_of(Session)).returns(mock_launcher)
     
-    post sessions_url, params: {
-      directory_path: '/tmp/test',
-      configuration_source: 'saved',
-      swarm_configuration_id: @swarm_config.id,
-      mode: 'interactive'
-    }
+    # Freeze time for predictable session_id
+    Time.stubs(:now).returns(Time.new(2025, 1, 4, 12, 0, 0))
+    
+    # Session should be created but then error occurs during launch
+    assert_difference('Session.count', 1) do
+      post sessions_url, params: {
+        directory_path: '/tmp/test',
+        configuration_source: 'saved',
+        swarm_configuration_id: @swarm_config.id,
+        mode: 'interactive'
+      }
+    end
     
     assert_redirected_to new_session_path
-    assert_equal "Launch failed", flash[:error]
+    assert_match "Failed to launch session", flash[:error]
   end
 
   test "should show session" do

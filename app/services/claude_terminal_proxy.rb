@@ -60,6 +60,10 @@ class ClaudeTerminalProxy
 
   def build_command
     # Always attach to the tmux session we created at launch
-    "tmux attach-session -t claude-swarm-#{@session.session_id}"
+    if @session.tmux_session.present?
+      "tmux attach-session -t #{@session.tmux_session}"
+    else
+      "tmux attach-session -t claude-swarm-#{@session.session_id}"
+    end
   end
 end

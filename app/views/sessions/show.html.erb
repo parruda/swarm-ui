@@ -8,9 +8,9 @@
       </p>
     </div>
     <div class="flex gap-2">
-      <%= link_to "View Logs", logs_session_path(@session), 
+      <%= link_to "View Logs", logs_session_path(@session.session_id), 
           class: "px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm" %>
-      <%= button_to "Stop Session", session_path(@session), 
+      <%= button_to "Stop Session", session_path(@session.session_id), 
           method: :delete,
           data: { confirm: "Are you sure you want to stop this session?" },
           class: "px-4 py-2 bg-red-600 rounded hover:bg-red-700 text-sm cursor-pointer" %>

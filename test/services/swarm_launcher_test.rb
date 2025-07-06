@@ -9,9 +9,9 @@ class SwarmLauncherTest < ActiveSupport::TestCase
       "instances" => {
         "test_instance" => {
           "provider" => "anthropic",
-          "tools" => ["Bash", "Edit"]
-        }
-      }
+          "tools" => ["Bash", "Edit"],
+        },
+      },
     }
   end
 
@@ -32,11 +32,12 @@ class SwarmLauncherTest < ActiveSupport::TestCase
   end
 
   test "launch_interactive creates tmux session and runs claude-swarm" do
-    session = create(:session, configuration_hash: @config_hash)
+    session = create(:session, configuration_hash: @config_hash, working_directory: "/home/user/project")
     launcher = SwarmLauncher.new(session)
+    default_shell = ENV["SHELL"] || "/bin/sh"
 
-    # Mock tmux session creation
-    launcher.expects(:system).with("tmux", "new-session", "-d", "-s", "claude-swarm-#{session.session_id}").returns(true)
+    # Mock tmux session creation with working directory
+    launcher.expects(:system).with("tmux", "new-session", "-d", "-s", "claude-swarm-#{session.session_id}", "-c", "/home/user/project").returns(true)
 
     # Mock directory creation
     FileUtils.expects(:mkdir_p).with(session.session_path).returns(true)
@@ -44,11 +45,14 @@ class SwarmLauncherTest < ActiveSupport::TestCase
     # Mock config file writing
     File.expects(:write).with(File.join(session.session_path, "config.yml"), @config_hash.to_yaml)
 
-    # Mock claude-swarm command with proper tmux execution
+    # Mock shell startup command with new format
     tmux_command = [
-      "tmux", "send-keys", "-t", "claude-swarm-#{session.session_id}",
-      "cd #{session.working_directory} && claude-swarm --worktree-directory #{session.worktree_path} --config #{File.join(session.session_path, 'config.yml')} --start-directory #{session.working_directory}",
-      "Enter"
+      "tmux",
+      "send-keys",
+      "-t",
+      "claude-swarm-#{session.session_id}",
+      "echo 'Claude Swarm session started in: /home/user/project' && exec #{default_shell} -l",
+      "Enter",
     ]
     launcher.expects(:system).with(*tmux_command).returns(true)
 
@@ -56,7 +60,7 @@ class SwarmLauncherTest < ActiveSupport::TestCase
     session.expects(:update!).with(
       status: "active",
       tmux_session: "claude-swarm-#{session.session_id}",
-      launched_at: anything
+      launched_at: anything,
     )
 
     result = launcher.launch_interactive
@@ -82,9 +86,12 @@ class SwarmLauncherTest < ActiveSupport::TestCase
     # Mock spawn
     spawn_command = [
       "claude-swarm",
-      "--worktree-directory", session.worktree_path,
-      "--config", File.join(session.session_path, "config.yml"),
-      "--start-directory", session.working_directory
+      "--worktree-directory",
+      session.worktree_path,
+      "--config",
+      File.join(session.session_path, "config.yml"),
+      "--start-directory",
+      session.working_directory,
     ]
     launcher.expects(:spawn).with(*spawn_command, out: mock_file, err: mock_file).returns(12345)
 
@@ -96,7 +103,7 @@ class SwarmLauncherTest < ActiveSupport::TestCase
       status: "active",
       pid: 12345,
       output_file: output_file,
-      launched_at: anything
+      launched_at: anything,
     )
 
     # Mock background job
@@ -108,11 +115,11 @@ class SwarmLauncherTest < ActiveSupport::TestCase
   end
 
   test "handles launch error gracefully" do
-    session = create(:session, configuration_hash: @config_hash)
+    session = create(:session, configuration_hash: @config_hash, working_directory: "/home/user/project")
     launcher = SwarmLauncher.new(session)
 
     # Mock tmux session creation failure
-    launcher.expects(:system).with("tmux", "new-session", "-d", "-s", "claude-swarm-#{session.session_id}").returns(false)
+    launcher.expects(:system).with("tmux", "new-session", "-d", "-s", "claude-swarm-#{session.session_id}", "-c", "/home/user/project").returns(false)
 
     # Mock session update for error
     session.expects(:update!).with(status: "error")
@@ -127,7 +134,7 @@ class SwarmLauncherTest < ActiveSupport::TestCase
     launcher = SwarmLauncher.new(session)
 
     FileUtils.expects(:mkdir_p).with(session.session_path).returns(true)
-    
+
     expected_path = File.join(session.session_path, "config.yml")
     File.expects(:write).with(expected_path, @config_hash.to_yaml)
 
@@ -144,11 +151,44 @@ class SwarmLauncherTest < ActiveSupport::TestCase
 
     expected = [
       "claude-swarm",
-      "--worktree-directory", session.worktree_path,
-      "--config", config_path,
-      "--start-directory", session.working_directory
+      "--worktree-directory",
+      session.worktree_path,
+      "--config",
+      config_path,
+      "--start-directory",
+      session.working_directory,
     ]
 
     assert_equal expected, command
+  end
+
+  test "uses current directory when working_directory is nil" do
+    session = create(:session, configuration_hash: @config_hash, working_directory: nil)
+    launcher = SwarmLauncher.new(session)
+    default_shell = ENV["SHELL"] || "/bin/sh"
+
+    # Should use Dir.pwd as fallback
+    launcher.expects(:system).with("tmux", "new-session", "-d", "-s", "claude-swarm-#{session.session_id}", "-c", Dir.pwd).returns(true)
+
+    FileUtils.expects(:mkdir_p).with(session.session_path).returns(true)
+    File.expects(:write).with(File.join(session.session_path, "config.yml"), @config_hash.to_yaml)
+
+    launcher.expects(:system).with(
+      "tmux",
+      "send-keys",
+      "-t",
+      "claude-swarm-#{session.session_id}",
+      "echo 'Claude Swarm session started in: #{Dir.pwd}' && exec #{default_shell} -l",
+      "Enter",
+    ).returns(true)
+
+    session.expects(:update!).with(
+      status: "active",
+      tmux_session: "claude-swarm-#{session.session_id}",
+      launched_at: anything,
+    )
+
+    result = launcher.launch_interactive
+    assert result
   end
 end

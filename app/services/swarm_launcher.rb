@@ -21,8 +21,8 @@ class SwarmLauncher
     tmux_session_name = "claude-swarm-#{@session.session_id}"
 
     Rails.logger.info("Creating tmux session: #{tmux_session_name} in directory: #{@working_directory}")
-    # Create session with default size (80x24 is standard terminal size)
-    success = system("tmux", "new-session", "-d", "-s", tmux_session_name, "-c", @working_directory, "-x", "132", "-y", "43")
+    # Create session with default size and run bash
+    success = system("tmux", "new-session", "-d", "-s", tmux_session_name, "-c", @working_directory, "-x", "400", "-y", "100", "bash")
 
     unless success
       Rails.logger.error("Failed to create tmux session")

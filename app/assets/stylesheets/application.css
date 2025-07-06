@@ -9,5 +9,34 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
-/* Import xterm CSS */
-@import url("https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css");
+/* xterm CSS is loaded via link tag in layout */
+
+/* Terminal styles */
+.xterm {
+  background-color: #1e1e1e !important;
+  color: #d4d4d4 !important;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important;
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+}
+
+.xterm-viewport {
+  background-color: #1e1e1e !important;
+}
+
+.xterm-screen {
+  background-color: #1e1e1e !important;
+}
+
+.xterm .xterm-rows {
+  color: #d4d4d4 !important;
+}
+
+.xterm-rows span {
+  color: inherit !important;
+}
+
+/* Ensure terminal content is visible */
+.xterm-rows > div {
+  color: #d4d4d4 !important;
+}

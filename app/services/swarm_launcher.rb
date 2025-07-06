@@ -21,7 +21,8 @@ class SwarmLauncher
     tmux_session_name = "claude-swarm-#{@session.session_id}"
 
     Rails.logger.info("Creating tmux session: #{tmux_session_name} in directory: #{@working_directory}")
-    success = system("tmux", "new-session", "-d", "-s", tmux_session_name, "-c", @working_directory)
+    # Create session with default size (80x24 is standard terminal size)
+    success = system("tmux", "new-session", "-d", "-s", tmux_session_name, "-c", @working_directory, "-x", "132", "-y", "43")
 
     unless success
       Rails.logger.error("Failed to create tmux session")
@@ -33,16 +34,13 @@ class SwarmLauncher
     config_path = write_config_file
     Rails.logger.info("Config written to: #{config_path}")
 
-    # Start the default shell in the tmux session
-    # Use $SHELL environment variable to get user's default shell
-    default_shell = ENV["SHELL"] || "/bin/sh"
-
+    # Send a welcome message to the tmux session
     tmux_command = [
       "tmux",
       "send-keys",
       "-t",
       tmux_session_name,
-      "echo 'Claude Swarm session started in: #{@working_directory}' && exec #{default_shell} -l",
+      "clear && echo 'Claude Swarm session started in: #{@working_directory}'",
       "Enter",
     ]
 

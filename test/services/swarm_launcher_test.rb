@@ -35,8 +35,8 @@ class SwarmLauncherTest < ActiveSupport::TestCase
     session = create(:session, configuration_hash: @config_hash, working_directory: "/home/user/project")
     launcher = SwarmLauncher.new(session)
 
-    # Mock tmux session creation with working directory, size and bash
-    launcher.expects(:system).with("tmux", "new-session", "-d", "-s", "claude-swarm-#{session.session_id}", "-c", "/home/user/project", "-x", "400", "-y", "100", "bash").returns(true)
+    # Mock tmux session creation with working directory, size and bash without profile
+    launcher.expects(:system).with("tmux", "new-session", "-d", "-s", "claude-swarm-#{session.session_id}", "-c", "/home/user/project", "-x", "400", "-y", "100", "bash", "--noprofile", "--norc").returns(true)
 
     # Mock directory creation
     FileUtils.expects(:mkdir_p).with(session.session_path).returns(true)
@@ -107,7 +107,7 @@ class SwarmLauncherTest < ActiveSupport::TestCase
     launcher = SwarmLauncher.new(session)
 
     # Mock tmux session creation failure
-    launcher.expects(:system).with("tmux", "new-session", "-d", "-s", "claude-swarm-#{session.session_id}", "-c", "/home/user/project", "-x", "400", "-y", "100", "bash").returns(false)
+    launcher.expects(:system).with("tmux", "new-session", "-d", "-s", "claude-swarm-#{session.session_id}", "-c", "/home/user/project", "-x", "400", "-y", "100", "bash", "--noprofile", "--norc").returns(false)
 
     # Mock session update for error
     session.expects(:update!).with(status: "error")
@@ -156,7 +156,7 @@ class SwarmLauncherTest < ActiveSupport::TestCase
     ENV["SHELL"] || "/bin/sh"
 
     # Should use Dir.pwd as fallback
-    launcher.expects(:system).with("tmux", "new-session", "-d", "-s", "claude-swarm-#{session.session_id}", "-c", Dir.pwd, "-x", "400", "-y", "100", "bash").returns(true)
+    launcher.expects(:system).with("tmux", "new-session", "-d", "-s", "claude-swarm-#{session.session_id}", "-c", Dir.pwd, "-x", "400", "-y", "100", "bash", "--noprofile", "--norc").returns(true)
 
     FileUtils.expects(:mkdir_p).with(session.session_path).returns(true)
     File.expects(:write).with(File.join(session.session_path, "config.yml"), @config_hash.to_yaml)

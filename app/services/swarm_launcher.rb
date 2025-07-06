@@ -34,32 +34,14 @@ class SwarmLauncher
     config_path = write_config_file
     Rails.logger.info("Config written to: #{config_path}")
 
-    # Send a welcome message to the tmux session
-    tmux_command = [
-      "tmux",
-      "send-keys",
-      "-t",
-      tmux_session_name,
-      "clear && echo 'Claude Swarm session started in: #{@working_directory}'",
-      "Enter",
-    ]
-
-    Rails.logger.info("Running tmux command: #{tmux_command.inspect}")
-    success = system(*tmux_command)
-
-    if success
-      @session.update!(
-        status: "active",
-        tmux_session: tmux_session_name,
-        launched_at: Time.current,
-      )
-      Rails.logger.info("Session launched successfully")
-      true
-    else
-      Rails.logger.error("Failed to send command to tmux")
-      @session.update!(status: "error")
-      false
-    end
+    # Don't send any initialization commands - just update the session
+    @session.update!(
+      status: "active",
+      tmux_session: tmux_session_name,
+      launched_at: Time.current,
+    )
+    Rails.logger.info("Session launched successfully")
+    true
   rescue StandardError => e
     Rails.logger.error("Failed to launch interactive session: #{e.message}")
     Rails.logger.error(e.backtrace.join("\n"))

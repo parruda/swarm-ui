@@ -44,18 +44,7 @@ class SwarmLauncherTest < ActiveSupport::TestCase
     # Mock config file writing
     File.expects(:write).with(File.join(session.session_path, "config.yml"), @config_hash.to_yaml)
 
-    # Mock welcome message command
-    tmux_command = [
-      "tmux",
-      "send-keys",
-      "-t",
-      "claude-swarm-#{session.session_id}",
-      "clear && echo 'Claude Swarm session started in: /home/user/project'",
-      "Enter",
-    ]
-    launcher.expects(:system).with(*tmux_command).returns(true)
-
-    # Mock session update
+    # Mock session update (no tmux commands expected)
     session.expects(:update!).with(
       status: "active",
       tmux_session: "claude-swarm-#{session.session_id}",
@@ -172,15 +161,7 @@ class SwarmLauncherTest < ActiveSupport::TestCase
     FileUtils.expects(:mkdir_p).with(session.session_path).returns(true)
     File.expects(:write).with(File.join(session.session_path, "config.yml"), @config_hash.to_yaml)
 
-    launcher.expects(:system).with(
-      "tmux",
-      "send-keys",
-      "-t",
-      "claude-swarm-#{session.session_id}",
-      "clear && echo 'Claude Swarm session started in: #{Dir.pwd}'",
-      "Enter",
-    ).returns(true)
-
+    # Mock session update (no tmux commands expected)
     session.expects(:update!).with(
       status: "active",
       tmux_session: "claude-swarm-#{session.session_id}",

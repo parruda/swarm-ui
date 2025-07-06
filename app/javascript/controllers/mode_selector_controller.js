@@ -5,8 +5,6 @@ export default class extends Controller {
   static targets = ["promptField"]
   
   connect() {
-    console.log("Mode selector controller connected")
-    
     // Check initial state on page load
     const currentMode = this.element.querySelector('input[name="mode"]:checked')?.value
     if (currentMode) {
@@ -17,8 +15,6 @@ export default class extends Controller {
   // Handle mode change (interactive vs non-interactive)
   updateMode(event) {
     const mode = event.target.value
-    console.log(`Mode changed to: ${mode}`)
-    
     this.updateModeUI(mode)
   }
 

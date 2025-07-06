@@ -217,7 +217,7 @@ class SessionsController < ApplicationController
             'instances' => {
               'leader' => {
                 'description' => 'Main Claude instance',
-                'model' => 'sonnet'
+                'model' => 'opus'
               }
             }
           }

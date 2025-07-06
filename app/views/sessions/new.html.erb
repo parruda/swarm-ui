@@ -12,7 +12,7 @@
     <%# Form %>
     <div class="mt-8 bg-white shadow sm:rounded-lg">
       <div class="px-4 py-5 sm:p-6" data-controller="directory-browser">
-        <%= form_with url: sessions_path, local: true, data: { turbo: false, controller: "configuration_loader" } do |f| %>
+        <%= form_with url: sessions_path, local: true, data: { turbo: false, controller: "configuration-loader" } do |f| %>
           <div class="space-y-6">
             <%# Directory Selection %>
             <div>
@@ -23,8 +23,8 @@
                     class: "block flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm",
                     data: { 
                       "directory-browser-target": "input",
-                      "configuration_loader_target": "directoryInput",
-                      "action": "input->configuration_loader#directoryChanged"
+                      "configuration-loader-target": "directoryInput",
+                      "action": "input->configuration-loader#directoryChanged"
                     } %>
                 <button type="button"
                         class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -55,20 +55,23 @@
                   </div>
                   <div class="flex items-center">
                     <%= f.radio_button :configuration_source, "new", class: "h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500" %>
-                    <%= f.label :configuration_source_new, "Create new configuration", class: "ml-3 block text-sm font-medium text-gray-700" %>
+                    <div class="ml-3">
+                      <%= f.label :configuration_source_new, "Quick start with basic configuration", class: "block text-sm font-medium text-gray-700" %>
+                      <p class="text-xs text-gray-500 mt-1">Creates a minimal swarm with a single Claude instance (Opus model)</p>
+                    </div>
                   </div>
                 </div>
               </fieldset>
             </div>
 
             <%# Configuration File (shown for 'file' source) %>
-            <div id="config-file-field" data-configuration_loader_target="configFileField">
+            <div id="config-file-field" data-configuration-loader-target="configFileField">
               <%= f.label :config_path, "Configuration File", class: "block text-sm font-medium text-gray-700" %>
               <%= f.select :config_path, 
                   options_for_select(@config_files || []),
-                  { prompt: "Select claude-swarm.yml" },
+                  { prompt: "Select a directory first" },
                   class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm",
-                  data: { "configuration_loader_target": "configSelect" } %>
+                  data: { "configuration-loader-target": "configSelect" } %>
             </div>
 
             <%# Saved Configuration (shown for 'saved' source) %>
@@ -113,15 +116,15 @@
                   </div>
                 </div>
               </fieldset>
-            </div>
-
-            <%# Prompt Field (shown only for non-interactive) %>
-            <div id="prompt-field" class="hidden" data-mode-selector-target="promptField">
+              
+              <%# Prompt Field (shown only for non-interactive) %>
+              <div id="prompt-field" class="hidden mt-4" data-mode-selector-target="promptField">
               <%= f.label :prompt, "Task Prompt", class: "block text-sm font-medium text-gray-700" %>
               <%= f.text_area :prompt,
                   rows: 4,
                   placeholder: "Enter the task for Claude to complete...",
                   class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" %>
+              </div>
             </div>
 
             <%# Worktree Option %>

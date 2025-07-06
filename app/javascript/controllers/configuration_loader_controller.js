@@ -47,7 +47,8 @@ export default class extends Controller {
     const select = this.configSelectTarget
     
     // Clear existing options
-    select.innerHTML = '<option value="">Select a configuration file</option>'
+    const promptText = configFiles.length > 0 ? 'Select a configuration file' : 'No configuration files found'
+    select.innerHTML = `<option value="">${promptText}</option>`
     
     // Add new options
     configFiles.forEach(file => {
@@ -71,6 +72,6 @@ export default class extends Controller {
   // Clear the config file dropdown
   clearConfigFiles() {
     const select = this.configSelectTarget
-    select.innerHTML = '<option value="">Select a configuration file</option>'
+    select.innerHTML = '<option value="">Select a directory first</option>'
   }
 }

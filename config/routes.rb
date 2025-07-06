@@ -48,6 +48,7 @@ Rails.application.routes.draw do
     resources :sessions, only: [:index] do
       collection do
         get :discover
+        get :browse_directory
       end
     end
   end

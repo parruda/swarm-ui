@@ -34,11 +34,13 @@ class SwarmLauncher
       config_path = write_config_file
       Rails.logger.info "Config written to: #{config_path}"
       
-      # For now, just start a shell in the tmux session to test the terminal
-      # TODO: Replace with actual claude-swarm command when available
+      # Start the default shell in the tmux session
+      # Use $SHELL environment variable to get user's default shell
+      default_shell = ENV['SHELL'] || '/bin/sh'
+      
       tmux_command = [
         "tmux", "send-keys", "-t", tmux_session_name,
-        "cd #{@working_directory} && echo 'Claude Swarm session started' && bash",
+        "cd #{@working_directory} && echo 'Claude Swarm session started' && exec #{default_shell} -l",
         "Enter"
       ]
       

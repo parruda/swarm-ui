@@ -92,6 +92,70 @@ module Api
       })
     end
     
+    # GET /api/sessions/browse_directory
+    # Browse directory contents for directory picker
+    def browse_directory
+      path = params[:path] || ENV['HOME']
+      path = File.expand_path(path)
+      
+      # Security: Don't allow access outside of home directory or common paths
+      allowed_paths = [
+        ENV['HOME'],
+        '/Users',
+        '/home',
+        '/tmp',
+        '/var/tmp'
+      ]
+      
+      unless allowed_paths.any? { |allowed| path.start_with?(allowed) }
+        render_error("Access denied to this directory", :forbidden)
+        return
+      end
+      
+      begin
+        entries = []
+        
+        # Add parent directory unless we're at root
+        unless path == '/'
+          entries << {
+            name: '..',
+            path: File.dirname(path),
+            type: 'directory',
+            is_parent: true
+          }
+        end
+        
+        # List directory contents
+        Dir.entries(path).sort.each do |entry|
+          next if entry.start_with?('.')
+          
+          full_path = File.join(path, entry)
+          next unless File.readable?(full_path)
+          
+          if File.directory?(full_path)
+            entries << {
+              name: entry,
+              path: full_path,
+              type: 'directory',
+              is_parent: false
+            }
+          end
+        end
+        
+        render_success({
+          current_path: path,
+          entries: entries,
+          home_path: ENV['HOME']
+        })
+      rescue Errno::EACCES
+        render_error("Permission denied", :forbidden)
+      rescue Errno::ENOENT
+        render_error("Directory not found", :not_found)
+      rescue => e
+        render_error("Error browsing directory: #{e.message}", :internal_server_error)
+      end
+    end
+    
     private
     
     def session_params
@@ -101,11 +165,14 @@ module Api
     def find_config_files(directory_path)
       config_files = []
       
-      return config_files unless directory_path.present? && Dir.exist?(directory_path)
+      # Expand tilde and other shell expansions
+      expanded_path = File.expand_path(directory_path) if directory_path.present?
+      
+      return config_files unless expanded_path && Dir.exist?(expanded_path)
       
       # Find all YAML files
       yaml_patterns = ['**/*.yml', '**/*.yaml']
-      yaml_files = yaml_patterns.flat_map { |pattern| Dir.glob(File.join(directory_path, pattern)) }
+      yaml_files = yaml_patterns.flat_map { |pattern| Dir.glob(File.join(expanded_path, pattern)) }
       
       yaml_files.each do |path|
         begin
@@ -115,7 +182,7 @@ module Api
           
           # Check if it's a valid swarm configuration
           if valid_swarm_config?(config)
-            relative_path = path.sub(directory_path + '/', '')
+            relative_path = path.sub(expanded_path + '/', '')
             swarm_name = config.dig('swarm', 'name') || 'Unnamed Swarm'
             
             config_files << {

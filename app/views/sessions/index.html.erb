@@ -38,6 +38,10 @@
                   <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
                     Completed
                   </span>
+                <% elsif session.status == 'inactive' %>
+                  <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                    Inactive
+                  </span>
                 <% else %>
                   <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
                     <%= session.status.humanize %>
@@ -84,6 +88,11 @@
                     <%= link_to "Output", output_session_path(session.session_id),
                         class: "flex-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 text-center" %>
                   <% end %>
+                <% elsif session.status == 'inactive' %>
+                  <%= button_to "Kill", session_path(session.session_id), 
+                      method: :delete,
+                      data: { confirm: "Are you sure you want to kill this inactive session?" },
+                      class: "flex-1 rounded-md bg-red-600 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-red-700 text-center cursor-pointer" %>
                 <% end %>
               </div>
             </div>

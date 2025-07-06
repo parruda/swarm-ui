@@ -18,11 +18,11 @@
   </div>
   
   <%# Main Content Area %>
-  <div class="flex-1 p-4">
+  <div class="flex-1 p-4 min-h-0">
     <% if @session.mode == 'interactive' %>
       <%# Interactive Mode: Full Terminal %>
       <div id="terminal-container" 
-           class="h-full bg-black rounded"
+           class="h-full bg-black rounded min-h-[400px]"
            data-controller="terminal"
            data-session-id="<%= @session.session_id %>">
         <div class="flex items-center justify-center h-full text-gray-500">

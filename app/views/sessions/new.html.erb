@@ -41,20 +41,26 @@
             </div>
 
             <%# Configuration Selection %>
-            <div>
+            <div data-controller="configuration-source">
               <label class="block text-sm font-medium text-gray-700">Configuration</label>
               <fieldset class="mt-2">
                 <div class="space-y-2">
                   <div class="flex items-center">
-                    <%= f.radio_button :configuration_source, "file", checked: true, class: "h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                    <%= f.radio_button :configuration_source, "file", checked: true, 
+                        class: "h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500",
+                        data: { action: "change->configuration-source#sourceChanged" } %>
                     <%= f.label :configuration_source_file, "Use configuration file from repository", class: "ml-3 block text-sm font-medium text-gray-700" %>
                   </div>
                   <div class="flex items-center">
-                    <%= f.radio_button :configuration_source, "saved", class: "h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                    <%= f.radio_button :configuration_source, "saved", 
+                        class: "h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500",
+                        data: { action: "change->configuration-source#sourceChanged" } %>
                     <%= f.label :configuration_source_saved, "Use saved configuration", class: "ml-3 block text-sm font-medium text-gray-700" %>
                   </div>
                   <div class="flex items-center">
-                    <%= f.radio_button :configuration_source, "new", class: "h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500" %>
+                    <%= f.radio_button :configuration_source, "new", 
+                        class: "h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500",
+                        data: { action: "change->configuration-source#sourceChanged" } %>
                     <div class="ml-3">
                       <%= f.label :configuration_source_new, "Quick start with basic configuration", class: "block text-sm font-medium text-gray-700" %>
                       <p class="text-xs text-gray-500 mt-1">Creates a minimal swarm with a single Claude instance (Opus model)</p>
@@ -62,25 +68,25 @@
                   </div>
                 </div>
               </fieldset>
-            </div>
 
-            <%# Configuration File (shown for 'file' source) %>
-            <div id="config-file-field" data-configuration-loader-target="configFileField">
-              <%= f.label :config_path, "Configuration File", class: "block text-sm font-medium text-gray-700" %>
-              <%= f.select :config_path, 
-                  options_for_select(@config_files || []),
-                  { prompt: "Select a directory first" },
-                  class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm",
-                  data: { "configuration-loader-target": "configSelect" } %>
-            </div>
+              <%# Configuration File (shown for 'file' source) %>
+              <div id="config-file-field" class="mt-4" data-configuration-loader-target="configFileField" data-configuration-source-target="configFileField">
+                <%= f.label :config_path, "Configuration File", class: "block text-sm font-medium text-gray-700" %>
+                <%= f.select :config_path, 
+                    options_for_select(@config_files || []),
+                    { prompt: "Select a directory first" },
+                    class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm",
+                    data: { "configuration-loader-target": "configSelect" } %>
+              </div>
 
-            <%# Saved Configuration (shown for 'saved' source) %>
-            <div id="saved-config-field" class="hidden">
-              <%= f.label :swarm_configuration_id, "Saved Configuration", class: "block text-sm font-medium text-gray-700" %>
-              <%= f.select :swarm_configuration_id,
-                  options_from_collection_for_select(@saved_configurations || [], :id, :name),
-                  { prompt: "Select a configuration" },
-                  class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" %>
+              <%# Saved Configuration (shown for 'saved' source) %>
+              <div id="saved-config-field" class="hidden mt-4" data-configuration-source-target="savedConfigField">
+                <%= f.label :swarm_configuration_id, "Saved Configuration", class: "block text-sm font-medium text-gray-700" %>
+                <%= f.select :swarm_configuration_id,
+                    options_from_collection_for_select(@saved_configurations || [], :id, :name),
+                    { prompt: "Select a configuration" },
+                    class: "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" %>
+              </div>
             </div>
 
             <%# Mode Selection %>
@@ -203,28 +209,3 @@
     </div>
   </div>
 </div>
-
-<%# JavaScript to handle dynamic form fields %>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Handle configuration source changes
-    const configSourceRadios = document.querySelectorAll('input[name="configuration_source"]');
-    const configFileField = document.getElementById('config-file-field');
-    const savedConfigField = document.getElementById('saved-config-field');
-    
-    configSourceRadios.forEach(radio => {
-      radio.addEventListener('change', function() {
-        if (this.value === 'file') {
-          configFileField.classList.remove('hidden');
-          savedConfigField.classList.add('hidden');
-        } else if (this.value === 'saved') {
-          configFileField.classList.add('hidden');
-          savedConfigField.classList.remove('hidden');
-        } else {
-          configFileField.classList.add('hidden');
-          savedConfigField.classList.add('hidden');
-        }
-      });
-    });
-  });
-</script>

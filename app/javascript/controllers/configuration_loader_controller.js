@@ -5,7 +5,6 @@ export default class extends Controller {
   static targets = ["directoryInput", "configSelect", "configFileField"]
   
   connect() {
-    console.log("Configuration loader controller connected")
   }
 
   // Called when directory path changes
@@ -58,8 +57,9 @@ export default class extends Controller {
       select.appendChild(option)
     })
     
-    // Show the field if there are config files
-    if (configFiles.length > 0) {
+    // Only show the field if config files exist AND "file" source is selected
+    const selectedSource = document.querySelector('input[name="configuration_source"]:checked')?.value
+    if (configFiles.length > 0 && selectedSource === 'file') {
       this.configFileFieldTarget.classList.remove('hidden')
       
       // Auto-select if only one file

@@ -78,8 +78,6 @@
 
               <%# Actions %>
               <div class="mt-4 flex gap-2">
-                <%= link_to "View", session_path(session.session_id),
-                    class: "flex-1 rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 text-center" %>
                 <% if session.status == 'active' %>
                   <% if session.mode == 'interactive' %>
                     <%= link_to "Terminal", session_path(session.session_id),
@@ -89,6 +87,8 @@
                         class: "flex-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 text-center" %>
                   <% end %>
                 <% elsif session.status == 'inactive' %>
+                  <%= link_to "Restore", session_path(session.session_id),
+                      class: "flex-1 rounded-md bg-green-600 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500 text-center" %>
                   <%= button_to "Kill", session_path(session.session_id), 
                       method: :delete,
                       data: { confirm: "Are you sure you want to kill this inactive session?" },

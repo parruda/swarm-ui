@@ -164,10 +164,51 @@ class SessionsController < ApplicationController
   def destroy
     @session = Session.find_by!(session_id: params[:id])
     
-    # Kill tmux session if it exists
-    if @session.tmux_session.present?
-      system("tmux", "kill-session", "-t", @session.tmux_session)
-      Rails.logger.info("Killed tmux session: #{@session.tmux_session}")
+    # Send SIGTERM to main process if PID file exists
+    process_terminated = false
+    if @session.session_path.present?
+      pid_file = File.join(@session.session_path, "main_pid")
+      if File.exist?(pid_file)
+        begin
+          pid = File.read(pid_file).strip.to_i
+          if pid > 0
+            Process.kill("TERM", pid)
+            Rails.logger.info("Sent SIGTERM to main process PID: #{pid}")
+            
+            # Wait up to 10 seconds for process to terminate
+            10.times do
+              begin
+                Process.kill(0, pid)  # Check if process still exists
+                sleep 1
+              rescue Errno::ESRCH
+                # Process no longer exists
+                process_terminated = true
+                Rails.logger.info("Process #{pid} terminated successfully")
+                break
+              end
+            end
+            
+            unless process_terminated
+              Rails.logger.warn("Process #{pid} did not terminate within 10 seconds")
+            end
+          end
+        rescue Errno::ESRCH
+          Rails.logger.info("Process #{pid} not found (already terminated)")
+          process_terminated = true
+        rescue Errno::EPERM
+          Rails.logger.error("Permission denied to kill process #{pid}")
+        rescue => e
+          Rails.logger.error("Error killing process: #{e.message}")
+        end
+      end
+    end
+    
+    # Kill tmux session after process is terminated
+    if @session.tmux_session.present? && process_terminated
+      if system("tmux", "has-session", "-t", @session.tmux_session, err: File::NULL, out: File::NULL)
+        system("tmux", "kill-session", "-t", @session.tmux_session)
+        Rails.logger.info("Killed tmux session: #{@session.tmux_session}")
+      end
     end
     
     @session.update!(status: 'terminated')
@@ -314,18 +355,54 @@ class SessionsController < ApplicationController
   end
   
   def merge_sessions_with_discovery
-    # Get sessions from database only
+    # Get sessions from database
     db_sessions = Session.includes(:swarm_configuration).to_a
+    db_session_ids = db_sessions.map(&:session_id)
     
-    # Get active sessions from file system
-    active_session_ids = SessionDiscoveryService.active_sessions.map { |s| s[:session_id] }
+    # Get active sessions from file system (with metadata)
+    active_sessions = SessionDiscoveryService.active_sessions
     
-    # Update database records with active status
-    db_sessions.each do |session|
-      session.status = active_session_ids.include?(session.session_id) ? 'active' : 'inactive'
+    # Also check for ANY symlinks in the run directory (including those without metadata)
+    run_dir = File.expand_path("~/.claude-swarm/run")
+    all_active_session_ids = []
+    if File.directory?(run_dir)
+      all_active_session_ids = Dir.entries(run_dir).select { |f| File.symlink?(File.join(run_dir, f)) }
     end
     
-    # Don't add discovered sessions that aren't in the database
+    # Import any active sessions that aren't in the database yet
+    active_sessions.each do |discovered|
+      next if db_session_ids.include?(discovered[:session_id])
+      
+      # Create database record for discovered session
+      session = Session.create!(
+        session_id: discovered[:session_id],
+        session_path: discovered[:session_path],
+        swarm_name: discovered[:swarm_name] || "Discovered Session",
+        created_at: discovered[:start_time] || Time.current,
+        status: 'active',
+        mode: 'interactive',
+        working_directory: discovered[:session_path]
+      )
+      db_sessions << session
+      Rails.logger.info("Imported discovered session: #{discovered[:session_id]}")
+    end
+    
+    # Update status based on what's actually running (check all symlinks, not just those with metadata)
+    db_sessions.each do |session|
+      # Check if session has a symlink in the run directory
+      is_running = all_active_session_ids.include?(session.session_id)
+      
+      # Update status if it changed
+      if is_running && session.status != 'active'
+        session.update!(status: 'active')
+      elsif !is_running && session.status == 'active'
+        session.update!(status: 'inactive')
+      end
+      
+      # Set the status for display (doesn't persist unless changed above)
+      session.status = is_running ? 'active' : 'inactive'
+    end
+    
     db_sessions.sort_by { |s| -s.created_at.to_i }
   end
   

@@ -23,19 +23,47 @@
   <div class="flex-1 flex gap-4 p-4 overflow-hidden" data-controller="session-sidebar">
     <%# Terminal Section %>
     <div class="flex-1 min-h-0">
-      <% if @session.status == 'active' && @session.tmux_session.present? %>
-        <%# Both modes use terminal for now %>
-        <iframe 
-          src="http://127.0.0.1:8999/?arg=<%= @session.tmux_session %>&arg=-c&arg=<%= @session.working_directory %>"
-          class="w-full h-full bg-black rounded"
-          style="overflow: hidden; scrollbar-width: none; -ms-overflow-style: none;"
-          scrolling="no"
-          title="Terminal for <%= @session.swarm_name %>"
-          allow="fullscreen">
-        </iframe>
+      <% if @session.tmux_session.present? %>
+        <%# Check if tmux session actually exists %>
+        <% tmux_exists = system("tmux", "has-session", "-t", @session.tmux_session, err: File::NULL, out: File::NULL) %>
+        
+        <% if tmux_exists %>
+          <%# Tmux session exists, show the terminal %>
+          <iframe 
+            src="http://127.0.0.1:8999/?arg=<%= @session.tmux_session %>"
+            class="w-full h-full bg-black rounded"
+            style="overflow: hidden; scrollbar-width: none; -ms-overflow-style: none;"
+            scrolling="no"
+            title="Terminal for <%= @session.swarm_name %>"
+            allow="fullscreen">
+          </iframe>
+        <% else %>
+          <%# Tmux session doesn't exist, show appropriate message based on status %>
+          <div class="h-full bg-black rounded flex items-center justify-center">
+            <div class="text-center">
+              <% if @session.status == 'terminated' %>
+                <p class="text-gray-400 mb-4">Session has been terminated.</p>
+              <% else %>
+                <p class="text-gray-400 mb-4">Session not running. Click the button below to start it.</p>
+                <%# Show a button to launch the session %>
+                <% # For inactive sessions or sessions with metadata, pass --session-id to restore/resume %>
+                <% # For new active sessions without metadata, let claude-swarm generate its own ID %>
+                <% should_pass_session_id = @session.status == 'inactive' || (@session.session_path && File.exist?(File.join(@session.session_path, "session_metadata.json"))) %>
+                <iframe 
+                  src="http://127.0.0.1:8999/?arg=<%= @session.tmux_session %>&arg=-c&arg=<%= @session.working_directory %>&arg=bundle&arg=exec&arg=claude-swarm&arg=start&arg=<%= @session.session_path %>/config.yml<%= should_pass_session_id ? "&arg=--session-id&arg=#{@session.session_id}" : "" %><%= @session.worktree_path.present? ? "&arg=--worktree" : "" %>"
+                  class="w-full h-full"
+                  style="overflow: hidden; scrollbar-width: none; -ms-overflow-style: none;"
+                  scrolling="no"
+                  title="Launch terminal for <%= @session.swarm_name %>"
+                  allow="fullscreen">
+                </iframe>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
       <% else %>
         <div class="h-full bg-black rounded flex items-center justify-center">
-          <p class="text-gray-400">Session not active. Please launch the session first.</p>
+          <p class="text-gray-400">Session not configured. Please check session settings.</p>
         </div>
       <% end %>
     </div>

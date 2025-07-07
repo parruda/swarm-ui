@@ -54,7 +54,7 @@ group :development, :test do
   gem "rubocop-performance", require: false
   gem "rubocop-minitest", require: false
   gem "rubocop-rake", require: false
-  gem "claude_swarm", require: false, github: "parruda/claude-swarm"
+  gem "claude_swarm", require: false, path: "~/src/github.com/parruda/claude-swarm"
   gem "headless_browser_tool", require: false
 end
 

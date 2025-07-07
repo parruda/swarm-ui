@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "base64"
+require "json"
+
+# Get the base64 encoded argument
+encoded_arg = ARGV[0]
+
+# Decode and parse JSON with symbol keys
+decoded = Base64.urlsafe_decode64(encoded_arg)
+params = JSON.parse(decoded, symbolize_names: true)
+
+# Extract parameters
+tmux_session_name = params[:tmux_session_name]
+working_dir = params[:working_dir]
+swarm_file = params[:swarm_file]
+use_worktree = params[:use_worktree?]
+session_id = params[:session_id]
+
+# Build the command
+if session_id
+  command = "bundle exec claude-swarm --session-id #{session_id}"
+else
+  command = "bundle exec claude-swarm start #{swarm_file}"
+  command += " --worktree" if use_worktree
+end
+puts "tmux new -A -s #{tmux_session_name} -c #{working_dir} #{command}"
+# Execute ttyd with tmux
+Kernel.exec("tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, "-c", working_dir, command)

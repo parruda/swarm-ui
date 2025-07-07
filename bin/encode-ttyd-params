@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+
+require 'base64'
+require 'json'
+require 'optparse'
+
+params = {}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: encode-ttyd-params [options]"
+
+  opts.on("-t", "--tmux-session-name NAME", "Tmux session name") do |v|
+    params[:tmux_session_name] = v
+  end
+
+  opts.on("-d", "--working-dir DIR", "Working directory") do |v|
+    params[:working_dir] = v
+  end
+
+  opts.on("-f", "--swarm-file FILE", "Swarm file") do |v|
+    params[:swarm_file] = v
+  end
+
+  opts.on("-w", "--[no-]worktree", "Use worktree") do |v|
+    params[:use_worktree?] = v
+  end
+
+  opts.on("-s", "--session-id ID", "Session ID") do |v|
+    params[:session_id] = v
+  end
+
+  opts.on("-h", "--help", "Show this help message") do
+    puts opts
+    exit
+  end
+end.parse!
+
+if params.empty?
+  puts "Error: No parameters provided"
+  puts "Use --help for usage information"
+  exit 1
+end
+
+# Encode to base64 URL-safe string
+encoded = Base64.urlsafe_encode64(params.to_json)
+puts encoded

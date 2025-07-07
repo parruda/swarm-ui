@@ -134,6 +134,8 @@ class SessionsController < ApplicationController
       @active = false
       @total_cost = 0.0
     end
+    
+    render layout: 'terminal'
   end
   
   def logs
@@ -161,7 +163,13 @@ class SessionsController < ApplicationController
   
   def destroy
     @session = Session.find_by!(session_id: params[:id])
-    TerminalAttachmentService.new(@session.session_id).kill_session
+    
+    # Kill tmux session if it exists
+    if @session.tmux_session.present?
+      system("tmux", "kill-session", "-t", @session.tmux_session)
+      Rails.logger.info("Killed tmux session: #{@session.tmux_session}")
+    end
+    
     @session.update!(status: 'terminated')
     
     redirect_to sessions_path
@@ -306,7 +314,7 @@ class SessionsController < ApplicationController
   end
   
   def merge_sessions_with_discovery
-    # Get sessions from database
+    # Get sessions from database only
     db_sessions = Session.includes(:swarm_configuration).to_a
     
     # Get active sessions from file system
@@ -317,22 +325,7 @@ class SessionsController < ApplicationController
       session.status = active_session_ids.include?(session.session_id) ? 'active' : 'inactive'
     end
     
-    # Find any active sessions not in database
-    known_ids = db_sessions.map(&:session_id)
-    SessionDiscoveryService.active_sessions.each do |discovered|
-      next if known_ids.include?(discovered[:session_id])
-      
-      # Create temporary session object for display
-      db_sessions << Session.new(
-        session_id: discovered[:session_id],
-        session_path: discovered[:session_path],
-        swarm_name: discovered[:swarm_name],
-        created_at: discovered[:start_time],
-        status: 'active',
-        mode: 'interactive'  # Assume interactive for discovered sessions
-      )
-    end
-    
+    # Don't add discovered sessions that aren't in the database
     db_sessions.sort_by { |s| -s.created_at.to_i }
   end
   

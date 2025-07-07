@@ -82,7 +82,7 @@
                     class: "flex-1 rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 text-center" %>
                 <% if session.status == 'active' %>
                   <% if session.mode == 'interactive' %>
-                    <%= link_to "Terminal", session_terminal_path(session.session_id),
+                    <%= link_to "Terminal", session_path(session.session_id),
                         class: "flex-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 text-center" %>
                   <% else %>
                     <%= link_to "Output", output_session_path(session.session_id),

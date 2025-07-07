@@ -17,30 +17,22 @@ class SwarmLauncher
   end
 
   def launch_interactive
-    # Create tmux session
+    # Create tmux session name
     tmux_session_name = "claude-swarm-#{@session.session_id}"
 
     Rails.logger.info("Creating tmux session: #{tmux_session_name} in directory: #{@working_directory}")
-    # Create session with default size and run bash without profile
-    success = system("tmux", "new-session", "-d", "-s", tmux_session_name, "-c", @working_directory, "-x", "400", "-y", "100", "bash", "--noprofile", "--norc")
-
-    unless success
-      Rails.logger.error("Failed to create tmux session")
-      @session.update!(status: "error")
-      return false
-    end
 
     # Create session directory and write config
     config_path = write_config_file
     Rails.logger.info("Config written to: #{config_path}")
 
-    # Don't send any initialization commands - just update the session
+    # Update session to active - ttyd will create the tmux session when iframe loads
     @session.update!(
       status: "active",
       tmux_session: tmux_session_name,
       launched_at: Time.current,
     )
-    Rails.logger.info("Session launched successfully")
+    Rails.logger.info("Session marked as active, tmux session will be created on first access")
     true
   rescue StandardError => e
     Rails.logger.error("Failed to launch interactive session: #{e.message}")
@@ -50,36 +42,8 @@ class SwarmLauncher
   end
 
   def launch_non_interactive
-    # Create session directory and write config
-    config_path = write_config_file
-
-    # Create output file
-    output_file = File.join(@session.session_path, "output.log")
-
-    # Build command
-    command = build_command(config_path)
-
-    # Launch process
-    File.open(output_file, "w") do |file|
-      pid = spawn(*command, out: file, err: file)
-      Process.detach(pid)
-
-      @session.update!(
-        status: "active",
-        pid: pid,
-        output_file: output_file,
-        launched_at: Time.current,
-      )
-
-      # Start monitoring job
-      MonitorNonInteractiveSessionJob.perform_later(@session)
-    end
-
-    true
-  rescue StandardError => e
-    Rails.logger.error("Failed to launch non-interactive session: #{e.message}")
-    @session.update!(status: "error")
-    false
+    # For now, treat it the same as interactive
+    launch_interactive
   end
 
   private

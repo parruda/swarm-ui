@@ -1,6 +1,6 @@
 <div class="h-screen flex flex-col bg-gray-900">
   <%# Session Header %>
-  <div class="p-4 bg-gray-800 text-white flex justify-between items-center">
+  <div class="flex-shrink-0 p-4 bg-gray-800 text-white flex justify-between items-center">
     <div>
       <h1 class="text-xl">Claude Swarm - <%= @session.swarm_name || "Unnamed" %></h1>
       <p class="text-sm text-gray-400">
@@ -8,6 +8,8 @@
       </p>
     </div>
     <div class="flex gap-2">
+      <%= link_to "Close window", root_path, 
+          class: "px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm" %>
       <%= link_to "View Logs", logs_session_path(@session.session_id), 
           class: "px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm" %>
       <%= button_to "Stop Session", session_path(@session.session_id), 
@@ -17,84 +19,74 @@
     </div>
   </div>
   
-  <%# Main Content Area %>
-  <div class="flex-1 p-4 min-h-0">
-    <% if @session.mode == 'interactive' %>
-      <%# Interactive Mode: Full Terminal %>
-      <div id="terminal-container" 
-           class="h-full bg-black rounded min-h-[400px]"
-           data-controller="terminal"
-           data-session-id="<%= @session.session_id %>">
-        <div class="flex items-center justify-center h-full text-gray-500">
-          <div class="text-center">
-            <svg class="mx-auto h-12 w-12 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p class="mt-2">Connecting to terminal...</p>
-          </div>
+  <%# Main Content Area - Split Layout %>
+  <div class="flex-1 flex gap-4 p-4 overflow-hidden" data-controller="session-sidebar">
+    <%# Terminal Section %>
+    <div class="flex-1 min-h-0">
+      <% if @session.status == 'active' && @session.tmux_session.present? %>
+        <%# Both modes use terminal for now %>
+        <iframe 
+          src="http://127.0.0.1:8999/?arg=<%= @session.tmux_session %>&arg=-c&arg=<%= @session.working_directory %>"
+          class="w-full h-full bg-black rounded"
+          style="overflow: hidden; scrollbar-width: none; -ms-overflow-style: none;"
+          scrolling="no"
+          title="Terminal for <%= @session.swarm_name %>"
+          allow="fullscreen">
+        </iframe>
+      <% else %>
+        <div class="h-full bg-black rounded flex items-center justify-center">
+          <p class="text-gray-400">Session not active. Please launch the session first.</p>
         </div>
+      <% end %>
+    </div>
+    
+    <%# Session Info Panel - Right Side %>
+    <div class="w-80 bg-gray-800 rounded-lg text-white overflow-y-auto transition-all duration-300 hidden" data-session-sidebar-target="panel">
+      <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+        <h2 class="text-lg font-semibold">Session Details</h2>
+        <button 
+          class="bg-gray-700 hover:bg-gray-600 text-white p-1.5 rounded transition-colors"
+          data-action="click->session-sidebar#toggle"
+          data-session-sidebar-target="toggleButton"
+          title="Hide session details">
+          <%= heroicon "chevron-right", variant: :solid, options: { class: "h-4 w-4" } %>
+        </button>
       </div>
-    <% else %>
-      <%# Non-Interactive Mode: Output Viewer %>
-      <div class="h-full bg-black rounded p-4 overflow-auto font-mono text-sm text-gray-300"
-           data-controller="output-viewer"
-           data-session-id="<%= @session.session_id %>">
-        <div id="output-content">
-          <%# Output will be streamed here %>
-        </div>
-        <% if @session.status == 'active' %>
-          <div class="mt-2 text-yellow-400">
-            <span class="animate-pulse">●</span> Running...
-          </div>
-        <% else %>
-          <div class="mt-2 text-green-400">
-            ✓ Completed
-          </div>
-        <% end %>
-      </div>
-    <% end %>
-  </div>
-  
-  <%# Session Info Panel (collapsible) %>
-  <div class="bg-gray-800 text-white border-t border-gray-700">
-    <details class="group">
-      <summary class="p-4 cursor-pointer flex justify-between items-center hover:bg-gray-700">
-        <span class="text-sm font-medium">Session Details</span>
-        <svg class="h-5 w-5 text-gray-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </summary>
-      <div class="px-4 pb-4 space-y-4">
+      
+      <div class="p-4 space-y-4">
+        
         <%# Status and Cost %>
-        <div class="grid grid-cols-2 gap-4 text-sm">
-          <div>
+        <div class="space-y-2">
+          <div class="flex justify-between text-sm">
             <span class="text-gray-400">Status:</span>
-            <span class="ml-2">
+            <span>
               <% if @active %>
-                <span class="text-green-400">Active</span>
+                <span class="text-green-400">● Active</span>
               <% else %>
-                <span class="text-gray-500">Inactive</span>
+                <span class="text-gray-500">○ Inactive</span>
               <% end %>
             </span>
           </div>
-          <div>
+          <div class="flex justify-between text-sm">
             <span class="text-gray-400">Total Cost:</span>
-            <span class="ml-2">$<%= "%.4f" % (@total_cost || 0) %></span>
+            <span>$<%= "%.4f" % (@total_cost || 0) %></span>
           </div>
         </div>
+        
+        <%# Divider %>
+        <div class="border-t border-gray-700"></div>
         
         <%# Instance Hierarchy %>
         <% if @instance_hierarchy.present? %>
           <div>
-            <h3 class="text-sm font-medium text-gray-400 mb-2">Instances</h3>
-            <div class="space-y-1">
+            <h3 class="text-sm font-medium text-gray-300 mb-3">Instances</h3>
+            <div class="space-y-2">
               <% @instance_hierarchy.each do |name, info| %>
-                <div class="flex justify-between text-sm">
-                  <span>
+                <div class="flex justify-between text-sm bg-gray-700/50 rounded p-2">
+                  <span class="flex items-center gap-2">
                     <%= name %>
                     <% if info[:is_main] %>
-                      <span class="text-xs text-blue-400">(main)</span>
+                      <span class="text-xs bg-blue-600 px-1.5 py-0.5 rounded">main</span>
                     <% end %>
                   </span>
                   <span class="text-gray-400">$<%= "%.4f" % (info[:costs] || 0) %></span>
@@ -102,14 +94,52 @@
               <% end %>
             </div>
           </div>
+          
+          <%# Divider %>
+          <div class="border-t border-gray-700"></div>
         <% end %>
         
+        <%# Working Directory %>
+        <div>
+          <h3 class="text-sm font-medium text-gray-300 mb-2">Working Directory</h3>
+          <code class="text-xs bg-gray-700 px-2 py-1 rounded block break-all"><%= @session.working_directory %></code>
+        </div>
+        
         <%# Session Path %>
-        <div class="text-sm">
-          <span class="text-gray-400">Session Path:</span>
-          <code class="ml-2 text-xs bg-gray-700 px-2 py-1 rounded"><%= @session.session_path %></code>
+        <div>
+          <h3 class="text-sm font-medium text-gray-300 mb-2">Session Path</h3>
+          <code class="text-xs bg-gray-700 px-2 py-1 rounded block break-all"><%= @session.session_path %></code>
+        </div>
+        
+        <%# Session Metadata %>
+        <div class="pt-4 border-t border-gray-700">
+          <div class="space-y-2 text-xs text-gray-400">
+            <div class="flex justify-between">
+              <span>Created:</span>
+              <span><%= @session.created_at.strftime("%Y-%m-%d %H:%M") %></span>
+            </div>
+            <% if @session.launched_at %>
+              <div class="flex justify-between">
+                <span>Launched:</span>
+                <span><%= @session.launched_at.strftime("%Y-%m-%d %H:%M") %></span>
+              </div>
+            <% end %>
+            <div class="flex justify-between">
+              <span>Session ID:</span>
+              <span class="font-mono"><%= @session.session_id %></span>
+            </div>
+          </div>
         </div>
       </div>
-    </details>
+    </div>
+    
+    <%# Floating button to show panel when hidden %>
+    <button 
+      class="fixed right-4 top-1/2 -translate-y-1/2 bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-l-lg shadow-lg transition-colors"
+      data-action="click->session-sidebar#toggle"
+      data-session-sidebar-target="showButton"
+      title="Show session details">
+      <%= heroicon "chevron-left", variant: :solid, options: { class: "h-5 w-5" } %>
+    </button>
   </div>
 </div>

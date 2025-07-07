@@ -124,6 +124,8 @@ GEM
     globalid (1.2.1)
       activesupport (>= 6.1)
     hashdiff (1.2.0)
+    heroicon (1.0.0)
+      rails (>= 5.2)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
     importmap-rails (2.1.0)
@@ -386,6 +388,7 @@ DEPENDENCIES
   debug
   dotenv-rails
   factory_bot_rails
+  heroicon
   importmap-rails
   jbuilder
   listen (~> 3.0)

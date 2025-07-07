@@ -192,6 +192,8 @@ GEM
       sinatra
       sinatra-contrib
       thor
+    heroicon (1.0.0)
+      rails (>= 5.2)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
     importmap-rails (2.1.0)
@@ -484,6 +486,7 @@ DEPENDENCIES
   dotenv-rails
   factory_bot_rails
   headless_browser_tool
+  heroicon
   importmap-rails
   jbuilder
   minitest

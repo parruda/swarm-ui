@@ -18,6 +18,7 @@ SwarmUi is a Ruby on Rails 8.0.2 application using modern Rails conventions and 
 - **Background Jobs**: Solid Queue
 - **Caching**: Solid Cache
 - **WebSockets**: Solid Cable
+- **Icons**: Heroicon (SVG icon library)
 
 ## Development Commands
 
@@ -152,3 +153,23 @@ When implementing UI features, proactively read the relevant Tailwind documentat
 - Use VCR when tests require http requests.
 - Use the helpers from the `rails-controller-testing` gem for controller tests
 - Use factories for tests instead of fixtures. Existing factories live in `test/factories`. New factories should go in that directory.
+
+## Using Heroicons
+
+The application uses the `heroicon` gem for consistent icons throughout the UI. To add icons:
+
+```erb
+<%= heroicon "icon-name", variant: :solid, options: { class: "h-5 w-5" } %>
+```
+
+- **icon-name**: The name of the icon (see [heroicons.com](https://heroicons.com) for available icons)
+- **variant**: Can be `:solid`, `:outline`, `:mini` or `:micro`
+- **options**: Additional HTML attributes like classes
+
+Common icons used in the application:
+- Navigation: `bars-3`, `x-mark`, `home`, `user`, `cog-6-tooth`
+- Actions: `plus`, `pencil`, `trash`, `arrow-right`, `arrow-left`
+- Status: `check-circle`, `x-circle`, `exclamation-triangle`, `information-circle`
+- Features: `terminal`, `server`, `code-bracket`, `globe-alt`, `bolt`
+
+Default icon configuration is in `config/initializers/heroicon.rb`.

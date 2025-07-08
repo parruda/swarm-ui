@@ -4,7 +4,16 @@ class SessionsController < ApplicationController
   before_action :set_session, only: [:show]
 
   def index
-    @sessions = Session.recent
+    @filter = params[:filter] || 'all'
+    
+    @sessions = case @filter
+    when 'active'
+      Session.active.recent
+    when 'history'
+      Session.where.not(status: 'active').recent
+    else
+      Session.recent
+    end
   end
 
   def new

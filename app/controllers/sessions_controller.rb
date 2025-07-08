@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show]
+  before_action :set_session, only: [:show, :kill]
 
   def index
-    @filter = params[:filter] || "all"
+    @filter = params[:filter] || "active"
 
     @sessions = case @filter
     when "active"
       Session.active.recent
-    when "history"
-      Session.where.not(status: "active").recent
+    when "stopped"
+      Session.stopped.recent
     else
       Session.recent
     end
@@ -35,6 +35,24 @@ class SessionsController < ApplicationController
 
   def show
     @terminal_url = @session.terminal_url(new_session: params[:new_session])
+  end
+
+  def kill
+    if @session.status != "active"
+      redirect_to(sessions_path, alert: "Session is not active.")
+      return
+    end
+
+    # Kill the tmux session
+    tmux_session_name = "swarm-ui-#{@session.session_id}"
+    system("tmux", "kill-session", "-t", tmux_session_name)
+
+    # Update session status
+    rails_root = Rails.root.to_s
+    status_script = File.join(rails_root, "bin", "update_session_status")
+    system(status_script, @session.session_id, "stopped")
+
+    redirect_to(sessions_path, notice: "Session has been killed.")
   end
 
   private

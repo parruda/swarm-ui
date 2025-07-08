@@ -27,7 +27,15 @@ if new_session
 else
   command = "bundle exec claude-swarm restore #{session_id}"
 end
-# puts "tmux new -A -s #{tmux_session_name} -c #{working_dir} #{command}"
-# sleep
-# Execute ttyd with tmux
-Kernel.exec("tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, "-c", working_dir, command)
+
+rails_root = File.expand_path("..", __dir__)
+status_script = File.join(rails_root, "bin", "update_session_status")
+
+# Mark session as active before starting
+system(status_script, session_id, "active")
+
+# Execute tmux session (this will block until the session ends)
+system("tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, "-c", working_dir, command)
+
+# After tmux exits, mark the session as stopped
+system(status_script, session_id, "stopped")

@@ -3,11 +3,11 @@
 class Session < ApplicationRecord
   # Validations
   validates :session_id, presence: true, uniqueness: true
-  validates :status, inclusion: { in: ["active", "completed", "failed"] }
+  validates :status, inclusion: { in: ["active", "stopped", "failed"] }
 
   # Scopes
   scope :active, -> { where(status: "active") }
-  scope :completed, -> { where(status: "completed") }
+  scope :stopped, -> { where(status: "stopped") }
   scope :failed, -> { where(status: "failed") }
   scope :recent, -> { order(started_at: :desc) }
 
@@ -44,9 +44,13 @@ class Session < ApplicationRecord
   private
 
   def calculate_duration
-    return unless started_at && ended_at
+    return unless ended_at
 
-    self.duration_seconds = (ended_at - started_at).to_i
+    # Use resumed_at if available, otherwise use started_at
+    start_time = resumed_at || started_at
+    return unless start_time
+
+    self.duration_seconds = (ended_at - start_time).to_i
   end
 
   def set_project_folder_name

@@ -31,10 +31,10 @@
             Active
             <span class="ml-2 rounded-full <%= @filter == 'active' ? 'bg-orange-100 text-orange-900' : 'bg-gray-100 text-gray-600' %> px-2.5 py-0.5 text-xs font-medium"><%= Session.active.count %></span>
           <% end %>
-          <%= link_to sessions_path(filter: 'history'), class: "#{@filter == 'history' ? 'border-orange-900 text-orange-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium" do %>
-            <%= heroicon "clock", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
-            History
-            <span class="ml-2 rounded-full <%= @filter == 'history' ? 'bg-orange-100 text-orange-900' : 'bg-gray-100 text-gray-600' %> px-2.5 py-0.5 text-xs font-medium"><%= Session.where.not(status: 'active').count %></span>
+          <%= link_to sessions_path(filter: 'stopped'), class: "#{@filter == 'stopped' ? 'border-orange-900 text-orange-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium" do %>
+            <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            Stopped
+            <span class="ml-2 rounded-full <%= @filter == 'stopped' ? 'bg-orange-100 text-orange-900' : 'bg-gray-100 text-gray-600' %> px-2.5 py-0.5 text-xs font-medium"><%= Session.stopped.count %></span>
           <% end %>
         </nav>
       </div>
@@ -51,24 +51,22 @@
                     <h3 class="text-lg font-medium text-gray-900">
                       <%= session.swarm_name || "Session #{session.id}" %>
                     </h3>
-                    <span class="inline-flex items-center rounded-md <%= session.status == 'active' ? 'bg-green-50 text-green-700 ring-green-600/20' : (session.status == 'completed' ? 'bg-blue-50 text-blue-700 ring-blue-600/20' : 'bg-red-50 text-red-700 ring-red-600/20') %> px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
-                      <%= heroicon session.status == 'active' ? 'play' : (session.status == 'completed' ? 'check-circle' : 'x-circle'), variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                    <span class="inline-flex items-center rounded-md <%= session.status == 'active' ? 'bg-green-50 text-green-700 ring-green-600/20' : (session.status == 'stopped' ? 'bg-blue-50 text-blue-700 ring-blue-600/20' : 'bg-red-50 text-red-700 ring-red-600/20') %> px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                      <%= heroicon session.status == 'active' ? 'play' : (session.status == 'stopped' ? 'stop' : 'x-circle'), variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
                       <%= session.status&.capitalize || 'Unknown' %>
                     </span>
                   </div>
                   <% if session.project_path.present? %>
                     <p class="text-xs text-gray-500 font-mono mt-1 truncate" title="<%= session.project_path %>">
-                      <%= session.project_path %>
+                      Project: <%= session.project_path %>
                     </p>
                   <% end %>
                 </div>
                 
                 <div class="flex items-center space-x-6 text-sm text-gray-600">
                   <div>
-                    <span class="font-medium">Project:</span> <%= session.project_folder_name || "N/A" %>
-                  </div>
-                  <div>
-                    <span class="font-medium">Started:</span> <%= session.started_at&.strftime("%b %d, %I:%M %p") || "Not started" %>
+                    <% start_time = session.resumed_at || session.started_at %>
+                    <span class="font-medium"><%= session.resumed_at ? "Resumed:" : "Started:" %></span> <%= start_time&.strftime("%b %d, %I:%M %p") || "Not started" %>
                   </div>
                   <% if session.duration_seconds.present? %>
                     <div>
@@ -79,12 +77,20 @@
               </div>
 
               <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
-                <%= link_to session_path(session), class: "inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 hover:text-gray-500", title: "View" do %>
-                  <%= heroicon "eye", variant: :mini, options: { class: "h-4 w-4" } %>
+                <%= link_to session_path(session), class: "inline-flex items-center justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50", title: session.status == 'active' ? 'Attach' : 'Resume' do %>
+                  <%= heroicon session.status == 'active' ? 'command-line' : 'play', variant: session.status == 'active' ? :solid : :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                  <%= session.status == 'active' ? 'Attach' : 'Resume' %>
                 <% end %>
                 <% if session.status == 'active' %>
-                  <%= link_to "#", data: { "turbo-method": "patch" }, class: "inline-flex items-center justify-center rounded-md bg-white p-2 text-orange-400 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-orange-50 hover:text-orange-500", title: "Stop" do %>
-                    <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4" } %>
+                  <%= link_to kill_session_path(session), 
+                      data: { 
+                        "turbo-method": "post",
+                        "turbo-confirm": "Are you sure you want to kill this session?"
+                      }, 
+                      class: "inline-flex items-center justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-red-50 hover:text-red-700", 
+                      title: "Kill session" do %>
+                    <%= heroicon "x-circle", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                    Kill
                   <% end %>
                 <% end %>
               </div>
@@ -98,7 +104,7 @@
           <%= heroicon 'command-line', variant: :outline, options: { class: "h-12 w-12" } %>
         </div>
         <h3 class="mt-2 text-sm font-semibold text-gray-900">
-          No <%= @filter == 'all' ? 'sessions' : (@filter == 'active' ? 'active sessions' : 'session history') %>
+          No <%= @filter == 'all' ? 'sessions' : (@filter == 'active' ? 'active sessions' : 'stopped sessions') %>
         </h3>
         <p class="mt-1 text-sm text-gray-500">Get started by creating a new claude-swarm session.</p>
         <div class="mt-6 space-x-3">

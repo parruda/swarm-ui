@@ -1,0 +1,105 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# This script updates session status
+# Usage: bin/update_session_status <session_id> <status>
+# Status can be: active, stopped
+
+require "net/http"
+require "uri"
+require "json"
+
+session_id = ARGV[0]
+status = ARGV[1]
+
+if session_id.nil? || session_id.empty?
+  puts "Error: session_id is required"
+  exit 1
+end
+
+if status.nil? || status.empty?
+  puts "Error: status is required (active or stopped)"
+  exit 1
+end
+
+unless ["active", "stopped"].include?(status)
+  puts "Error: status must be 'active' or 'stopped'"
+  exit 1
+end
+
+# Try API endpoint first
+def update_session_status_via_api(session_id, status)
+  uri = URI("http://localhost:3000/api/sessions/#{session_id}/status")
+
+  begin
+    response = Net::HTTP.start(uri.host, uri.port, open_timeout: 2, read_timeout: 2) do |http|
+      request = Net::HTTP::Put.new(uri)
+      request["Content-Type"] = "application/json"
+      request.body = { status: status }.to_json
+      http.request(request)
+    end
+
+    if response.code == "200"
+      puts "Session #{session_id} marked as #{status} via API"
+      true
+    else
+      puts "API returned status #{response.code}: #{response.body}"
+      false
+    end
+  rescue Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNREFUSED, SocketError => e
+    puts "API request failed: #{e.message}"
+    false
+  end
+end
+
+# Fallback to direct database access
+def update_session_status_via_db(session_id, status)
+  require_relative "../config/environment"
+
+  begin
+    session = Session.find_by(session_id: session_id)
+
+    if session.nil?
+      puts "Error: Session not found with id: #{session_id}"
+      return false
+    end
+
+    session.status = status
+
+    if status == "active"
+      # If session was previously stopped, we're resuming
+      if session.ended_at.present?
+        session.resumed_at = Time.current
+      else
+        # First time starting
+        session.started_at ||= Time.current
+      end
+      session.ended_at = nil
+    elsif status == "stopped"
+      session.ended_at = Time.current
+    end
+
+    if session.save
+      puts "Session #{session_id} marked as #{status} via database"
+      true
+    else
+      puts "Error saving session: #{session.errors.full_messages.join(", ")}"
+      false
+    end
+  rescue StandardError => e
+    puts "Database error: #{e.message}"
+    false
+  end
+end
+
+# Try API first, then fallback to database
+if update_session_status_via_api(session_id, status)
+  exit 0
+else
+  puts "Falling back to direct database access..."
+  if update_session_status_via_db(session_id, status)
+    exit 0
+  else
+    exit 1
+  end
+end

@@ -1,0 +1,89 @@
+<!-- Fixed Navbar -->
+<nav class="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
+  <div class="w-full px-6 py-3 flex justify-between items-center">
+    <div class="flex items-center space-x-8">
+      <%= link_to root_path, class: "flex items-center" do %>
+        <span class="text-2xl font-bold text-orange-900">SwarmUI</span>
+      <% end %>
+      
+      <!-- Main Navigation -->
+      <div class="hidden md:flex items-center space-x-6">
+        <%= link_to root_path, class: "flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-orange-900 hover:bg-gray-50 rounded-md transition-colors duration-200 #{'bg-orange-50 text-orange-900' if current_page?(root_path)}" do %>
+          <%= heroicon "home", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+          Dashboard
+        <% end %>
+        
+        <%= link_to sessions_path, class: "flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-orange-900 hover:bg-gray-50 rounded-md transition-colors duration-200 #{'bg-orange-50 text-orange-900' if current_page?(sessions_path) || params[:controller] == 'sessions'}" do %>
+          <%= heroicon "command-line", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+          Sessions
+        <% end %>
+        
+        <%= link_to "#", class: "flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-orange-900 hover:bg-gray-50 rounded-md transition-colors duration-200" do %>
+          <%= heroicon "document-duplicate", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+          Templates
+        <% end %>
+      </div>
+    </div>
+    <div class="flex items-center space-x-4">
+      <!-- Mobile menu button -->
+      <div class="md:hidden">
+        <button type="button" 
+                data-controller="mobile-menu"
+                data-action="click->mobile-menu#toggle"
+                class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-900" 
+                aria-controls="mobile-menu" 
+                aria-expanded="false">
+          <span class="sr-only">Open main menu</span>
+          <%= heroicon "bars-3", variant: :outline, options: { class: "h-6 w-6" } %>
+        </button>
+      </div>
+      
+      <!-- User Menu -->
+      <div class="relative group">
+        <div class="flex items-center px-4 py-2 cursor-pointer">
+          <span class="mr-2 text-gray-700">User</span>
+          <div class="h-8 w-8 rounded-full bg-orange-900 flex items-center justify-center text-white">
+            <%= heroicon "user", variant: :solid, options: { class: "h-5 w-5" } %>
+          </div>
+        </div>
+        <!-- Invisible bridge to prevent hover loss -->
+        <div class="absolute right-0 h-2 w-full"></div>
+        <!-- Dropdown Menu -->
+        <div class="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg py-1 z-50 hidden group-hover:block transition-all duration-300">
+          <!-- Settings -->
+          <%= link_to "#", class: "block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" do %>
+            <%= heroicon "cog-6-tooth", variant: :outline, options: { class: "h-5 w-5 inline mr-1" } %>
+            Settings
+          <% end %>
+          
+          <div class="border-t border-gray-100 my-1"></div>
+          
+          <%= link_to "#", class: "block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" do %>
+            <%= heroicon "arrow-right-start-on-rectangle", variant: :outline, options: { class: "h-5 w-5 inline mr-1" } %>
+            Sign Out
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Mobile menu, show/hide based on menu state -->
+  <div class="md:hidden hidden" id="mobile-menu" data-mobile-menu-target="menu">
+    <div class="px-2 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200">
+      <%= link_to root_path, class: "flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:text-orange-900 hover:bg-gray-50 rounded-md #{'bg-orange-50 text-orange-900' if current_page?(root_path)}" do %>
+        <%= heroicon "home", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+        Dashboard
+      <% end %>
+      
+      <%= link_to sessions_path, class: "flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:text-orange-900 hover:bg-gray-50 rounded-md #{'bg-orange-50 text-orange-900' if current_page?(sessions_path) || params[:controller] == 'sessions'}" do %>
+        <%= heroicon "command-line", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+        Sessions
+      <% end %>
+      
+      <%= link_to "#", class: "flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:text-orange-900 hover:bg-gray-50 rounded-md" do %>
+        <%= heroicon "document-duplicate", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+        Templates
+      <% end %>
+    </div>
+  </div>
+</nav>

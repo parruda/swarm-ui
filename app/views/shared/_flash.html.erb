@@ -1,0 +1,40 @@
+<!-- Flash messages container (fixed position, directly below navbar) -->
+<div data-controller="flash" class="relative z-40">
+  <% if notice %>
+    <div class="flash-message fixed top-16 left-0 right-0 w-full shadow-md" data-flash-target="message">
+      <div class="bg-green-50 py-3 px-4 border-t border-b border-green-200">
+        <div class="container mx-auto">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center">
+              <%= heroicon "check-circle", variant: :solid, options: { class: "h-5 w-5 text-green-400 flex-shrink-0" } %>
+              <p class="ml-3 text-sm font-medium text-green-800"><%= notice %></p>
+            </div>
+            <button type="button" class="dismiss-flash-button ml-4 inline-flex text-gray-400 hover:text-gray-500">
+              <%= heroicon "x-mark", variant: :solid, options: { class: "h-5 w-5" } %>
+              <span class="sr-only">Dismiss</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+  
+  <% if alert %>
+    <div class="flash-message fixed top-16 left-0 right-0 w-full shadow-md" data-flash-target="message">
+      <div class="bg-red-50 py-3 px-4 border-t border-b border-red-200">
+        <div class="container mx-auto">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center">
+              <%= heroicon "x-circle", variant: :solid, options: { class: "h-5 w-5 text-red-400 flex-shrink-0" } %>
+              <p class="ml-3 text-sm font-medium text-red-800"><%= alert %></p>
+            </div>
+            <button type="button" class="dismiss-flash-button ml-4 inline-flex text-gray-400 hover:text-gray-500">
+              <%= heroicon "x-mark", variant: :solid, options: { class: "h-5 w-5" } %>
+              <span class="sr-only">Dismiss</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

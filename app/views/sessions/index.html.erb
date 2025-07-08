@@ -1,0 +1,144 @@
+<% content_for :title, "Sessions" %>
+
+<div class="py-8">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="sm:flex sm:items-center">
+      <div class="sm:flex-auto">
+        <h1 class="text-base font-semibold leading-6 text-gray-900 flex items-center">
+          <%= heroicon "command-line", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+          Sessions
+        </h1>
+        <p class="mt-2 text-sm text-gray-700">Manage your claude-swarm sessions and agents.</p>
+      </div>
+      <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+        <div class="relative inline-block text-left" data-controller="dropdown">
+          <div>
+            <button type="button" class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900" data-dropdown-target="button" data-action="click->dropdown#toggle" aria-expanded="true" aria-haspopup="true">
+              New Session
+              <%= heroicon "chevron-down", variant: :mini, options: { class: "h-5 w-5 text-white" } %>
+            </button>
+          </div>
+
+          <div class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none hidden" role="menu" aria-orientation="vertical" tabindex="-1" data-dropdown-target="menu">
+            <div class="py-1" role="none">
+              <%= link_to "#", class: "text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100", role: "menuitem" do %>
+                <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 inline mr-2" } %>
+                Blank Session
+              <% end %>
+              <%= link_to "#", class: "text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100", role: "menuitem" do %>
+                <%= heroicon "document-duplicate", variant: :mini, options: { class: "h-4 w-4 inline mr-2" } %>
+                From Template
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="mt-8">
+      <div class="border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+          <%= link_to sessions_path, class: "#{@filter == 'all' ? 'border-orange-900 text-orange-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium" do %>
+            All
+            <% if @filter == 'all' %>
+              <span class="ml-2 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-900"><%= @sessions.count %></span>
+            <% end %>
+          <% end %>
+          <%= link_to sessions_path(filter: 'active'), class: "#{@filter == 'active' ? 'border-orange-900 text-orange-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium" do %>
+            <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            Active
+            <% if @filter == 'active' %>
+              <span class="ml-2 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-900"><%= @sessions.count %></span>
+            <% end %>
+          <% end %>
+          <%= link_to sessions_path(filter: 'completed'), class: "#{@filter == 'completed' ? 'border-orange-900 text-orange-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium" do %>
+            <%= heroicon "check-circle", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            Completed
+            <% if @filter == 'completed' %>
+              <span class="ml-2 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-900"><%= @sessions.count %></span>
+            <% end %>
+          <% end %>
+        </nav>
+      </div>
+    </div>
+
+    <% if @sessions.any? %>
+      <div class="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <% @sessions.each do |session| %>
+          <div class="bg-white shadow rounded-lg p-6 border border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-medium text-gray-900">
+                <%= session.swarm_name || "Session #{session.id}" %>
+              </h3>
+              <span class="inline-flex items-center rounded-md <%= session.status == 'active' ? 'bg-green-50 text-green-700 ring-green-600/20' : (session.status == 'completed' ? 'bg-blue-50 text-blue-700 ring-blue-600/20' : 'bg-red-50 text-red-700 ring-red-600/20') %> px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                <%= heroicon session.status == 'active' ? 'play' : (session.status == 'completed' ? 'check-circle' : 'x-circle'), variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                <%= session.status&.capitalize || 'Unknown' %>
+              </span>
+            </div>
+            
+            <div class="mb-4">
+              <div class="mb-2">
+                <p class="text-sm text-gray-600">
+                  <span class="font-medium">Project:</span> <%= session.project_folder_name || "N/A" %>
+                </p>
+              </div>
+              <div class="mb-2">
+                <p class="text-sm text-gray-600">
+                  <span class="font-medium">Started:</span> <%= session.started_at&.strftime("%b %d, %Y %I:%M %p") || "Not started" %>
+                </p>
+              </div>
+              <% if session.duration_seconds.present? %>
+                <div class="mb-2">
+                  <p class="text-sm text-gray-600">
+                    <span class="font-medium">Duration:</span> <%= distance_of_time_in_words(session.duration_seconds) %>
+                  </p>
+                </div>
+              <% end %>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="text-sm font-medium text-gray-900 mb-2">Project Path</h4>
+              <% if session.project_path.present? %>
+                <p class="text-xs text-gray-600 font-mono break-all"><%= session.project_path %></p>
+              <% else %>
+                <p class="text-xs text-gray-500">No project path assigned</p>
+              <% end %>
+            </div>
+
+            <div class="flex justify-end space-x-2">
+              <%= link_to "#", class: "inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" do %>
+                <%= heroicon "eye", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                View
+              <% end %>
+              <%= link_to "#", data: { "turbo-method": "delete", turbo_confirm: "Are you sure?" }, class: "inline-flex items-center rounded-md bg-red-600 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500" do %>
+                <%= heroicon "trash", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                Delete
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="mt-8 text-center">
+        <div class="mx-auto h-12 w-12 text-gray-400">
+          <%= heroicon 'command-line', variant: :outline, options: { class: "h-12 w-12" } %>
+        </div>
+        <h3 class="mt-2 text-sm font-semibold text-gray-900">
+          No <%= @filter == 'all' ? 'sessions' : (@filter == 'active' ? 'active sessions' : 'completed sessions') %>
+        </h3>
+        <p class="mt-1 text-sm text-gray-500">Get started by creating a new claude-swarm session.</p>
+        <div class="mt-6 space-x-3">
+          <%= link_to "#", class: "inline-flex items-center rounded-md bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900" do %>
+            <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+            Create Session
+          <% end %>
+          <%= link_to "#", class: "inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" do %>
+            <%= heroicon "document-duplicate", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+            Browse Templates
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

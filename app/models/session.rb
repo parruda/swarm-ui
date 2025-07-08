@@ -80,6 +80,6 @@ class Session < ApplicationRecord
     
     broadcast_prepend_to "session_#{id}",
                          target: "session_redirect",
-                         html: "<script>window.Turbo.visit('#{Rails.application.routes.url_helpers.sessions_path}');</script>"
+                         html: "<script>window.location.href = '#{Rails.application.routes.url_helpers.sessions_path}';</script>"
   end
 end

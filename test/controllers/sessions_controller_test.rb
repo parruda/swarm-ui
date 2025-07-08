@@ -48,4 +48,3 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Session not found.", flash[:alert]
   end
 end
-

@@ -24,7 +24,7 @@ class FilesystemController < ApplicationController
           stat = File.stat(full_path)
           # Only include directories
           next unless stat.directory?
-          
+
           entries << {
             name: entry,
             path: full_path,

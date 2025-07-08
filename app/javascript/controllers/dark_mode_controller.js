@@ -5,9 +5,6 @@ export default class extends Controller {
   static targets = ["iconLight", "iconDark"]
 
   connect() {
-    // Update icon visibility based on current theme
-    this.updateIcons()
-    
     // Listen for system theme changes
     this.mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     this.systemThemeHandler = (e) => this.handleSystemThemeChange(e)

@@ -20,8 +20,8 @@
               data-action="click->dark-mode#toggle"
               class="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none transition-colors duration-200"
               aria-label="Toggle dark mode">
-        <%= heroicon "sun", variant: :outline, options: { class: "h-5 w-5", "data-dark-mode-target": "iconLight" } %>
-        <%= heroicon "moon", variant: :outline, options: { class: "h-5 w-5 hidden", "data-dark-mode-target": "iconDark" } %>
+        <%= heroicon "sun", variant: :outline, options: { class: "h-5 w-5 #{dark_mode? ? 'hidden' : ''}", "data-dark-mode-target": "iconLight" } %>
+        <%= heroicon "moon", variant: :outline, options: { class: "h-5 w-5 #{dark_mode? ? '' : 'hidden'}", "data-dark-mode-target": "iconDark" } %>
       </button>
       
       <!-- Mobile menu button -->

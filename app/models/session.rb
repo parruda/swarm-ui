@@ -76,7 +76,7 @@ class Session < ApplicationRecord
   end
 
   def broadcast_redirect_if_stopped
-    return unless saved_change_to_status? && status == "stopped"
+    return unless saved_change_to_status? && status == "stopped" && status_before_last_save != "stopped"
     
     broadcast_prepend_to "session_#{id}",
                          target: "session_redirect",

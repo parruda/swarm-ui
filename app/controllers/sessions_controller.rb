@@ -11,8 +11,10 @@ class SessionsController < ApplicationController
       Session.active.recent
     when "stopped"
       Session.stopped.recent
-    else
+    when "all"
       Session.recent
+    else
+      Session.active.recent
     end
   end
 

@@ -22,10 +22,6 @@
     <div class="mt-8">
       <div class="border-b border-gray-200">
         <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-          <%= link_to sessions_path, class: "#{@filter == 'all' ? 'border-orange-900 text-orange-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium" do %>
-            All
-            <span class="ml-2 rounded-full <%= @filter == 'all' ? 'bg-orange-100 text-orange-900' : 'bg-gray-100 text-gray-600' %> px-2.5 py-0.5 text-xs font-medium"><%= Session.count %></span>
-          <% end %>
           <%= link_to sessions_path(filter: 'active'), class: "#{@filter == 'active' ? 'border-orange-900 text-orange-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium" do %>
             <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
             Active
@@ -35,6 +31,10 @@
             <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
             Stopped
             <span class="ml-2 rounded-full <%= @filter == 'stopped' ? 'bg-orange-100 text-orange-900' : 'bg-gray-100 text-gray-600' %> px-2.5 py-0.5 text-xs font-medium"><%= Session.stopped.count %></span>
+          <% end %>
+          <%= link_to sessions_path(filter: 'all'), class: "#{@filter == 'all' ? 'border-orange-900 text-orange-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium" do %>
+            All
+            <span class="ml-2 rounded-full <%= @filter == 'all' ? 'bg-orange-100 text-orange-900' : 'bg-gray-100 text-gray-600' %> px-2.5 py-0.5 text-xs font-medium"><%= Session.count %></span>
           <% end %>
         </nav>
       </div>

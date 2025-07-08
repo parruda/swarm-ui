@@ -1,0 +1,66 @@
+<!-- Fixed Navbar -->
+<nav class="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-700/50 z-50 transition-colors duration-200">
+  <div class="w-full px-6 py-3 flex justify-between items-center">
+    <div class="flex items-center space-x-8">
+      <%= link_to root_path, class: "flex items-center" do %>
+        <span class="text-2xl font-bold text-orange-900 dark:text-orange-500">SwarmUI</span>
+      <% end %>
+      
+      <!-- Main Navigation -->
+      <div class="hidden md:flex items-center space-x-6">
+<%= link_to sessions_path, class: "flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors duration-200 #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(sessions_path) || params[:controller] == 'sessions'}" do %>
+          <%= heroicon "command-line", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+          Sessions
+        <% end %>
+      </div>
+    </div>
+    <div class="flex items-center space-x-4">
+      <!-- Version display -->
+      <% if update_available? %>
+        <%= link_to "https://github.com/parruda/swarm-ui/releases", target: "_blank", rel: "noopener", class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium" do %>
+          Update Available
+        <% end %>
+      <% else %>
+        <span class="text-sm text-gray-500 dark:text-gray-400">v<%= SwarmUI.version %></span>
+      <% end %>
+      
+      <!-- Dark mode toggle -->
+      <button type="button"
+              data-action="click->dark-mode#toggle"
+              class="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none transition-colors duration-200"
+              aria-label="Toggle dark mode">
+        <%= heroicon "sun", variant: :outline, options: { class: "h-5 w-5 #{dark_mode? ? 'hidden' : ''}", "data-dark-mode-target": "iconLight" } %>
+        <%= heroicon "moon", variant: :outline, options: { class: "h-5 w-5 #{dark_mode? ? '' : 'hidden'}", "data-dark-mode-target": "iconDark" } %>
+      </button>
+      
+      <!-- Mobile menu button -->
+      <div class="md:hidden">
+        <button type="button" 
+                data-controller="mobile-menu"
+                data-action="click->mobile-menu#toggle"
+                class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-900 dark:focus:ring-orange-500 transition-colors duration-200" 
+                aria-controls="mobile-menu" 
+                aria-expanded="false">
+          <span class="sr-only">Open main menu</span>
+          <%= heroicon "bars-3", variant: :outline, options: { class: "h-6 w-6" } %>
+        </button>
+      </div>
+      
+    </div>
+  </div>
+  
+  <!-- Mobile menu, show/hide based on menu state -->
+  <div class="md:hidden hidden" id="mobile-menu" data-mobile-menu-target="menu">
+    <div class="px-2 pt-2 pb-3 space-y-1 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+<%= link_to sessions_path, class: "flex items-center px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(sessions_path) || params[:controller] == 'sessions'}" do %>
+        <%= heroicon "command-line", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+        Sessions
+      <% end %>
+      
+      <%= link_to "#", class: "flex items-center px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md" do %>
+        <%= heroicon "document-duplicate", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+        Templates
+      <% end %>
+    </div>
+  </div>
+</nav>

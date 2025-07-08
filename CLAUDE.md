@@ -132,7 +132,7 @@ When implementing UI features, proactively read the relevant Tailwind documentat
 
 ## Code Style Guidelines
 
-- Follow Rails conventions and the rubocop-rails-omakase style guide
+- Follow Rails conventions and the rubocop-shopify style guide
 - Use 2 spaces for indentation
 - Prefer snake_case for variable/method names, CamelCase for classes/modules
 - Keep lines under 100 characters

@@ -5,7 +5,7 @@ require "base64"
 require "json"
 
 # Get the base64 encoded argument
-encoded_arg = ARGV[0]
+encoded_arg = ARGV.join("")
 
 # Decode and parse JSON with symbol keys
 decoded = Base64.urlsafe_decode64(encoded_arg)
@@ -15,16 +15,27 @@ params = JSON.parse(decoded, symbolize_names: true)
 tmux_session_name = params[:tmux_session_name]
 working_dir = params[:working_dir]
 swarm_file = params[:swarm_file]
-use_worktree = params[:use_worktree?]
+use_worktree = params[:use_worktree]
 session_id = params[:session_id]
+new_session = params[:new_session]
 
 # Build the command
-if session_id
-  command = "bundle exec claude-swarm --session-id #{session_id}"
-else
+if new_session
   command = "bundle exec claude-swarm start #{swarm_file}"
+  command += " --session-id #{session_id}"
   command += " --worktree" if use_worktree
+else
+  command = "bundle exec claude-swarm restore #{session_id}"
 end
-puts "tmux new -A -s #{tmux_session_name} -c #{working_dir} #{command}"
-# Execute ttyd with tmux
-Kernel.exec("tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, "-c", working_dir, command)
+
+rails_root = File.expand_path("..", __dir__)
+status_script = File.join(rails_root, "bin", "update_session_status")
+
+# Mark session as active before starting
+system(status_script, session_id, "active")
+
+# Execute tmux session (this will block until the session ends)
+system("tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, "-c", working_dir, command)
+
+# After tmux exits, mark the session as stopped
+system(status_script, session_id, "stopped")

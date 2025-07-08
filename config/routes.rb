@@ -1,4 +1,42 @@
+# frozen_string_literal: true
+
 Rails.application.routes.draw do
+  root "sessions#index"
+
+  resources :sessions, only: [:index, :new, :create, :show] do
+    member do
+      post :kill
+    end
+  end
+
+  # Filesystem navigation endpoints
+  get "filesystem/browse", to: "filesystem#browse"
+  get "filesystem/scan_swarm_configs", to: "filesystem#scan_swarm_configs"
+
+  # Theme preference endpoint
+  put "theme", to: "theme#update"
+
+  # API endpoints for filesystem navigation
+  namespace :api do
+    resources :directories, only: [:index] do
+      collection do
+        get :swarm_files
+      end
+    end
+
+    resource :file_browser, only: [] do
+      get :browse
+      get :search_swarm_files
+    end
+
+    resources :sessions, only: [] do
+      member do
+        post :ended, to: "sessions#mark_ended"
+        put :status, to: "sessions#update_status"
+      end
+    end
+  end
+
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

@@ -4,3 +4,8 @@ inherit_gem:
 plugins:
   - rubocop-minitest
   - rubocop-rake
+
+AllCops:
+  SuggestExtensions: false
+  Exclude:
+    - ".ruby-lsp/**/*"

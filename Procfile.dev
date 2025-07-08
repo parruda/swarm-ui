@@ -1,3 +1,3 @@
 web: bin/rails server
 css: bin/rails tailwindcss:watch
-ttyd: ttyd -p 8999 -W -a bin/ttyd 
+ttyd: ttyd -p 8999 -W -a bin/ttyd

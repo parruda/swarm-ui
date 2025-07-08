@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 #
 # Uncomment this and change the path if necessary to include your own
 # components.
@@ -13,8 +14,13 @@ SimpleForm.setup do |config|
   # wrapper, change the order or even add your own to the
   # stack. The options given below are used to wrap the
   # whole input.
-  config.wrappers :default, class: "mb-4",
-    hint_class: :field_with_hint, error_class: :field_with_errors, valid_class: :field_without_errors do |b|
+  config.wrappers(
+    :default,
+    class: "mb-4",
+    hint_class: :field_with_hint,
+    error_class: :field_with_errors,
+    valid_class: :field_without_errors,
+  ) do |b|
     ## Extensions enabled by default
     # Any of these extensions can be disabled for a
     # given input by passing: `f.input EXTENSION_NAME => false`.
@@ -23,11 +29,11 @@ SimpleForm.setup do |config|
 
     # Determines whether to use HTML5 (:email, :url, ...)
     # and required attributes
-    b.use :html5
+    b.use(:html5)
 
     # Calculates placeholders automatically from I18n
     # You can also pass a string as f.input placeholder: "Placeholder"
-    b.use :placeholder
+    b.use(:placeholder)
 
     ## Optional extensions
     # They are disabled unless you pass `f.input EXTENSION_NAME => true`
@@ -37,25 +43,25 @@ SimpleForm.setup do |config|
 
     # Calculates maxlength from length validations for string inputs
     # and/or database column lengths
-    b.optional :maxlength
+    b.optional(:maxlength)
 
     # Calculate minlength from length validations for string inputs
-    b.optional :minlength
+    b.optional(:minlength)
 
     # Calculates pattern from format validations for string inputs
-    b.optional :pattern
+    b.optional(:pattern)
 
     # Calculates min and max from length validations for numeric inputs
-    b.optional :min_max
+    b.optional(:min_max)
 
     # Calculates readonly automatically from readonly attributes
-    b.optional :readonly
+    b.optional(:readonly)
 
     ## Inputs
-    b.use :label, class: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'
-    b.use :input, class: 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm', error_class: 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500'
-    b.use :hint,  wrap_with: { tag: :p, class: 'mt-1 text-sm text-gray-500' }
-    b.use :error, wrap_with: { tag: :p, class: 'mt-1 text-sm text-red-600' }
+    b.use(:label, class: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1")
+    b.use(:input, class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 dark:focus:border-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 sm:text-sm transition-colors duration-200", error_class: "border-red-300 dark:border-red-600 text-red-900 dark:text-red-400 placeholder-red-300 dark:placeholder-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500 dark:focus:ring-red-400")
+    b.use(:hint,  wrap_with: { tag: :p, class: "mt-1 text-sm text-gray-500 dark:text-gray-400" })
+    b.use(:error, wrap_with: { tag: :p, class: "mt-1 text-sm text-red-600 dark:text-red-400" })
 
     ## full_messages_for
     # If you want to display the full error message for the attribute, you can
@@ -65,32 +71,32 @@ SimpleForm.setup do |config|
   end
 
   # Tailwind CSS wrapper for better styling
-  config.wrappers :tailwind, class: "mb-6" do |b|
-    b.use :html5
-    b.use :placeholder
-    b.optional :maxlength
-    b.optional :minlength
-    b.optional :pattern
-    b.optional :min_max
-    b.optional :readonly
-    b.use :label, class: 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'
-    b.use :input, class: 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white', error_class: 'border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-    b.use :hint,  wrap_with: { tag: :p, class: 'mt-1 text-sm text-gray-500 dark:text-gray-400' }
-    b.use :error, wrap_with: { tag: :p, class: 'mt-1 text-sm text-red-600 dark:text-red-400' }
+  config.wrappers(:tailwind, class: "mb-6") do |b|
+    b.use(:html5)
+    b.use(:placeholder)
+    b.optional(:maxlength)
+    b.optional(:minlength)
+    b.optional(:pattern)
+    b.optional(:min_max)
+    b.optional(:readonly)
+    b.use(:label, class: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2")
+    b.use(:input, class: "block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 dark:focus:border-blue-400 sm:text-sm transition-colors duration-200", error_class: "border-red-300 dark:border-red-600 text-red-900 dark:text-red-400 placeholder-red-300 dark:placeholder-red-400 focus:ring-red-500 dark:focus:ring-red-400 focus:border-red-500 dark:focus:border-red-400")
+    b.use(:hint,  wrap_with: { tag: :p, class: "mt-1 text-sm text-gray-500 dark:text-gray-400" })
+    b.use(:error, wrap_with: { tag: :p, class: "mt-1 text-sm text-red-600 dark:text-red-400" })
   end
 
   # Tailwind CSS wrapper for boolean inputs (checkboxes)
-  config.wrappers :tailwind_boolean, class: "mb-6" do |b|
-    b.use :html5
-    b.optional :readonly
-    b.wrapper tag: :div, class: "flex items-start" do |ba|
-      ba.use :input, class: "mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
-      ba.wrapper tag: :div, class: "ml-3" do |bb|
-        bb.use :label, class: "text-sm font-medium text-gray-700 dark:text-gray-300"
-        bb.use :hint,  wrap_with: { tag: :p, class: 'text-sm text-gray-500 dark:text-gray-400' }
+  config.wrappers(:tailwind_boolean, class: "mb-6") do |b|
+    b.use(:html5)
+    b.optional(:readonly)
+    b.wrapper(tag: :div, class: "flex items-start") do |ba|
+      ba.use(:input, class: "mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-500 bg-white dark:bg-gray-700 focus:ring-blue-500 dark:focus:ring-blue-400")
+      ba.wrapper(tag: :div, class: "ml-3") do |bb|
+        bb.use(:label, class: "text-sm font-medium text-gray-700 dark:text-gray-300")
+        bb.use(:hint,  wrap_with: { tag: :p, class: "text-sm text-gray-500 dark:text-gray-400" })
       end
     end
-    b.use :error, wrap_with: { tag: :p, class: 'mt-1 text-sm text-red-600 dark:text-red-400' }
+    b.use(:error, wrap_with: { tag: :p, class: "mt-1 text-sm text-red-600 dark:text-red-400" })
   end
 
   # The default wrapper to be used by the FormBuilder.
@@ -103,7 +109,7 @@ SimpleForm.setup do |config|
   config.boolean_style = :nested
 
   # Default class for buttons
-  config.button_class = 'inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+  config.button_class = "inline-flex justify-center rounded-md border border-transparent bg-blue-600 dark:bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors duration-200"
 
   # Method used to tidy up errors. Specify any Rails Array method.
   # :first lists the first message for each field.
@@ -114,7 +120,7 @@ SimpleForm.setup do |config|
   config.error_notification_tag = :div
 
   # CSS class to add for error notification helper.
-  config.error_notification_class = 'rounded-md bg-red-50 p-4 mb-4'
+  config.error_notification_class = "rounded-md bg-red-50 dark:bg-red-900/30 p-4 mb-4 text-red-800 dark:text-red-200"
 
   # Series of attempts to detect a default label method for collection.
   # config.collection_label_methods = [ :to_label, :name, :title, :to_s ]
@@ -165,10 +171,10 @@ SimpleForm.setup do |config|
 
   # Custom wrappers for input types. This should be a hash containing an input
   # type as key and the wrapper that will be used for all inputs with specified type.
-  config.wrapper_mappings = { 
+  config.wrapper_mappings = {
     boolean: :tailwind_boolean,
     check_boxes: :tailwind_boolean,
-    radio_buttons: :tailwind_boolean
+    radio_buttons: :tailwind_boolean,
   }
 
   # Namespaces where SimpleForm should look for custom input classes that
@@ -194,7 +200,7 @@ SimpleForm.setup do |config|
   # config.input_class = nil
 
   # Define the default class of the input wrapper of the boolean input.
-  config.boolean_label_class = 'checkbox'
+  config.boolean_label_class = "checkbox"
 
   # Defines if the default input wrapper class should be included in radio
   # collection wrappers.

@@ -5,8 +5,9 @@ class ApplicationController < ActionController::Base
   allow_browser versions: :modern
 
   before_action :set_theme_class
+  before_action :check_version_update
 
-  helper_method :dark_mode?
+  helper_method :dark_mode?, :update_available?
 
   private
 
@@ -21,5 +22,19 @@ class ApplicationController < ActionController::Base
     # Check if the request indicates a preference for dark mode
     # This is a simplified check - in production you might want more sophisticated detection
     request.headers["Sec-CH-Prefers-Color-Scheme"] == "dark"
+  end
+
+  def check_version_update
+    @version_checker = VersionChecker.instance
+
+    # Trigger version check if needed
+    if @version_checker.needs_check?
+      CheckVersionUpdateJob.perform_later
+    end
+  end
+
+  def update_available?
+    # Always fetch fresh instance to ensure we have latest data
+    VersionChecker.instance.update_available?
   end
 end

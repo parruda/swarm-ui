@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_08_181529) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_08_191740) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -62,5 +62,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_08_181529) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_swarm_templates_on_name"
+  end
+
+  create_table "version_checkers", force: :cascade do |t|
+    t.string "remote_version"
+    t.datetime "checked_at"
+    t.integer "singleton_guard"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["singleton_guard"], name: "index_version_checkers_on_singleton_guard", unique: true
   end
 end

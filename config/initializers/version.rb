@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
 module SwarmUI
-  VERSION = "0.1.0"
+  class << self
+    def version
+      File.read(Rails.root.join("VERSION")).strip
+    end
+  end
 end

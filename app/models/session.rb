@@ -15,6 +15,9 @@ class Session < ApplicationRecord
   before_validation :calculate_duration, if: :ended_at_changed?
   before_validation :set_project_folder_name
   before_validation :set_session_path
+  
+  # Broadcast redirect when session stops
+  after_update_commit :broadcast_redirect_if_stopped
 
   def terminal_url(new_session: false)
     # Build the JSON payload for the ttyd session
@@ -70,5 +73,13 @@ class Session < ApplicationRecord
     # Generate session path: ~/.claude-swarm/sessions/PROJECT_FOLDER/SESSION_ID
     home = ENV["CLAUDE_SWARM_HOME"] || File.expand_path("~/.claude-swarm")
     self.session_path = File.join(home, "sessions", project_folder_name, session_id)
+  end
+
+  def broadcast_redirect_if_stopped
+    return unless saved_change_to_status? && status == "stopped"
+    
+    broadcast_prepend_to "session_#{id}",
+                         target: "session_redirect",
+                         html: "<script>window.Turbo.visit('#{Rails.application.routes.url_helpers.sessions_path}');</script>"
   end
 end

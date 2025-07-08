@@ -38,6 +38,7 @@ module Api
       end
 
       if session.save
+
         render(json: {
           message: "Session marked as #{new_status}",
           session: {

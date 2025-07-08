@@ -13,6 +13,8 @@ class Session < ApplicationRecord
 
   # Callbacks
   before_validation :calculate_duration, if: :ended_at_changed?
+  before_validation :set_project_folder_name
+  before_validation :set_session_path
 
   def terminal_url
     # Build the JSON payload for the ttyd session
@@ -44,5 +46,24 @@ class Session < ApplicationRecord
     return unless started_at && ended_at
 
     self.duration_seconds = (ended_at - started_at).to_i
+  end
+
+  def set_project_folder_name
+    return unless project_path.present?
+
+    # Convert project path to folder name format
+    # Remove first / and replace all remaining / or \ with +
+    folder_name = project_path.dup
+    folder_name = folder_name[1..] if folder_name.start_with?("/")
+    folder_name = folder_name[2..] if folder_name.match?(/^[A-Z]:/) # Windows drive letter
+    self.project_folder_name = folder_name.gsub(/[\/\\]/, "+")
+  end
+
+  def set_session_path
+    return unless project_folder_name.present? && session_id.present?
+
+    # Generate session path: ~/.claude-swarm/sessions/PROJECT_FOLDER/SESSION_ID
+    home = ENV["CLAUDE_SWARM_HOME"] || File.expand_path("~/.claude-swarm")
+    self.session_path = File.join(home, "sessions", project_folder_name, session_id)
   end
 end

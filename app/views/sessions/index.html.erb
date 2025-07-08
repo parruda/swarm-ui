@@ -11,27 +11,10 @@
         <p class="mt-2 text-sm text-gray-700">Manage your claude-swarm sessions and agents.</p>
       </div>
       <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-        <div class="relative inline-block text-left" data-controller="dropdown">
-          <div>
-            <button type="button" class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900" data-dropdown-target="button" data-action="click->dropdown#toggle" aria-expanded="true" aria-haspopup="true">
-              New Session
-              <%= heroicon "chevron-down", variant: :mini, options: { class: "h-5 w-5 text-white" } %>
-            </button>
-          </div>
-
-          <div class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none hidden" role="menu" aria-orientation="vertical" tabindex="-1" data-dropdown-target="menu">
-            <div class="py-1" role="none">
-              <%= link_to "#", class: "text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100", role: "menuitem" do %>
-                <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 inline mr-2" } %>
-                Blank Session
-              <% end %>
-              <%= link_to "#", class: "text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100", role: "menuitem" do %>
-                <%= heroicon "document-duplicate", variant: :mini, options: { class: "h-4 w-4 inline mr-2" } %>
-                From Template
-              <% end %>
-            </div>
-          </div>
-        </div>
+        <%= link_to new_session_path, class: "inline-flex items-center justify-center gap-x-1.5 rounded-md bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900" do %>
+          <%= heroicon "plus", variant: :mini, options: { class: "h-5 w-5" } %>
+          New Session
+        <% end %>
       </div>
     </div>
 
@@ -96,7 +79,7 @@
               </div>
 
               <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
-                <%= link_to "#", class: "inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 hover:text-gray-500", title: "View" do %>
+                <%= link_to session_path(session), class: "inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 hover:text-gray-500", title: "View" do %>
                   <%= heroicon "eye", variant: :mini, options: { class: "h-4 w-4" } %>
                 <% end %>
                 <% if session.status == 'active' %>
@@ -119,7 +102,7 @@
         </h3>
         <p class="mt-1 text-sm text-gray-500">Get started by creating a new claude-swarm session.</p>
         <div class="mt-6 space-x-3">
-          <%= link_to "#", class: "inline-flex items-center rounded-md bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900" do %>
+          <%= link_to new_session_path, class: "inline-flex items-center rounded-md bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900" do %>
             <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
             Create Session
           <% end %>

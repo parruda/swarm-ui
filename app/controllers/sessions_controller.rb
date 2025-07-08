@@ -27,7 +27,7 @@ class SessionsController < ApplicationController
     @session.status ||= "active"
 
     if @session.save
-      redirect_to(session_path(@session), notice: "Session was successfully created.")
+      redirect_to(session_path(@session))
     else
       render(:new, status: :unprocessable_entity)
     end
@@ -48,7 +48,6 @@ class SessionsController < ApplicationController
     params.require(:session).permit(
       :swarm_name,
       :project_path,
-      :project_folder_name,
       :configuration,
       :configuration_path,
       :metadata,

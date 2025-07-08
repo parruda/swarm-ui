@@ -1,0 +1,48 @@
+<% content_for :title, "New Session" %>
+
+<div class="py-8">
+  <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Create Claude Swarm Session</h1>
+      <p class="mt-1 text-sm text-gray-500">Create a new session to work with your claude-swarm agents.</p>
+    </div>
+
+    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+      <div class="px-4 py-6 sm:p-8">
+        <%= simple_form_for @session, local: true, wrapper: :tailwind do |f| %>
+          <div class="space-y-6">
+            <%= f.input :swarm_name, 
+                        label: "Session Name", 
+                        placeholder: "My Claude Swarm Session",
+                        hint: "A descriptive name for your session",
+                        wrapper: :tailwind %>
+
+            <%= f.input :project_path, 
+                        label: "Project Path", 
+                        placeholder: "/path/to/your/project",
+                        hint: "The absolute path to your project directory",
+                        wrapper: :tailwind %>
+
+            <%= f.input :configuration_path, 
+                        label: "Configuration Path (Optional)", 
+                        placeholder: "/path/to/swarm.json",
+                        hint: "Path to your swarm configuration file",
+                        required: false,
+                        wrapper: :tailwind %>
+
+            <%= f.input :use_worktree, 
+                        as: :boolean,
+                        label: "Use Git Worktree",
+                        hint: "Create a separate git worktree for this session",
+                        wrapper: :tailwind_boolean %>
+
+            <div class="flex items-center justify-end gap-x-6">
+              <%= link_to "Cancel", sessions_path, class: "text-sm font-semibold leading-6 text-gray-900" %>
+              <%= f.submit "Create Session", class: "rounded-md bg-orange-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -58,7 +58,7 @@ SimpleForm.setup do |config|
     b.optional(:readonly)
 
     ## Inputs
-    b.use(:label, class: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1")
+    b.use(:label, class: "block text-sm font-medium text-gray-700 mb-1")
     b.use(:input, class: "block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm", error_class: "border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500")
     b.use(:hint,  wrap_with: { tag: :p, class: "mt-1 text-sm text-gray-500" })
     b.use(:error, wrap_with: { tag: :p, class: "mt-1 text-sm text-red-600" })
@@ -79,10 +79,10 @@ SimpleForm.setup do |config|
     b.optional(:pattern)
     b.optional(:min_max)
     b.optional(:readonly)
-    b.use(:label, class: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2")
-    b.use(:input, class: "block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white", error_class: "border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500 dark:border-red-500")
-    b.use(:hint,  wrap_with: { tag: :p, class: "mt-1 text-sm text-gray-500 dark:text-gray-400" })
-    b.use(:error, wrap_with: { tag: :p, class: "mt-1 text-sm text-red-600 dark:text-red-400" })
+    b.use(:label, class: "block text-sm font-medium text-gray-700 mb-2")
+    b.use(:input, class: "block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm", error_class: "border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500")
+    b.use(:hint,  wrap_with: { tag: :p, class: "mt-1 text-sm text-gray-500" })
+    b.use(:error, wrap_with: { tag: :p, class: "mt-1 text-sm text-red-600" })
   end
 
   # Tailwind CSS wrapper for boolean inputs (checkboxes)
@@ -90,13 +90,13 @@ SimpleForm.setup do |config|
     b.use(:html5)
     b.optional(:readonly)
     b.wrapper(tag: :div, class: "flex items-start") do |ba|
-      ba.use(:input, class: "mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800")
+      ba.use(:input, class: "mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500")
       ba.wrapper(tag: :div, class: "ml-3") do |bb|
-        bb.use(:label, class: "text-sm font-medium text-gray-700 dark:text-gray-300")
-        bb.use(:hint,  wrap_with: { tag: :p, class: "text-sm text-gray-500 dark:text-gray-400" })
+        bb.use(:label, class: "text-sm font-medium text-gray-700")
+        bb.use(:hint,  wrap_with: { tag: :p, class: "text-sm text-gray-500" })
       end
     end
-    b.use(:error, wrap_with: { tag: :p, class: "mt-1 text-sm text-red-600 dark:text-red-400" })
+    b.use(:error, wrap_with: { tag: :p, class: "mt-1 text-sm text-red-600" })
   end
 
   # The default wrapper to be used by the FormBuilder.

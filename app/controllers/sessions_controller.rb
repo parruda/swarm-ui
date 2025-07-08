@@ -4,13 +4,13 @@ class SessionsController < ApplicationController
   before_action :set_session, only: [:show]
 
   def index
-    @filter = params[:filter] || 'all'
-    
+    @filter = params[:filter] || "all"
+
     @sessions = case @filter
-    when 'active'
+    when "active"
       Session.active.recent
-    when 'history'
-      Session.where.not(status: 'active').recent
+    when "history"
+      Session.where.not(status: "active").recent
     else
       Session.recent
     end
@@ -34,27 +34,6 @@ class SessionsController < ApplicationController
   end
 
   def show
-    # Build the JSON payload for the ttyd session
-    payload = {
-      tmux_session_name: "swarm-ui-#{@session.session_id}",
-      working_dir: @session.project_path,
-      swarm_file: @session.configuration_path,
-      use_worktree: @session.use_worktree,
-      session_id: @session.session_id,
-    }
-
-    # Base64 encode the payload (URL-safe)
-    encoded_payload = Base64.urlsafe_encode64(payload.to_json, padding: false)
-
-    # Break encoded payload into 100 character chunks
-    # because ttyd don't support long arguments
-    chunks = encoded_payload.scan(/.{1,100}/)
-
-    # Build query parameters for each chunk
-    query_params = chunks.map { |chunk| "arg=#{chunk}" }.join("&")
-
-    # Build the complete iframe URL
-    @terminal_url = "http://127.0.0.1:8999/?#{query_params}"
   end
 
   private

@@ -6,6 +6,7 @@
         <span class="text-2xl font-bold text-orange-900 dark:text-orange-500">SwarmUI</span>
       <% end %>
       
+      
       <!-- Main Navigation -->
       <div class="hidden md:flex items-center space-x-6">
 <%= link_to sessions_path, class: "flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors duration-200 #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(sessions_path) || params[:controller] == 'sessions'}" do %>
@@ -15,6 +16,16 @@
       </div>
     </div>
     <div class="flex items-center space-x-4">
+      <% if controller_name == 'sessions' && action_name == 'show' && @session %>
+        <div class="flex flex-col text-right mr-4">
+          <span class="text-lg font-medium text-gray-800 dark:text-gray-200"><%= @session.swarm_name %></span>
+          <span class="text-xs text-gray-500 dark:text-gray-400">To terminate the session, exit Claude Code (/exit)</span>
+        </div>
+      <% end %>
+      
+      <!-- Full height divider -->
+      <div class="h-10 w-px bg-gray-300 dark:bg-gray-600"></div>
+      
       <!-- Version display -->
       <% if update_available? %>
         <%= link_to "https://github.com/parruda/swarm-ui/releases", target: "_blank", rel: "noopener", class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium" do %>

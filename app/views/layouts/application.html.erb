@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-controller="dark-mode">
+<html data-controller="dark-mode" class="<%= @theme_class %>">
   <head>
     <title><%= content_for(:title) || "SwarmUI" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -7,16 +7,6 @@
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-    
-    <!-- Prevent dark mode flash -->
-    <script>
-      (function() {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.classList.add('dark');
-        }
-      })();
-    </script>
 
     <%= yield :head %>
 

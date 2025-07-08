@@ -13,6 +13,9 @@ Rails.application.routes.draw do
   get "filesystem/browse", to: "filesystem#browse"
   get "filesystem/scan_swarm_configs", to: "filesystem#scan_swarm_configs"
 
+  # Theme preference endpoint
+  put "theme", to: "theme#update"
+
   # API endpoints for filesystem navigation
   namespace :api do
     resources :directories, only: [:index] do

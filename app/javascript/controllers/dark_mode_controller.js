@@ -5,8 +5,8 @@ export default class extends Controller {
   static targets = ["iconLight", "iconDark"]
 
   connect() {
-    // Check for saved preference or system preference
-    this.initializeDarkMode()
+    // Update icon visibility based on current theme
+    this.updateIcons()
     
     // Listen for system theme changes
     this.mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -20,49 +20,80 @@ export default class extends Controller {
     }
   }
 
-  initializeDarkMode() {
-    const savedTheme = localStorage.getItem('theme')
-    
-    if (savedTheme) {
-      // User has explicitly chosen a theme
-      this.setTheme(savedTheme)
-    } else {
-      // No saved preference, use system preference
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      this.setTheme(systemPrefersDark ? 'dark' : 'light')
-    }
-  }
-
-  toggle() {
+  async toggle() {
     const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light'
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark'
     
-    // Save user preference
-    localStorage.setItem('theme', newTheme)
-    this.setTheme(newTheme)
+    // Update the server with the new preference
+    try {
+      const response = await fetch('/theme', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ theme: newTheme })
+      })
+      
+      if (response.ok) {
+        // Update the UI
+        this.setTheme(newTheme)
+      }
+    } catch (error) {
+      console.error('Failed to update theme preference:', error)
+      // Fall back to local storage
+      localStorage.setItem('theme', newTheme)
+      this.setTheme(newTheme)
+    }
   }
 
   setTheme(theme) {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark')
-      if (this.hasIconLightTarget) this.iconLightTarget.classList.add('hidden')
-      if (this.hasIconDarkTarget) this.iconDarkTarget.classList.remove('hidden')
     } else {
       document.documentElement.classList.remove('dark')
-      if (this.hasIconLightTarget) this.iconLightTarget.classList.remove('hidden')
-      if (this.hasIconDarkTarget) this.iconDarkTarget.classList.add('hidden')
+    }
+    this.updateIcons()
+  }
+
+  updateIcons() {
+    const isDark = document.documentElement.classList.contains('dark')
+    if (this.hasIconLightTarget) {
+      this.iconLightTarget.classList.toggle('hidden', isDark)
+    }
+    if (this.hasIconDarkTarget) {
+      this.iconDarkTarget.classList.toggle('hidden', !isDark)
     }
   }
 
   handleSystemThemeChange(e) {
+    // Check if there's a cookie preference by looking at current state
+    const hasCookiePreference = document.cookie.includes('theme=')
+    
     // Only respond to system changes if user hasn't set a preference
-    if (!localStorage.getItem('theme')) {
-      this.setTheme(e.matches ? 'dark' : 'light')
+    if (!hasCookiePreference) {
+      // Reload the page to get the new theme from server
+      window.location.reload()
     }
   }
 
-  clearPreference() {
-    localStorage.removeItem('theme')
-    this.initializeDarkMode()
+  async clearPreference() {
+    try {
+      await fetch('/theme', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ theme: '' })
+      })
+      
+      // Reload to get system preference from server
+      window.location.reload()
+    } catch (error) {
+      console.error('Failed to clear theme preference:', error)
+      localStorage.removeItem('theme')
+      window.location.reload()
+    }
   }
 }

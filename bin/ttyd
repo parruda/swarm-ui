@@ -17,14 +17,17 @@ working_dir = params[:working_dir]
 swarm_file = params[:swarm_file]
 use_worktree = params[:use_worktree]
 session_id = params[:session_id]
+new_session = params[:new_session]
 
 # Build the command
-if session_id
-  command = "bundle exec claude-swarm --session-id #{session_id}"
-else
+if new_session
   command = "bundle exec claude-swarm start #{swarm_file}"
+  command += " --session-id #{session_id}"
   command += " --worktree" if use_worktree
+else
+  command = "bundle exec claude-swarm restore #{session_id}"
 end
 # puts "tmux new -A -s #{tmux_session_name} -c #{working_dir} #{command}"
+# sleep
 # Execute ttyd with tmux
 Kernel.exec("tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, "-c", working_dir, command)

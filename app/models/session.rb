@@ -16,7 +16,7 @@ class Session < ApplicationRecord
   before_validation :set_project_folder_name
   before_validation :set_session_path
 
-  def terminal_url
+  def terminal_url(new_session: false)
     # Build the JSON payload for the ttyd session
     payload = {
       tmux_session_name: "swarm-ui-#{session_id}",
@@ -24,6 +24,7 @@ class Session < ApplicationRecord
       swarm_file: configuration_path,
       use_worktree: use_worktree,
       session_id: session_id,
+      new_session: new_session,
     }
 
     # Base64 encode the payload (URL-safe)
@@ -56,7 +57,7 @@ class Session < ApplicationRecord
     folder_name = project_path.dup
     folder_name = folder_name[1..] if folder_name.start_with?("/")
     folder_name = folder_name[2..] if folder_name.match?(/^[A-Z]:/) # Windows drive letter
-    self.project_folder_name = folder_name.gsub(/[\/\\]/, "+")
+    self.project_folder_name = folder_name.gsub(%r{[/\\]}, "+")
   end
 
   def set_session_path

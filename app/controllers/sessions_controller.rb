@@ -27,13 +27,14 @@ class SessionsController < ApplicationController
     @session.status ||= "active"
 
     if @session.save
-      redirect_to(session_path(@session))
+      redirect_to(session_path(@session, new_session: true))
     else
       render(:new, status: :unprocessable_entity)
     end
   end
 
   def show
+    @terminal_url = @session.terminal_url(new_session: params[:new_session])
   end
 
   private

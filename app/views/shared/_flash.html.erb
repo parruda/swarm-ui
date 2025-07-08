@@ -2,14 +2,14 @@
 <div data-controller="flash" class="relative z-40">
   <% if notice %>
     <div class="flash-message fixed top-16 left-0 right-0 w-full shadow-md" data-flash-target="message">
-      <div class="bg-green-50 py-3 px-4 border-t border-b border-green-200">
+      <div class="bg-green-50 dark:bg-green-900/30 py-3 px-4 border-t border-b border-green-200 dark:border-green-800 transition-colors duration-200">
         <div class="container mx-auto">
           <div class="flex justify-between items-center">
             <div class="flex items-center">
               <%= heroicon "check-circle", variant: :solid, options: { class: "h-5 w-5 text-green-400 flex-shrink-0" } %>
-              <p class="ml-3 text-sm font-medium text-green-800"><%= notice %></p>
+              <p class="ml-3 text-sm font-medium text-green-800 dark:text-green-200"><%= notice %></p>
             </div>
-            <button type="button" class="dismiss-flash-button ml-4 inline-flex text-gray-400 hover:text-gray-500">
+            <button type="button" class="dismiss-flash-button ml-4 inline-flex text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 transition-colors duration-200">
               <%= heroicon "x-mark", variant: :solid, options: { class: "h-5 w-5" } %>
               <span class="sr-only">Dismiss</span>
             </button>
@@ -21,14 +21,14 @@
   
   <% if alert %>
     <div class="flash-message fixed top-16 left-0 right-0 w-full shadow-md" data-flash-target="message">
-      <div class="bg-red-50 py-3 px-4 border-t border-b border-red-200">
+      <div class="bg-red-50 dark:bg-red-900/30 py-3 px-4 border-t border-b border-red-200 dark:border-red-800 transition-colors duration-200">
         <div class="container mx-auto">
           <div class="flex justify-between items-center">
             <div class="flex items-center">
               <%= heroicon "x-circle", variant: :solid, options: { class: "h-5 w-5 text-red-400 flex-shrink-0" } %>
-              <p class="ml-3 text-sm font-medium text-red-800"><%= alert %></p>
+              <p class="ml-3 text-sm font-medium text-red-800 dark:text-red-200"><%= alert %></p>
             </div>
-            <button type="button" class="dismiss-flash-button ml-4 inline-flex text-gray-400 hover:text-gray-500">
+            <button type="button" class="dismiss-flash-button ml-4 inline-flex text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 transition-colors duration-200">
               <%= heroicon "x-mark", variant: :solid, options: { class: "h-5 w-5" } %>
               <span class="sr-only">Dismiss</span>
             </button>

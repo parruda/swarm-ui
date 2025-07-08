@@ -3,11 +3,11 @@
 <div class="py-8" data-controller="filesystem-browser">
   <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
     <div class="mb-8">
-      <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Create Claude Swarm Session</h1>
-      <p class="mt-1 text-sm text-gray-500">Create a new session to work with your claude-swarm agents.</p>
+      <h1 class="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:truncate sm:text-3xl sm:tracking-tight">Create Claude Swarm Session</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Create a new session to work with your claude-swarm agents.</p>
     </div>
 
-    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+    <div class="bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-900/5 dark:ring-gray-700 sm:rounded-xl transition-colors duration-200">
       <div class="px-4 py-6 sm:p-8">
         <%= simple_form_for @session, local: true, wrapper: :tailwind do |f| %>
           <div class="space-y-6">
@@ -25,22 +25,22 @@
                           wrapper: :tailwind,
                           input_html: { data: { filesystem_browser_target: "projectPathInput" } } %>
               <button type="button"
-                      class="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                      class="inline-flex items-center gap-2 rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
                       data-action="click->filesystem-browser#open">
                 <%= heroicon "folder-open", variant: :outline, options: { class: "h-5 w-5" } %>
                 Browse
               </button>
-              <span class="ml-3 text-sm text-gray-600" data-filesystem-browser-target="selectedPath"></span>
+              <span class="ml-3 text-sm text-gray-600 dark:text-gray-400" data-filesystem-browser-target="selectedPath"></span>
             </div>
 
             <div class="space-y-2">
-              <label class="text-sm font-medium leading-6 text-gray-900">Configuration File</label>
+              <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Configuration File</label>
               <select name="session[configuration_path]" 
-                      class="block w-full rounded-md border-gray-300 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-orange-600 sm:text-sm sm:leading-6"
+                      class="block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200"
                       data-filesystem-browser-target="configSelect">
                 <option value="">Select project directory first</option>
               </select>
-              <p class="mt-2 text-sm text-gray-500">Automatically detected swarm configuration files</p>
+              <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Automatically detected swarm configuration files</p>
             </div>
 
             <%= f.input :use_worktree, 
@@ -50,8 +50,8 @@
                         wrapper: :tailwind_boolean %>
 
             <div class="flex items-center justify-end gap-x-6">
-              <%= link_to "Cancel", sessions_path, class: "text-sm font-semibold leading-6 text-gray-900" %>
-              <%= f.submit "Create Session", class: "rounded-md bg-orange-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600" %>
+              <%= link_to "Cancel", sessions_path, class: "text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200" %>
+              <%= f.submit "Create Session", class: "rounded-md bg-orange-600 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 dark:focus-visible:outline-orange-900 transition-colors duration-200" %>
             </div>
           </div>
         <% end %>
@@ -61,41 +61,41 @@
     <!-- Filesystem Browser Modal -->
     <div class="hidden fixed inset-0 z-50 overflow-y-auto" data-filesystem-browser-target="modal">
       <div class="flex min-h-full items-center justify-center p-4 text-center sm:items-center sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" data-action="click->filesystem-browser#close"></div>
+        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" data-action="click->filesystem-browser#close"></div>
         
-        <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
-          <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+        <div class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+          <div class="bg-white dark:bg-gray-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
             <div class="mb-4">
-              <h3 class="text-lg font-semibold leading-6 text-gray-900">Select Project Directory</h3>
+              <h3 class="text-lg font-semibold leading-6 text-gray-900 dark:text-gray-100">Select Project Directory</h3>
               <div class="mt-2 flex items-center gap-2">
                 <button type="button"
-                        class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                        class="inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-2.5 py-1.5 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
                         data-action="click->filesystem-browser#goUp">
                   <%= heroicon "arrow-up", variant: :outline, options: { class: "h-4 w-4" } %>
                   Up
                 </button>
-                <div class="flex-1 truncate text-sm text-gray-600">
+                <div class="flex-1 truncate text-sm text-gray-600 dark:text-gray-400">
                   <span class="font-medium">Current:</span>
                   <span data-filesystem-browser-target="currentPath">/</span>
                 </div>
               </div>
             </div>
             
-            <div class="border rounded-md h-96 overflow-y-auto">
-              <div data-filesystem-browser-target="fileList" class="divide-y divide-gray-200">
+            <div class="border border-gray-300 dark:border-gray-600 rounded-md h-96 overflow-y-auto bg-white dark:bg-gray-900">
+              <div data-filesystem-browser-target="fileList" class="divide-y divide-gray-200 dark:divide-gray-700">
                 <!-- Directory entries will be rendered here -->
               </div>
             </div>
           </div>
           
-          <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+          <div class="bg-gray-50 dark:bg-gray-800/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-gray-200 dark:border-gray-700">
             <button type="button"
-                    class="inline-flex w-full justify-center rounded-md bg-orange-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 sm:ml-3 sm:w-auto"
+                    class="inline-flex w-full justify-center rounded-md bg-orange-600 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 dark:hover:bg-orange-800 sm:ml-3 sm:w-auto transition-colors duration-200"
                     data-action="click->filesystem-browser#selectCurrentDirectory">
               Select This Directory
             </button>
             <button type="button"
-                    class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                    class="mt-3 inline-flex w-full justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto transition-colors duration-200"
                     data-action="click->filesystem-browser#close">
               Cancel
             </button>

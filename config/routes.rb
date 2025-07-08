@@ -5,6 +5,10 @@ Rails.application.routes.draw do
   
   resources :sessions, only: [:index, :new, :create, :show]
   
+  # Filesystem navigation endpoints
+  get "filesystem/browse", to: "filesystem#browse"
+  get "filesystem/scan_swarm_configs", to: "filesystem#scan_swarm_configs"
+  
   # API endpoints for filesystem navigation
   namespace :api do
     resources :directories, only: [:index] do

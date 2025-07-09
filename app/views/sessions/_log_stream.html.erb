@@ -1,15 +1,26 @@
 <%= turbo_frame_tag "log_stream" do %>
-  <div class="h-full flex flex-col">
+  <div class="h-full flex flex-col" data-controller="log-expansion">
     
     <!-- Controls -->
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-stone-700/50 bg-gradient-to-r from-stone-800/20 to-stone-900/20 -mx-4 px-4 pt-4 -mt-4 rounded-t-lg">
       <div class="flex items-center gap-3">
         <button onclick="location.reload()"
                 class="px-4 py-2 text-xs font-medium rounded-lg bg-gradient-to-r from-stone-700 to-stone-600 hover:from-stone-600 hover:to-stone-500 text-white transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 group">
-          <svg class="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-          </svg>
+          <%= heroicon "arrow-path", variant: :mini, options: { class: "h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-180" } %>
           Refresh
+        </button>
+        
+        <!-- Expand/Collapse All Button -->
+        <button data-action="click->log-expansion#toggleAll"
+                class="px-4 py-2 text-xs font-medium rounded-lg bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-white transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2">
+          <span data-log-expansion-target="expandButton" class="flex items-center gap-2">
+            <%= heroicon "arrows-pointing-out", variant: :mini, options: { class: "h-3.5 w-3.5" } %>
+            Expand All
+          </span>
+          <span data-log-expansion-target="collapseButton" class="hidden flex items-center gap-2">
+            <%= heroicon "arrows-pointing-in", variant: :mini, options: { class: "h-3.5 w-3.5" } %>
+            Collapse All
+          </span>
         </button>
       </div>
       <div class="flex items-center gap-2">
@@ -27,21 +38,72 @@
         <% instance = log_event["instance"] || "unknown" %>
         <% timestamp = Time.parse(log_event["timestamp"]).strftime("%H:%M:%S") rescue "?" %>
         
-        <div class="p-4 rounded-xl border <%= log_entry_class(event_type) %> transition-all duration-200 group">
-          <div class="flex items-center gap-3 mb-2">
-            <span class="text-slate-500 text-xs font-medium bg-stone-800/50 px-2 py-1 rounded">
-              <%= timestamp %>
-            </span>
-            <span class="font-bold <%= instance_color(instance) %> text-sm">
-              <%= instance %>
-            </span>
-            <span class="text-xs font-medium px-2 py-1 rounded-full 
-                   <%= event_type == 'request' ? 'bg-blue-500/20 text-blue-400' : 
-                       event_type == 'result' ? 'bg-emerald-500/20 text-emerald-400' : 
-                       event_type == 'error' ? 'bg-red-500/20 text-red-400' : 
-                       'bg-slate-500/20 text-slate-400' %>">
-              <%= event_type %>
-            </span>
+        <div class="p-4 rounded-xl border <%= log_entry_class(event_type) %> transition-all duration-200 group cursor-pointer hover:border-opacity-80"
+             data-log-expansion-target="entry"
+             data-action="click->log-expansion#toggleEntry"
+             data-expanded="false">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <span class="text-slate-500 text-xs font-medium bg-stone-800/50 px-2 py-1 rounded">
+                <%= timestamp %>
+              </span>
+              <span class="font-bold <%= instance_color(instance) %> text-sm">
+                <%= instance %>
+              </span>
+              <% 
+                # Check if this is a tool use/result to show appropriate label
+                is_tool_use = false
+                is_tool_result = false
+                tool_name = nil
+                
+                if event_type == "assistant" || event_type == "user"
+                  content_array = log_event.dig("event", "message", "content")
+                  if content_array.is_a?(Array) && content_array[0].is_a?(Hash)
+                    content_type = content_array[0]["type"]
+                    if content_type == "tool_use"
+                      is_tool_use = true
+                      tool_name = content_array[0]["name"]
+                    elsif content_type == "tool_result"
+                      is_tool_result = true
+                    end
+                  end
+                end
+              %>
+              
+              <% if is_tool_use %>
+                <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-violet-500/20 text-violet-400">
+                  <%= heroicon "wrench-screwdriver", variant: :mini, options: { class: "h-3 w-3" } %>
+                  Tool<%= tool_name ? ": #{tool_name}" : "" %>
+                </span>
+              <% elsif is_tool_result %>
+                <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-amber-500/20 text-amber-400">
+                  <%= heroicon "check-badge", variant: :mini, options: { class: "h-3 w-3" } %>
+                  Tool Result
+                </span>
+              <% else %>
+                <span class="text-xs font-medium px-2 py-1 rounded-full 
+                       <%= event_type == 'request' ? 'bg-blue-500/20 text-blue-400' : 
+                           event_type == 'result' ? 'bg-emerald-500/20 text-emerald-400' : 
+                           event_type == 'error' ? 'bg-red-500/20 text-red-400' : 
+                           'bg-slate-500/20 text-slate-400' %>">
+                  <%= event_type %>
+                </span>
+              <% end %>
+            </div>
+            
+            <!-- Expansion controls -->
+            <div class="flex items-center gap-2">
+              <!-- Copy button -->
+              <button data-action="click->log-expansion#copyContent"
+                      class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1.5 rounded hover:bg-stone-700/50 text-slate-400 hover:text-slate-200">
+                <%= heroicon "clipboard-document", variant: :mini, options: { class: "h-3.5 w-3.5" } %>
+              </button>
+              <!-- Chevron indicator -->
+              <%= heroicon "chevron-right", variant: :mini, options: { 
+                class: "h-4 w-4 text-slate-500 transition-transform duration-200",
+                data: { "log-expansion-target": "chevron" }
+              } %>
+            </div>
           </div>
           
           <div class="ml-20 mt-1">
@@ -51,9 +113,19 @@
                 <span class="text-slate-400">From:</span> <%= log_event.dig("event", "from_instance") %> 
                 <span class="text-slate-400">→ To:</span> <%= log_event.dig("event", "to_instance") %>
               </div>
-              <div class="mt-1 text-slate-400 italic break-words">
-                <%= truncate(log_event.dig("event", "prompt"), length: 200) %>
-              </div>
+              <% prompt = log_event.dig("event", "prompt") || "" %>
+              <% if prompt.length > 200 %>
+                <div class="mt-1 text-slate-400 italic break-words" data-log-expansion-target="truncated">
+                  <%= truncate(prompt, length: 200) %>
+                </div>
+                <div class="mt-1 text-slate-400 italic break-words hidden" data-log-expansion-target="full">
+                  <%= prompt %>
+                </div>
+              <% else %>
+                <div class="mt-1 text-slate-400 italic break-words">
+                  <%= prompt %>
+                </div>
+              <% end %>
             <% when "result" %>
               <div class="flex gap-4 text-sm">
                 <% if cost = log_event.dig("event", "total_cost_usd") %>
@@ -69,20 +141,162 @@
                 <% end %>
               </div>
               <% if result = log_event.dig("event", "result") %>
-                <div class="mt-1 text-slate-400 break-words">
-                  <%= truncate(result, length: 300) %>
-                </div>
+                <% if result.length > 300 %>
+                  <div class="mt-1 text-slate-400 break-words" data-log-expansion-target="truncated">
+                    <%= truncate(result, length: 300) %>
+                  </div>
+                  <div class="mt-1 text-slate-400 break-words hidden" data-log-expansion-target="full">
+                    <%= result %>
+                  </div>
+                <% else %>
+                  <div class="mt-1 text-slate-400 break-words">
+                    <%= result %>
+                  </div>
+                <% end %>
               <% end %>
             <% when "assistant", "user" %>
-              <div class="text-slate-300 break-words">
-                <% message = log_event.dig("event", "message", "content", 0, "text") || 
-                            log_event.dig("event", "message") || "" %>
-                <%= truncate(message, length: 300) %>
-              </div>
+              <% 
+                # Check for tool use and get tool input if present
+                is_tool_use = false
+                tool_input = nil
+                
+                if event_type == "assistant"
+                  content_array = log_event.dig("event", "message", "content")
+                  if content_array.is_a?(Array) && content_array[0].is_a?(Hash)
+                    is_tool_use = content_array[0]["type"] == "tool_use"
+                    tool_input = content_array[0]["input"] if is_tool_use
+                  end
+                end
+              %>
+              
+              <% if is_tool_use && tool_input %>
+                <% # Format tool arguments with HTML for better visibility %>
+                <% formatted_args_html = tool_input.map do |key, value|
+                     formatted_key = key.to_s.split('_').map(&:capitalize).join(' ')
+                     formatted_value = case value
+                       when String 
+                         if value.include?("\n")
+                           # Multi-line strings get special formatting
+                           "<div class='ml-4 mt-1 p-2 bg-stone-800/50 rounded border-l-2 border-violet-500/50'><pre class='text-slate-300 text-xs whitespace-pre-wrap'>#{h(value)}</pre></div>"
+                         else
+                           "<span class='text-slate-200'>#{h(value)}</span>"
+                         end
+                       when Hash, Array 
+                         "<span class='text-amber-400 font-medium'>#{value.is_a?(Hash) ? value.keys.length : value.length} items</span>"
+                       when true, false 
+                         value ? "<span class='text-emerald-400 font-medium'>Yes</span>" : "<span class='text-red-400 font-medium'>No</span>"
+                       when nil 
+                         "<span class='text-slate-500 italic'>None</span>"
+                       when Numeric
+                         "<span class='text-blue-400 font-medium'>#{value}</span>"
+                       else 
+                         "<span class='text-slate-200'>#{h(value.to_s)}</span>"
+                     end
+                     "<div class='mb-2'><span class='text-violet-400 font-semibold'>#{formatted_key}:</span> #{formatted_value}</div>"
+                   end.join %>
+                
+                <% # Create a text version for truncation comparison %>
+                <% text_version = tool_input.map { |k, v| "#{k}: #{v}" }.join("\n") %>
+                
+                <% if text_version.length > 300 %>
+                  <div class="space-y-1" data-log-expansion-target="truncated">
+                    <% # Show first few arguments truncated %>
+                    <%= tool_input.first(2).map do |key, value|
+                         formatted_key = key.to_s.split('_').map(&:capitalize).join(' ')
+                         formatted_value = case value
+                           when String then truncate(value, length: 50)
+                           when Hash, Array then "#{value.is_a?(Hash) ? value.keys.length : value.length} items"
+                           when true, false then value ? "Yes" : "No"
+                           when nil then "None"
+                           else value.to_s
+                         end
+                         "<div class='mb-2'><span class='text-violet-400 font-semibold'>#{formatted_key}:</span> <span class='text-slate-300'>#{h(formatted_value)}</span></div>"
+                       end.join.html_safe %>
+                    <div class="text-slate-500 italic text-xs">... and <%= tool_input.length - 2 %> more</div>
+                  </div>
+                  <div class="space-y-1 hidden" data-log-expansion-target="full">
+                    <%= formatted_args_html.html_safe %>
+                  </div>
+                <% else %>
+                  <div class="space-y-1">
+                    <%= formatted_args_html.html_safe %>
+                  </div>
+                <% end %>
+              <% else %>
+                <% 
+                  # Handle regular messages
+                  message = if event_type == "user" && log_event.dig("event", "message", "content").is_a?(Array)
+                    # For user messages with tool results
+                    content = log_event.dig("event", "message", "content", 0)
+                    if content.is_a?(Hash) && content["type"] == "tool_result"
+                      content["content"] || ""
+                    else
+                      content.to_s
+                    end
+                  else
+                    # For assistant messages or other formats
+                    log_event.dig("event", "message", "content", 0, "text") || 
+                    log_event.dig("event", "message", "content") || 
+                    log_event.dig("event", "message") || ""
+                  end
+                  
+                  # Ensure message is a string
+                  message = message.to_s if !message.is_a?(String)
+                  
+                  # Check if this is a tool result to apply special formatting
+                  is_tool_result = event_type == "user" && 
+                                  log_event.dig("event", "message", "content", 0, "type") == "tool_result"
+                %>
+                
+                <% if is_tool_result && message.include?("\n") %>
+                  <% # Tool results with newlines get special formatting %>
+                  <% if message.length > 300 %>
+                    <div class="bg-stone-800/30 rounded-lg p-3 border-l-2 border-amber-500/50" data-log-expansion-target="truncated">
+                      <pre class="text-slate-300 text-xs whitespace-pre-wrap font-mono"><%= truncate(message, length: 300) %></pre>
+                    </div>
+                    <div class="bg-stone-800/30 rounded-lg p-3 border-l-2 border-amber-500/50 hidden" data-log-expansion-target="full">
+                      <pre class="text-slate-300 text-xs whitespace-pre-wrap font-mono"><%= h(message) %></pre>
+                    </div>
+                  <% else %>
+                    <div class="bg-stone-800/30 rounded-lg p-3 border-l-2 border-amber-500/50">
+                      <pre class="text-slate-300 text-xs whitespace-pre-wrap font-mono"><%= h(message) %></pre>
+                    </div>
+                  <% end %>
+                <% elsif message.length > 300 %>
+                  <div class="text-slate-300 break-words" data-log-expansion-target="truncated">
+                    <%= truncate(message, length: 300) %>
+                  </div>
+                  <div class="text-slate-300 break-words hidden" data-log-expansion-target="full">
+                    <% if is_tool_result %>
+                      <pre class="whitespace-pre-wrap font-mono text-xs"><%= h(message) %></pre>
+                    <% else %>
+                      <%= simple_format(message) %>
+                    <% end %>
+                  </div>
+                <% else %>
+                  <div class="text-slate-300 break-words">
+                    <% if is_tool_result %>
+                      <pre class="whitespace-pre-wrap font-mono text-xs"><%= h(message) %></pre>
+                    <% else %>
+                      <%= simple_format(message) %>
+                    <% end %>
+                  </div>
+                <% end %>
+              <% end %>
             <% else %>
-              <div class="text-slate-500 break-words">
-                <%= truncate(log_event["event"].to_json, length: 200) %>
-              </div>
+              <% json_content = log_event["event"].to_json %>
+              <% if json_content.length > 200 %>
+                <div class="text-slate-500 break-words" data-log-expansion-target="truncated">
+                  <%= truncate(json_content, length: 200) %>
+                </div>
+                <div class="text-slate-500 break-words hidden" data-log-expansion-target="full">
+                  <%= json_content %>
+                </div>
+              <% else %>
+                <div class="text-slate-500 break-words">
+                  <%= json_content %>
+                </div>
+              <% end %>
             <% end %>
           </div>
         </div>

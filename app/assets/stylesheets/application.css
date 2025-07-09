@@ -42,3 +42,23 @@ iframe::-webkit-scrollbar {
 *::-webkit-scrollbar-thumb:hover {
   background-color: #718096;
 }
+
+/* Smooth expand/collapse animations for log entries */
+[data-log-expansion-target="truncated"],
+[data-log-expansion-target="full"] {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Make the chevron rotation smooth */
+[data-log-expansion-target="chevron"] {
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Smooth hover effects on log entries */
+[data-log-expansion-target="entry"] {
+  transition: border-color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+[data-log-expansion-target="entry"]:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}

@@ -6,6 +6,18 @@ export default class extends Controller {
 
   connect() {
     this.currentPathValue = this.currentPathValue || ""
+    
+    // If project path is already filled, trigger config scan
+    if (this.projectPathInputTarget.value) {
+      this.currentPathValue = this.projectPathInputTarget.value
+      this.scanForSwarmConfigs()
+    }
+    
+    // Focus on name field if requested
+    const nameField = document.querySelector('[data-focus-on-load="true"]')
+    if (nameField) {
+      nameField.focus()
+    }
   }
 
   open() {
@@ -82,6 +94,12 @@ export default class extends Controller {
           option.textContent = config.relative_path
           this.configSelectTarget.appendChild(option)
         })
+        
+        // If there's a prefilled configuration path, select it
+        const currentValue = this.configSelectTarget.dataset.currentValue || this.configSelectTarget.value
+        if (currentValue) {
+          this.configSelectTarget.value = currentValue
+        }
       } else {
         this.configSelectTarget.innerHTML = '<option value="">No swarm configuration files found</option>'
       }

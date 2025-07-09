@@ -11,6 +11,7 @@ Rails.application.routes.draw do
       get :info, as: :info
       get :log_stream
       get :instances
+      get :clone
     end
   end
 

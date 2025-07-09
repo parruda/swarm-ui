@@ -15,7 +15,12 @@
                         label: "Session Name", 
                         placeholder: "My Claude Swarm Session",
                         hint: "A descriptive name for your session",
-                        wrapper: :tailwind %>
+                        wrapper: :tailwind,
+                        input_html: { 
+                          data: { 
+                            focus_on_load: @focus_name_field ? "true" : "false" 
+                          }
+                        } %>
 
             <div class="space-y-2">
               <%= f.input :project_path, 
@@ -37,8 +42,12 @@
               <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Configuration File</label>
               <select name="session[configuration_path]" 
                       class="block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200"
-                      data-filesystem-browser-target="configSelect">
+                      data-filesystem-browser-target="configSelect"
+                      data-current-value="<%= @session.configuration_path %>">
                 <option value="">Select project directory first</option>
+                <% if @session.configuration_path.present? %>
+                  <option value="<%= @session.configuration_path %>" selected><%= @session.configuration_path %></option>
+                <% end %>
               </select>
               <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Automatically detected swarm configuration files</p>
             </div>
@@ -48,6 +57,21 @@
                         label: "Use Git Worktree",
                         hint: "Create a separate git worktree for this session",
                         wrapper: :tailwind_boolean %>
+
+            <div class="space-y-2">
+              <%= f.input :environment_variables,
+                          as: :text,
+                          label: "Environment Variables",
+                          placeholder: "KEY1=value1\nKEY2=value2\nAPI_KEY=your-api-key",
+                          hint: "Enter environment variables (one per line, format: KEY=value). These will be encrypted and set in your session.",
+                          wrapper: :tailwind,
+                          input_html: { 
+                            rows: 4,
+                            wrap: "off",
+                            class: "block w-full rounded-md border-gray-300 dark:border-gray-600 py-2 px-3 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200 font-mono text-sm",
+                            style: "white-space: pre; overflow-x: auto;"
+                          } %>
+            </div>
 
             <div class="flex items-center justify-end gap-x-6">
               <%= link_to "Cancel", sessions_path, class: "text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200" %>

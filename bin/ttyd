@@ -19,6 +19,7 @@ use_worktree = params[:use_worktree]
 session_id = params[:session_id]
 new_session = params[:new_session]
 openai_api_key = params[:openai_api_key]
+environment_variables = params[:environment_variables]
 
 # Build the command
 if new_session
@@ -38,6 +39,19 @@ system(status_script, session_id, "active")
 # Build environment for tmux session
 env = {}
 env["OPENAI_API_KEY"] = openai_api_key if openai_api_key && !openai_api_key.empty?
+
+# Parse and add custom environment variables
+if environment_variables && !environment_variables.empty?
+  environment_variables.each_line do |line|
+    line = line.strip
+    next if line.empty? || line.start_with?("#")
+    
+    key, value = line.split("=", 2)
+    if key && value
+      env[key.strip] = value.strip
+    end
+  end
+end
 
 # Execute tmux session (this will block until the session ends)
 system(env, "tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, "-c", working_dir, command)

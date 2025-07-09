@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :info, :log_stream, :instances]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances]
 
   def index
     @filter = params[:filter] || "active"
@@ -22,6 +22,17 @@ class SessionsController < ApplicationController
 
   def new
     @session = Session.new
+    # Check if we're cloning from another session
+    if params[:clone_from].present?
+      @clone_source = Session.find_by(id: params[:clone_from])
+      if @clone_source
+        @session.project_path = @clone_source.project_path
+        @session.configuration_path = @clone_source.configuration_path
+        @session.use_worktree = @clone_source.use_worktree
+        @session.environment_variables = @clone_source.environment_variables
+        @focus_name_field = true
+      end
+    end
   end
 
   def create
@@ -79,6 +90,10 @@ class SessionsController < ApplicationController
     redirect_to(sessions_path(filter: "stopped"), notice: "Session has been unarchived.")
   end
 
+  def clone
+    redirect_to(new_session_path(clone_from: @session.id))
+  end
+
   def info
     # Get session metadata from claude-swarm session directory
     @session_metadata = fetch_session_metadata
@@ -129,6 +144,7 @@ class SessionsController < ApplicationController
       :use_worktree,
       :session_id,
       :status,
+      :environment_variables,
     )
   end
 

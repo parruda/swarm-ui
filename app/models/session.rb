@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class Session < ApplicationRecord
+  # Encryption
+  encrypts :environment_variables
+
   # Validations
   validates :session_id, presence: true, uniqueness: true
   validates :status, inclusion: { in: ["active", "stopped", "archived"] }
@@ -29,6 +32,7 @@ class Session < ApplicationRecord
       session_id: session_id,
       new_session: new_session,
       openai_api_key: Setting.openai_api_key,
+      environment_variables: environment_variables,
     }
 
     # Base64 encode the payload (URL-safe)

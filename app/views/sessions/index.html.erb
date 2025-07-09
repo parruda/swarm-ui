@@ -62,8 +62,18 @@
                     </span>
                   </div>
                   <% if session.project_path.present? %>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-1 truncate" title="<%= session.project_path %>">
-                      Project: <%= session.project_path %>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate" title="<%= session.project_path %>">
+                      <span class="font-semibold">Project:</span> <%= session.project_path %>
+                    </p>
+                  <% end %>
+                  <% if session.configuration_path.present? %>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate" title="<%= session.configuration_path %>">
+                      <span class="font-semibold">Config:</span> <%= session.configuration_path %>
+                    </p>
+                  <% end %>
+                  <% if session.swarm_name.present? %>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <span class="font-semibold">Swarm:</span> <%= session.swarm_name %>
                     </p>
                   <% end %>
                 </div>
@@ -82,6 +92,12 @@
               </div>
 
               <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
+                <%= link_to clone_session_path(session), 
+                    class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", 
+                    title: "Use this session as a template for a new session" do %>
+                  <%= heroicon "document-duplicate", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                  Use as template
+                <% end %>
                 <% unless session.status == 'archived' %>
                   <%= link_to session_path(session), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", title: session.status == 'active' ? 'Attach' : 'Resume' do %>
                     <%= heroicon session.status == 'active' ? 'command-line' : 'play', variant: session.status == 'active' ? :solid : :mini, options: { class: "h-4 w-4 mr-1.5" } %>

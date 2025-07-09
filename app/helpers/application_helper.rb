@@ -28,5 +28,4 @@ module ApplicationHelper
     hash = instance.to_s.chars.map(&:ord).sum
     colors[hash % colors.length]
   end
-
 end

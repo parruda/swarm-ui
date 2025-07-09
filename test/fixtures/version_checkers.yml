@@ -1,11 +1,6 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  remote_version: MyString
+  remote_version: "1.0.0"
   checked_at: 2025-07-08 16:17:40
-  singleton_guard: 1
-
-two:
-  remote_version: MyString
-  checked_at: 2025-07-08 16:17:40
-  singleton_guard: 1
+  singleton_guard: 0

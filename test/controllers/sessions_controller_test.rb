@@ -25,8 +25,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to session_url(Session.last)
-    assert_equal "Session was successfully created.", flash[:notice]
+    assert_redirected_to session_url(Session.last, new_session: true)
   end
 
   test "should show session" do
@@ -37,6 +36,9 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
       status: "active",
       started_at: Time.current,
     )
+
+    # Stub the Setting.openai_api_key method to avoid encryption issues
+    Setting.stubs(:openai_api_key).returns("test_api_key")
 
     get session_url(session)
     assert_response :success

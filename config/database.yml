@@ -21,7 +21,7 @@ default: &default
   username: swarm_ui
   password: swarm_ui
   host: 127.0.0.1
-  port: 5432
+  port: <%= ENV.fetch("POSTGRES_PORT", "5432") %>
 
 development:
   <<: *default

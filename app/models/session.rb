@@ -41,7 +41,8 @@ class Session < ApplicationRecord
     query_params = chunks.map { |chunk| "arg=#{chunk}" }.join("&")
 
     # Build the complete iframe URL
-    "http://127.0.0.1:8999/?#{query_params}"
+    ttyd_port = ENV.fetch("TTYD_PORT", "8999")
+    "http://127.0.0.1:#{ttyd_port}/?#{query_params}"
   end
 
   private

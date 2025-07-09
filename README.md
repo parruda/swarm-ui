@@ -16,8 +16,9 @@ A modern web interface for managing Claude Swarm sessions. SwarmUI provides an i
 
 - Ruby 3.4.2
 - Rails 8.0.2
-- PostgreSQL
+- PostgreSQL (or Podman/Docker for containerized PostgreSQL)
 - Redis (for Solid Queue/Cable)
+- ttyd (for terminal integration)
 
 ## Installation
 
@@ -37,12 +38,26 @@ bundle install
 bin/rails db:prepare
 ```
 
-4. Start the development server:
+4. Start the application:
+
+**Option A: Full stack with PostgreSQL** (recommended for first-time setup)
+```bash
+bin/start
+```
+This starts all services including PostgreSQL in a container using Podman.
+- Rails app runs on port 4269
+- ttyd terminal runs on port 4268
+- PostgreSQL runs on port 4267
+
+**Option B: Development mode** (if you have PostgreSQL already running)
 ```bash
 bin/dev
 ```
+This starts only the Rails server, Tailwind CSS watcher, and ttyd on the default ports.
 
-The application will be available at `http://localhost:3000`.
+The application will be available at:
+- `http://localhost:4269` when using `bin/start`
+- `http://localhost:3000` when using `bin/dev`
 
 ## Development
 

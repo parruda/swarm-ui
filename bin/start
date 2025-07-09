@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+
+if ! gem list foreman -i --silent; then
+  echo "Installing foreman..."
+  gem install foreman
+fi
+
+
+# Set ports for all services
+export PORT="${PORT:-4269}"  # Rails app
+export TTYD_PORT="${TTYD_PORT:-4268}"  # ttyd terminal
+export POSTGRES_PORT="${POSTGRES_PORT:-4267}"  # PostgreSQL
+
+
+# Let the debug gem allow remote connections,
+# but avoid loading until `debugger` is called
+export RUBY_DEBUG_OPEN="true"
+export RUBY_DEBUG_LAZY="true"
+
+exec foreman start -f Procfile.start "$@"

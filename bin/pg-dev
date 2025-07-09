@@ -1,0 +1,64 @@
+#!/bin/bash
+# Define container name, volume name, and image name
+
+# Check if required environment variables are set
+# Use defaults for user and db if not provided
+: "${POSTGRES_USER:=swarm_ui}"
+: "${POSTGRES_DB:=swarm_ui_development}"
+: "${POSTGRES_PASSWORD:=swarm_ui}"
+
+# Accept port as first argument, default to 5432 if not provided
+DB_PORT="${1:-5432}"
+
+CONTAINER_NAME="swarm_ui_postgres_db_${DB_PORT}"
+VOLUME_NAME="swarm_ui_pg_data_${DB_PORT}"
+IMAGE_NAME="pgvector/pgvector:0.8.0-pg17"
+
+
+# Check if the container is already running
+if podman ps --filter "name=^/${CONTAINER_NAME}$" --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+  echo "Container '${CONTAINER_NAME}' is already running."
+  exit 0
+fi
+
+# Check if a stopped container with the same name exists and remove it (due to --rm, this might be redundant but safe)
+if podman ps -a --filter "name=^/${CONTAINER_NAME}$" --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+  echo "Removing existing stopped container '${CONTAINER_NAME}'..."
+  podman rm "${CONTAINER_NAME}"
+fi
+
+# Ensure the volume exists (podman run usually creates it, but explicit check is safer)
+if ! podman volume exists "${VOLUME_NAME}"; then
+  echo "Creating volume '${VOLUME_NAME}'..."
+  podman volume create "${VOLUME_NAME}"
+fi
+
+echo "Starting PostgreSQL container '${CONTAINER_NAME}' with image ${IMAGE_NAME}..."
+
+# Run the container using podman
+# -d: detached mode (run in background) - only if BACKGROUND=1
+# --rm: remove the container automatically when it exits
+# --name: assign a name to the container
+# -e: set environment variables required by postgres
+# -p: map host port 5432 on localhost to container port 5432
+# -v: mount the named volume to the postgres data directory. :Z adjusts SELinux labels if needed.
+
+# Check if BACKGROUND=1 to run in detached mode
+if [ "${BACKGROUND}" = "1" ]; then
+  DETACH_FLAG="-d"
+else
+  DETACH_FLAG=""
+fi
+
+podman run \
+  ${DETACH_FLAG} \
+  --rm \
+  --name "${CONTAINER_NAME}" \
+  -e POSTGRES_USER="${POSTGRES_USER}" \
+  -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
+  -e POSTGRES_DB="${POSTGRES_DB}" \
+  -p 127.0.0.1:${DB_PORT}:5432 \
+  -v "${VOLUME_NAME}:/var/lib/postgresql/data:Z" \
+  "${IMAGE_NAME}"
+
+exit 0

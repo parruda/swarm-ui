@@ -17,6 +17,12 @@
           <dt class="text-slate-400 font-medium">Swarm Name</dt>
           <dd class="text-white font-semibold"><%= @session.swarm_name || "N/A" %></dd>
         </div>
+        <% if @swarm_config && @swarm_config['name'] %>
+          <div class="flex justify-between items-center hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+            <dt class="text-slate-400 font-medium">Team Name</dt>
+            <dd class="text-purple-400 font-semibold"><%= @swarm_config['name'] %></dd>
+          </div>
+        <% end %>
         <div class="flex justify-between items-center hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
           <dt class="text-slate-400 font-medium">Status</dt>
           <dd>

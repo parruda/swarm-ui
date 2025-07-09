@@ -62,6 +62,9 @@ class SessionsController < ApplicationController
     @session_metadata = fetch_session_metadata
     @instance_hierarchy = build_instance_hierarchy
     @total_cost = calculate_total_cost
+    
+    # Load swarm configuration to get team name
+    @swarm_config = load_swarm_config
 
     render(partial: "session_info")
   end

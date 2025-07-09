@@ -2,13 +2,14 @@
   <div class="h-full flex flex-col" data-controller="log-expansion">
     
     <!-- Controls -->
-    <div class="flex items-center justify-between mb-6 pb-4 border-b border-stone-700/50 bg-gradient-to-r from-stone-800/20 to-stone-900/20 -mx-4 px-4 pt-4 -mt-4 rounded-t-lg">
+    <div class="sticky top-0 z-10 flex items-center justify-between mb-6 pb-4 border-b border-stone-700/50 bg-gradient-to-r from-stone-800/90 to-stone-900/90 -mx-4 px-4 pt-4 -mt-4 backdrop-blur-lg shadow-lg shadow-stone-900/50">
       <div class="flex items-center gap-3">
-        <button onclick="location.reload()"
-                class="px-4 py-2 text-xs font-medium rounded-lg bg-gradient-to-r from-stone-700 to-stone-600 hover:from-stone-600 hover:to-stone-500 text-white transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 group">
+        <%= link_to log_stream_session_path(@session), 
+                    data: { turbo_frame: "log_stream" },
+                    class: "px-4 py-2 text-xs font-medium rounded-lg bg-gradient-to-r from-stone-700 to-stone-600 hover:from-stone-600 hover:to-stone-500 text-white transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 group" do %>
           <%= heroicon "arrow-path", variant: :mini, options: { class: "h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-180" } %>
           Refresh
-        </button>
+        <% end %>
         
         <!-- Expand/Collapse All Button -->
         <button data-action="click->log-expansion#toggleAll"
@@ -313,10 +314,10 @@
               The session may not have started yet or is still initializing. 
               Logs will appear here once the session begins processing.
             </p>
-            <button onclick="location.reload()"
-                    class="mt-6 px-4 py-2 text-xs font-medium rounded-lg bg-gradient-to-r from-stone-700 to-stone-600 hover:from-stone-600 hover:to-stone-500 text-white transition-all duration-200 shadow-lg hover:shadow-xl">
-              Check Again
-            </button>
+            <%= link_to "Check Again", 
+                        log_stream_session_path(@session), 
+                        data: { turbo_frame: "log_stream" },
+                        class: "mt-6 inline-block px-4 py-2 text-xs font-medium rounded-lg bg-gradient-to-r from-stone-700 to-stone-600 hover:from-stone-600 hover:to-stone-500 text-white transition-all duration-200 shadow-lg hover:shadow-xl" %>
           </div>
         </div>
       <% end %>

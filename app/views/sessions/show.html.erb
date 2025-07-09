@@ -81,7 +81,7 @@
         </div>
 
         <!-- Log Stream panel -->
-        <div data-panel="log-stream" data-tabs-target="panel" class="hidden h-full overflow-y-auto p-4">
+        <div data-panel="log-stream" data-tabs-target="panel" class="hidden h-full overflow-y-auto pt-0 px-4 pb-4">
           <div id="log-stream-content">
             <%= turbo_frame_tag "log_stream", src: log_stream_session_path(@session), loading: :lazy do %>
               <div class="animate-pulse">

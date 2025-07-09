@@ -21,6 +21,9 @@ Rails.application.routes.draw do
   # Theme preference endpoint
   put "theme", to: "theme#update"
 
+  # Settings
+  resource :settings, only: [:edit, :update]
+
   # API endpoints for filesystem navigation
   namespace :api do
     resources :directories, only: [:index] do

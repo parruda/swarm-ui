@@ -29,6 +29,13 @@
       <!-- Full height divider -->
       <div class="h-10 w-px bg-gray-300 dark:bg-gray-600"></div>
       
+      <!-- Settings -->
+      <%= link_to edit_settings_path, 
+          class: "p-2 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none transition-colors duration-200",
+          title: "Settings" do %>
+        <%= heroicon "cog-6-tooth", variant: :outline, options: { class: "h-5 w-5" } %>
+      <% end %>
+      
       <!-- Dark mode toggle -->
       <button type="button"
               data-action="click->dark-mode#toggle"

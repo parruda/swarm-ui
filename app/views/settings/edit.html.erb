@@ -1,0 +1,101 @@
+<% content_for :title, "Settings" %>
+
+<div class="py-8">
+  <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+    <!-- Header with gradient -->
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-stone-800 via-stone-900 to-stone-950 px-8 py-12 shadow-2xl">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+      <div class="relative z-10">
+        <div class="flex items-center gap-4">
+          <%= heroicon "cog-6-tooth", variant: :solid, options: { class: "h-12 w-12 text-white/90" } %>
+          <div>
+            <h1 class="text-3xl font-bold text-white">Settings</h1>
+            <p class="mt-2 text-lg text-stone-300">Configure your SwarmUI application</p>
+          </div>
+        </div>
+      </div>
+      <!-- Decorative elements -->
+      <div class="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/5 blur-3xl"></div>
+      <div class="absolute -bottom-8 -left-8 h-40 w-40 rounded-full bg-white/5 blur-3xl"></div>
+    </div>
+
+    <!-- Form section -->
+    <div class="mt-8">
+      <%= form_with model: @setting, url: settings_path, local: true, data: { turbo: false } do |form| %>
+        <div class="space-y-8">
+          <!-- API Keys Section -->
+          <div class="bg-white dark:bg-gray-800 shadow-xl rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <%= heroicon "key", variant: :outline, options: { class: "h-5 w-5 text-orange-600 dark:text-orange-400" } %>
+                API Keys
+              </h2>
+            </div>
+            
+            <div class="p-6">
+              <div class="space-y-6">
+                <!-- OpenAI API Key -->
+                <div>
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <%= form.label :openai_api_key, class: "block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2" do %>
+                        <span class="flex items-center gap-2">
+                          <%= heroicon "sparkles", variant: :mini, options: { class: "h-4 w-4 text-orange-500" } %>
+                          OpenAI API Key
+                        </span>
+                      <% end %>
+                      <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        Your OpenAI API key is used to power Claude Swarm's AI capabilities. Get your key from 
+                        <%= link_to "platform.openai.com", "https://platform.openai.com/api-keys", target: "_blank", rel: "noopener", class: "text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium underline" %>.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div class="relative">
+                    <%= form.password_field :openai_api_key, 
+                        placeholder: @setting.openai_api_key.present? ? "••••••••••••••••" : "sk-...", 
+                        class: "block w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-sm focus:border-orange-500 focus:ring-orange-500 dark:focus:border-orange-400 dark:focus:ring-orange-400 text-base dark:text-gray-100 dark:placeholder-gray-500 transition-colors duration-200 pr-12",
+                        autocomplete: "off" %>
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                      <%= heroicon "lock-closed", variant: :mini, options: { class: "h-5 w-5 text-gray-400" } %>
+                    </div>
+                  </div>
+                  
+                  <% if @setting.openai_api_key.present? %>
+                    <p class="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                      <%= heroicon "check-circle", variant: :mini, options: { class: "h-4 w-4" } %>
+                      API key is configured
+                    </p>
+                  <% else %>
+                    <p class="mt-2 text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                      <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-4 w-4" } %>
+                      No API key configured
+                    </p>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- More sections can be added here in the future -->
+        </div>
+
+        <!-- Form actions -->
+        <div class="mt-8 flex items-center justify-between">
+          <div class="text-sm text-gray-600 dark:text-gray-400">
+            <%= heroicon "shield-check", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            Your API keys are encrypted and stored securely
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <%= link_to sessions_path, class: "inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 dark:focus:ring-offset-gray-900 transition-colors duration-200" do %>
+              Cancel
+            <% end %>
+            
+            <%= form.submit "Save Settings", class: "inline-flex items-center px-6 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-900 hover:bg-orange-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 dark:focus:ring-offset-gray-900 transition-all duration-200 transform hover:scale-105" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -18,6 +18,7 @@ swarm_file = params[:swarm_file]
 use_worktree = params[:use_worktree]
 session_id = params[:session_id]
 new_session = params[:new_session]
+openai_api_key = params[:openai_api_key]
 
 # Build the command
 if new_session
@@ -34,8 +35,12 @@ status_script = File.join(rails_root, "bin", "update_session_status")
 # Mark session as active before starting
 system(status_script, session_id, "active")
 
+# Build environment for tmux session
+env = {}
+env["OPENAI_API_KEY"] = openai_api_key if openai_api_key && !openai_api_key.empty?
+
 # Execute tmux session (this will block until the session ends)
-system("tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, "-c", working_dir, command)
+system(env, "tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, "-c", working_dir, command)
 
 # After tmux exits, mark the session as stopped
 system(status_script, session_id, "stopped")

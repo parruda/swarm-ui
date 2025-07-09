@@ -28,6 +28,7 @@ class Session < ApplicationRecord
       use_worktree: use_worktree,
       session_id: session_id,
       new_session: new_session,
+      openai_api_key: Setting.openai_api_key,
     }
 
     # Base64 encode the payload (URL-safe)

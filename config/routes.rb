@@ -7,6 +7,7 @@ Rails.application.routes.draw do
     member do
       post :kill
       post :archive
+      post :unarchive
       get :info, as: :info
       get :log_stream
       get :instances

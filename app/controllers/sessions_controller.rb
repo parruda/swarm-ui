@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :info, :log_stream, :instances]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :info, :log_stream, :instances]
 
   def index
     @filter = params[:filter] || "active"
@@ -67,6 +67,16 @@ class SessionsController < ApplicationController
 
     @session.update!(status: "archived")
     redirect_to(sessions_path(filter: "archived"), notice: "Session has been archived.")
+  end
+
+  def unarchive
+    if @session.status != "archived"
+      redirect_to(sessions_path, alert: "Only archived sessions can be unarchived.")
+      return
+    end
+
+    @session.update!(status: "stopped")
+    redirect_to(sessions_path(filter: "stopped"), notice: "Session has been unarchived.")
   end
 
   def info

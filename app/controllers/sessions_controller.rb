@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :info, :log_stream, :instances]
+  before_action :set_session, only: [:show, :kill, :archive, :info, :log_stream, :instances]
 
   def index
     @filter = params[:filter] || "active"
@@ -11,6 +11,8 @@ class SessionsController < ApplicationController
       Session.active.recent
     when "stopped"
       Session.stopped.recent
+    when "archived"
+      Session.archived.recent
     when "all"
       Session.recent
     else
@@ -57,12 +59,22 @@ class SessionsController < ApplicationController
     redirect_to(sessions_path, notice: "Session has been killed.")
   end
 
+  def archive
+    if @session.status != "stopped"
+      redirect_to(sessions_path, alert: "Only stopped sessions can be archived.")
+      return
+    end
+
+    @session.update!(status: "archived")
+    redirect_to(sessions_path(filter: "archived"), notice: "Session has been archived.")
+  end
+
   def info
     # Get session metadata from claude-swarm session directory
     @session_metadata = fetch_session_metadata
     @instance_hierarchy = build_instance_hierarchy
     @total_cost = calculate_total_cost
-    
+
     # Load swarm configuration to get team name
     @swarm_config = load_swarm_config
 

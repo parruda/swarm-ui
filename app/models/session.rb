@@ -3,12 +3,12 @@
 class Session < ApplicationRecord
   # Validations
   validates :session_id, presence: true, uniqueness: true
-  validates :status, inclusion: { in: ["active", "stopped", "failed"] }
+  validates :status, inclusion: { in: ["active", "stopped", "archived"] }
 
   # Scopes
   scope :active, -> { where(status: "active") }
   scope :stopped, -> { where(status: "stopped") }
-  scope :failed, -> { where(status: "failed") }
+  scope :archived, -> { where(status: "archived") }
   scope :recent, -> { order(started_at: :desc) }
 
   # Callbacks

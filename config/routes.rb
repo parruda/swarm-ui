@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   resources :sessions, only: [:index, :new, :create, :show] do
     member do
       post :kill
+      post :archive
       get :info, as: :info
       get :log_stream
       get :instances

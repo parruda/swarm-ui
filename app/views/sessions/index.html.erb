@@ -32,6 +32,11 @@
             Stopped
             <span class="ml-2 rounded-full <%= @filter == 'stopped' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' %> px-2.5 py-0.5 text-xs font-medium"><%= Session.stopped.count %></span>
           <% end %>
+          <%= link_to sessions_path(filter: 'archived'), class: "#{@filter == 'archived' ? 'border-orange-900 dark:border-orange-500 text-orange-900 dark:text-orange-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200" do %>
+            <%= heroicon "archive-box", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            Archived
+            <span class="ml-2 rounded-full <%= @filter == 'archived' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' %> px-2.5 py-0.5 text-xs font-medium"><%= Session.archived.count %></span>
+          <% end %>
           <%= link_to sessions_path(filter: 'all'), class: "#{@filter == 'all' ? 'border-orange-900 dark:border-orange-500 text-orange-900 dark:text-orange-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200" do %>
             All
             <span class="ml-2 rounded-full <%= @filter == 'all' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' %> px-2.5 py-0.5 text-xs font-medium"><%= Session.count %></span>
@@ -51,8 +56,8 @@
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
                       <%= session.swarm_name || "Session #{session.id}" %>
                     </h3>
-                    <span class="inline-flex items-center rounded-md <%= session.status == 'active' ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-green-600/20 dark:ring-green-400/30' : (session.status == 'stopped' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-blue-600/20 dark:ring-blue-400/30' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 ring-red-600/20 dark:ring-red-400/30') %> px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
-                      <%= heroicon session.status == 'active' ? 'play' : (session.status == 'stopped' ? 'stop' : 'x-circle'), variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                    <span class="inline-flex items-center rounded-md <%= session.status == 'active' ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-green-600/20 dark:ring-green-400/30' : (session.status == 'stopped' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-blue-600/20 dark:ring-blue-400/30' : 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30') %> px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                      <%= heroicon session.status == 'active' ? 'play' : (session.status == 'stopped' ? 'stop' : 'archive-box'), variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
                       <%= session.status&.capitalize || 'Unknown' %>
                     </span>
                   </div>
@@ -77,9 +82,11 @@
               </div>
 
               <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
-                <%= link_to session_path(session), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", title: session.status == 'active' ? 'Attach' : 'Resume' do %>
-                  <%= heroicon session.status == 'active' ? 'command-line' : 'play', variant: session.status == 'active' ? :solid : :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-                  <%= session.status == 'active' ? 'Attach' : 'Resume' %>
+                <% unless session.status == 'archived' %>
+                  <%= link_to session_path(session), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", title: session.status == 'active' ? 'Attach' : 'Resume' do %>
+                    <%= heroicon session.status == 'active' ? 'command-line' : 'play', variant: session.status == 'active' ? :solid : :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                    <%= session.status == 'active' ? 'Attach' : 'Resume' %>
+                  <% end %>
                 <% end %>
                 <% if session.status == 'active' %>
                   <%= link_to kill_session_path(session), 
@@ -91,6 +98,17 @@
                       title: "Kill session" do %>
                     <%= heroicon "x-circle", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
                     Kill
+                  <% end %>
+                <% elsif session.status == 'stopped' %>
+                  <%= link_to archive_session_path(session), 
+                      data: { 
+                        "turbo-method": "post",
+                        "turbo-confirm": "Are you sure you want to archive this session?"
+                      }, 
+                      class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", 
+                      title: "Archive session" do %>
+                    <%= heroicon "archive-box", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                    Archive
                   <% end %>
                 <% end %>
               </div>
@@ -104,7 +122,7 @@
           <%= heroicon 'command-line', variant: :outline, options: { class: "h-12 w-12" } %>
         </div>
         <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-          No <%= @filter == 'all' ? 'sessions' : (@filter == 'active' ? 'active sessions' : 'stopped sessions') %>
+          No <%= @filter == 'all' ? 'sessions' : (@filter == 'active' ? 'active sessions' : (@filter == 'stopped' ? 'stopped sessions' : 'archived sessions')) %>
         </h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new claude-swarm session.</p>
         <div class="mt-6 space-x-3">

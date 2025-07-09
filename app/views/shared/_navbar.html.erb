@@ -29,15 +29,6 @@
       <!-- Full height divider -->
       <div class="h-10 w-px bg-gray-300 dark:bg-gray-600"></div>
       
-      <!-- Version display -->
-      <% if update_available? %>
-        <%= link_to "https://github.com/parruda/swarm-ui/releases", target: "_blank", rel: "noopener", class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium" do %>
-          Update Available
-        <% end %>
-      <% else %>
-        <span class="text-sm text-gray-500 dark:text-gray-400">v<%= SwarmUI.version %></span>
-      <% end %>
-      
       <!-- Dark mode toggle -->
       <button type="button"
               data-action="click->dark-mode#toggle"
@@ -46,6 +37,18 @@
         <%= heroicon "sun", variant: :outline, options: { class: "h-5 w-5 #{dark_mode? ? 'hidden' : ''}", "data-dark-mode-target": "iconLight" } %>
         <%= heroicon "moon", variant: :outline, options: { class: "h-5 w-5 #{dark_mode? ? '' : 'hidden'}", "data-dark-mode-target": "iconDark" } %>
       </button>
+      
+      <!-- Divider between theme toggle and version -->
+      <div class="h-10 w-px bg-gray-300 dark:bg-gray-600"></div>
+      
+      <!-- Version display -->
+      <% if update_available? %>
+        <%= link_to "https://github.com/parruda/swarm-ui/releases", target: "_blank", rel: "noopener", class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium" do %>
+          Update Available
+        <% end %>
+      <% else %>
+        <span class="text-sm text-gray-500 dark:text-gray-400">v<%= SwarmUI.version %></span>
+      <% end %>
       
       <!-- Mobile menu button -->
       <div class="md:hidden">

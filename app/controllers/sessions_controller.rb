@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill]
+  before_action :set_session, only: [:show, :kill, :info, :log_stream]
 
   def index
     @filter = params[:filter] || "active"
@@ -57,6 +57,22 @@ class SessionsController < ApplicationController
     redirect_to(sessions_path, notice: "Session has been killed.")
   end
 
+  def info
+    # Get session metadata from claude-swarm session directory
+    @session_metadata = fetch_session_metadata
+    @instance_hierarchy = build_instance_hierarchy
+    @total_cost = calculate_total_cost
+    
+    render partial: "session_info"
+  end
+
+  def log_stream
+    tailer = LogTailer.new(@session)
+    @logs = tailer.read_existing_logs
+    
+    render partial: "log_stream"
+  end
+
   private
 
   def set_session
@@ -76,5 +92,67 @@ class SessionsController < ApplicationController
       :session_id,
       :status,
     )
+  end
+
+  def fetch_session_metadata
+    return {} unless @session.session_path && Dir.exist?(@session.session_path)
+
+    metadata_file = File.join(@session.session_path, "session_metadata.json")
+    if File.exist?(metadata_file)
+      JSON.parse(File.read(metadata_file))
+    else
+      {}
+    end
+  rescue JSON::ParserError
+    {}
+  end
+
+  def build_instance_hierarchy
+    log_file = session_log_file
+    return [] unless log_file && File.exist?(log_file)
+
+    costs = Hash.new(0)
+    call_counts = Hash.new(0)
+
+    File.foreach(log_file) do |line|
+      event = JSON.parse(line)
+      instance_name = event["instance"]
+      
+      if event["event"]["type"] == "result" && event["event"]["total_cost_usd"]
+        costs[instance_name] += event["event"]["total_cost_usd"]
+        call_counts[instance_name] += 1
+      end
+    rescue JSON::ParserError
+      next
+    end
+
+    costs.map do |name, cost|
+      {
+        name: name,
+        cost: cost,
+        calls: call_counts[name]
+      }
+    end.sort_by { |i| -i[:cost] }
+  end
+
+  def calculate_total_cost
+    log_file = session_log_file
+    return 0 unless log_file && File.exist?(log_file)
+
+    total = 0
+    File.foreach(log_file) do |line|
+      event = JSON.parse(line)
+      if event["event"]["type"] == "result" && event["event"]["total_cost_usd"]
+        total += event["event"]["total_cost_usd"]
+      end
+    rescue JSON::ParserError
+      next
+    end
+
+    total
+  end
+
+  def session_log_file
+    @session.session_path ? File.join(@session.session_path, "session.log.json") : nil
   end
 end

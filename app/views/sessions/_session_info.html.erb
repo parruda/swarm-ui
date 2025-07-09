@@ -1,0 +1,162 @@
+<%= turbo_frame_tag "session_info" do %>
+  <div class="space-y-8">
+    <!-- Session Overview -->
+    <div class="bg-gradient-to-br from-stone-800/30 to-stone-900/30 rounded-xl p-6 backdrop-blur-sm border border-stone-700/50 shadow-lg">
+      <h3 class="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400 mb-4 flex items-center gap-2">
+        <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Session Overview
+      </h3>
+      <dl class="space-y-3 text-sm">
+        <div class="flex justify-between items-center hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+          <dt class="text-slate-400 font-medium">Session ID</dt>
+          <dd class="text-slate-200 font-mono text-xs bg-stone-800/50 px-2 py-1 rounded"><%= @session.session_id %></dd>
+        </div>
+        <div class="flex justify-between items-center hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+          <dt class="text-slate-400 font-medium">Swarm Name</dt>
+          <dd class="text-white font-semibold"><%= @session.swarm_name || "N/A" %></dd>
+        </div>
+        <div class="flex justify-between items-center hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+          <dt class="text-slate-400 font-medium">Status</dt>
+          <dd>
+            <% if @session.status == 'active' %>
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Active
+              </span>
+            <% else %>
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-500/20 text-slate-400 border border-slate-500/30">
+                <span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
+                <%= @session.status.capitalize %>
+              </span>
+            <% end %>
+          </dd>
+        </div>
+        <div class="flex justify-between items-center hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+          <dt class="text-slate-400 font-medium">Started</dt>
+          <dd class="text-slate-200 text-xs">
+            <%= @session.started_at&.strftime("%Y-%m-%d %H:%M:%S") || "N/A" %>
+          </dd>
+        </div>
+        <% if @session.ended_at %>
+          <div class="flex justify-between items-center hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+            <dt class="text-slate-400 font-medium">Ended</dt>
+            <dd class="text-slate-200 text-xs">
+              <%= @session.ended_at.strftime("%Y-%m-%d %H:%M:%S") %>
+            </dd>
+          </div>
+        <% end %>
+        <div class="flex justify-between items-center hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+          <dt class="text-slate-400 font-medium">Duration</dt>
+          <dd class="text-blue-400 font-medium">
+            <% if @session.started_at %>
+              <% end_time = @session.ended_at || Time.current %>
+              <% duration = end_time - @session.started_at %>
+              <%= distance_of_time_in_words(duration) %>
+            <% else %>
+              N/A
+            <% end %>
+          </dd>
+        </div>
+        <div class="flex justify-between items-center hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150 mt-4 pt-4 border-t border-stone-700/50">
+          <dt class="text-slate-400 font-medium text-base">Total Cost</dt>
+          <dd class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-400">
+            $<%= "%.4f" % @total_cost %>
+          </dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Project Info -->
+    <div class="bg-gradient-to-br from-stone-800/30 to-stone-900/30 rounded-xl p-6 backdrop-blur-sm border border-stone-700/50 shadow-lg">
+      <h3 class="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-4 flex items-center gap-2">
+        <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        </svg>
+        Project Info
+      </h3>
+      <dl class="space-y-4">
+        <div class="group">
+          <dt class="text-slate-400 font-medium mb-1.5 text-xs uppercase tracking-wider">Project Path</dt>
+          <dd class="text-slate-200 font-mono text-xs break-all bg-stone-800/50 px-3 py-2 rounded-lg border border-stone-700/50">
+            <%= @session.project_path || "N/A" %>
+          </dd>
+        </div>
+        <% if @session.session_path %>
+          <div class="group">
+            <dt class="text-slate-400 font-medium mb-1.5 text-xs uppercase tracking-wider">Session Path</dt>
+            <dd class="font-mono text-xs break-all bg-stone-800/50 px-3 py-2 rounded-lg border border-stone-700/50 hover:border-blue-500/50 transition-colors duration-200">
+              <a href="cursor://file/<%= @session.session_path %>?new_window=true" 
+                 target="_blank"
+                 class="text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center gap-1 group"
+                 title="Open in new Cursor window">
+                <%= @session.session_path %>
+                <svg class="h-3 w-3 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </dd>
+          </div>
+        <% end %>
+        <% if @session.configuration_path %>
+          <div class="group">
+            <dt class="text-slate-400 font-medium mb-1.5 text-xs uppercase tracking-wider">Config Path</dt>
+            <dd class="text-slate-200 font-mono text-xs break-all bg-stone-800/50 px-3 py-2 rounded-lg border border-stone-700/50">
+              <%= @session.configuration_path %>
+            </dd>
+          </div>
+        <% end %>
+      </dl>
+    </div>
+
+    <!-- Instance Hierarchy -->
+    <% if @instance_hierarchy.any? %>
+      <div class="bg-gradient-to-br from-stone-800/30 to-stone-900/30 rounded-xl p-6 backdrop-blur-sm border border-stone-700/50 shadow-lg">
+        <h3 class="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-4 flex items-center gap-2">
+          <svg class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Instance Costs
+        </h3>
+        <div class="space-y-3">
+          <% @instance_hierarchy.each_with_index do |instance, index| %>
+            <% percentage = @total_cost > 0 ? (instance[:cost] / @total_cost * 100) : 0 %>
+            <div class="group hover:bg-white/5 p-3 rounded-lg transition-all duration-200 -mx-3">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <div class="text-white font-semibold flex items-center gap-2">
+                    <span class="text-lg"><%= instance[:name] %></span>
+                    <% if index == 0 %>
+                      <span class="text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full border border-yellow-500/30">Top Spender</span>
+                    <% end %>
+                  </div>
+                  <div class="text-slate-400 text-sm flex items-center gap-3 mt-1">
+                    <span class="flex items-center gap-1">
+                      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4z" />
+                      </svg>
+                      <%= instance[:calls] %> calls
+                    </span>
+                    <span class="text-xs">(<%= "%.1f" % percentage %>%)</span>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-400">
+                    $<%= "%.4f" % instance[:cost] %>
+                  </div>
+                </div>
+              </div>
+              <div class="w-full bg-stone-700/50 rounded-full h-2 overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-emerald-400 to-green-400 rounded-full transition-all duration-500"
+                     style="width: <%= percentage %>%">
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+  </div>
+<% end %>

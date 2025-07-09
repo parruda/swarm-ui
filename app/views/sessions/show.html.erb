@@ -4,12 +4,86 @@
 
 <div id="session_redirect"></div>
 
-<div class="fixed inset-0 top-16 bg-stone-950 overflow-hidden">
-  <iframe 
-    src="<%= @terminal_url %>" 
-    class="w-full h-full border-0"
-    scrolling="no"
-    style="overflow: hidden;"
-    title="Terminal for <%= @session.swarm_name || "Session #{@session.id}" %>"
-  ></iframe>
+<div class="fixed inset-0 top-16 bg-stone-950 overflow-hidden" data-controller="right-pane">
+  <!-- Terminal iframe -->
+  <div class="w-full h-full">
+    <iframe 
+      src="<%= @terminal_url %>" 
+      class="w-full h-full border-0"
+      scrolling="no"
+      style="overflow: hidden;"
+      title="Terminal for <%= @session.swarm_name || "Session #{@session.id}" %>"
+    ></iframe>
+  </div>
+
+  <!-- Right pane -->
+  <div
+    data-right-pane-target="pane"
+    class="absolute right-0 top-0 h-full w-[520px] bg-gradient-to-br from-stone-900 via-stone-900 to-stone-950 shadow-2xl transform translate-x-full transition-all duration-300 ease-in-out z-10 border-l border-stone-800"
+  >
+    <!-- Toggle button attached to pane -->
+    <button
+      data-action="click->right-pane#toggle"
+      data-right-pane-target="toggleButton"
+      class="absolute -left-12 top-1/2 -translate-y-1/2 bg-gradient-to-r from-stone-800 to-stone-700 hover:from-stone-700 hover:to-stone-600 text-white p-3 rounded-l-xl transition-all duration-200 z-30 shadow-xl hover:shadow-2xl hover:-translate-x-0.5 group"
+    >
+      <svg class="h-5 w-5 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+      </svg>
+    </button>
+    <div class="h-full flex flex-col" data-controller="tabs">
+      <!-- Tabs with gradient background -->
+      <div class="bg-gradient-to-r from-stone-800/50 to-stone-900/50 backdrop-blur-sm border-b border-stone-700/50">
+        <nav class="flex">
+          <button
+            data-tab="session-info"
+            data-tabs-target="tab"
+            data-action="click->tabs#switchTab"
+            class="flex-1 px-6 py-4 text-sm font-semibold border-b-2 border-emerald-500 text-white transition-all duration-200 relative group"
+          >
+            <span class="relative z-10">Session Info</span>
+            <div class="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+          </button>
+          <button
+            data-tab="log-stream"
+            data-tabs-target="tab"
+            data-action="click->tabs#switchTab"
+            class="flex-1 px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition-all duration-200 relative group"
+          >
+            <span class="relative z-10">Log Stream</span>
+            <div class="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab panels -->
+      <div class="flex-1 overflow-hidden">
+        <!-- Session Info panel -->
+        <div data-panel="session-info" data-tabs-target="panel" class="h-full overflow-y-auto p-4">
+          <div id="session-info-content">
+            <%= turbo_frame_tag "session_info", src: info_session_path(@session), loading: :lazy do %>
+              <div class="animate-pulse">
+                <div class="h-4 bg-stone-700 rounded w-3/4 mb-2"></div>
+                <div class="h-4 bg-stone-700 rounded w-1/2 mb-2"></div>
+                <div class="h-4 bg-stone-700 rounded w-2/3"></div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Log Stream panel -->
+        <div data-panel="log-stream" data-tabs-target="panel" class="hidden h-full overflow-y-auto p-4">
+          <div id="log-stream-content">
+            <%= turbo_frame_tag "log_stream", src: log_stream_session_path(@session), loading: :lazy do %>
+              <div class="animate-pulse">
+                <div class="h-4 bg-stone-700 rounded w-full mb-2"></div>
+                <div class="h-4 bg-stone-700 rounded w-5/6 mb-2"></div>
+                <div class="h-4 bg-stone-700 rounded w-4/5"></div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

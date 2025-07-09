@@ -1,0 +1,111 @@
+<%= turbo_frame_tag "log_stream" do %>
+  <div class="h-full flex flex-col">
+    
+    <!-- Controls -->
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-stone-700/50 bg-gradient-to-r from-stone-800/20 to-stone-900/20 -mx-4 px-4 pt-4 -mt-4 rounded-t-lg">
+      <div class="flex items-center gap-3">
+        <button onclick="location.reload()"
+                class="px-4 py-2 text-xs font-medium rounded-lg bg-gradient-to-r from-stone-700 to-stone-600 hover:from-stone-600 hover:to-stone-500 text-white transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 group">
+          <svg class="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+          Refresh
+        </button>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-500">Total Events:</span>
+        <span class="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+          <%= @logs.size %>
+        </span>
+      </div>
+    </div>
+
+    <!-- Log entries container -->
+    <div class="flex-1 overflow-y-auto overflow-x-hidden space-y-2 font-mono text-xs pr-2 pb-2">
+      <% @logs.each do |log_event| %>
+        <% event_type = log_event.dig("event", "type") %>
+        <% instance = log_event["instance"] || "unknown" %>
+        <% timestamp = Time.parse(log_event["timestamp"]).strftime("%H:%M:%S") rescue "?" %>
+        
+        <div class="p-4 rounded-xl border <%= log_entry_class(event_type) %> transition-all duration-200 group">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="text-slate-500 text-xs font-medium bg-stone-800/50 px-2 py-1 rounded">
+              <%= timestamp %>
+            </span>
+            <span class="font-bold <%= instance_color(instance) %> text-sm">
+              <%= instance %>
+            </span>
+            <span class="text-xs font-medium px-2 py-1 rounded-full 
+                   <%= event_type == 'request' ? 'bg-blue-500/20 text-blue-400' : 
+                       event_type == 'result' ? 'bg-emerald-500/20 text-emerald-400' : 
+                       event_type == 'error' ? 'bg-red-500/20 text-red-400' : 
+                       'bg-slate-500/20 text-slate-400' %>">
+              <%= event_type %>
+            </span>
+          </div>
+          
+          <div class="ml-20 mt-1">
+            <% case event_type %>
+            <% when "request" %>
+              <div class="text-slate-300">
+                <span class="text-slate-400">From:</span> <%= log_event.dig("event", "from_instance") %> 
+                <span class="text-slate-400">→ To:</span> <%= log_event.dig("event", "to_instance") %>
+              </div>
+              <div class="mt-1 text-slate-400 italic break-words">
+                <%= truncate(log_event.dig("event", "prompt"), length: 200) %>
+              </div>
+            <% when "result" %>
+              <div class="flex gap-4 text-sm">
+                <% if cost = log_event.dig("event", "total_cost_usd") %>
+                  <span class="text-emerald-400">Cost: $<%= "%.4f" % cost %></span>
+                <% end %>
+                <% if duration = log_event.dig("event", "duration_ms") %>
+                  <span class="text-blue-400">Duration: <%= (duration / 1000.0).round(1) %>s</span>
+                <% end %>
+                <% if usage = log_event.dig("event", "usage") %>
+                  <span class="text-purple-400">
+                    Tokens: <%= usage["input_tokens"] %>→<%= usage["output_tokens"] %>
+                  </span>
+                <% end %>
+              </div>
+              <% if result = log_event.dig("event", "result") %>
+                <div class="mt-1 text-slate-400 break-words">
+                  <%= truncate(result, length: 300) %>
+                </div>
+              <% end %>
+            <% when "assistant", "user" %>
+              <div class="text-slate-300 break-words">
+                <% message = log_event.dig("event", "message", "content", 0, "text") || 
+                            log_event.dig("event", "message") || "" %>
+                <%= truncate(message, length: 300) %>
+              </div>
+            <% else %>
+              <div class="text-slate-500 break-words">
+                <%= truncate(log_event["event"].to_json, length: 200) %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+      
+      <% if @logs.empty? %>
+        <div class="flex flex-col items-center justify-center py-16 px-8">
+          <div class="bg-gradient-to-br from-stone-800/30 to-stone-900/30 rounded-xl p-8 backdrop-blur-sm border border-stone-700/50 shadow-lg text-center max-w-md">
+            <svg class="h-16 w-16 text-slate-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="text-lg font-semibold text-slate-300 mb-2">No Log Entries Yet</h3>
+            <p class="text-sm text-slate-500">
+              The session may not have started yet or is still initializing. 
+              Logs will appear here once the session begins processing.
+            </p>
+            <button onclick="location.reload()"
+                    class="mt-6 px-4 py-2 text-xs font-medium rounded-lg bg-gradient-to-r from-stone-700 to-stone-600 hover:from-stone-600 hover:to-stone-500 text-white transition-all duration-200 shadow-lg hover:shadow-xl">
+              Check Again
+            </button>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>

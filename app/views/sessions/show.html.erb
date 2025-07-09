@@ -19,7 +19,7 @@
   <!-- Right pane -->
   <div
     data-right-pane-target="pane"
-    class="absolute right-0 top-0 h-full w-[520px] bg-gradient-to-br from-stone-900 via-stone-900 to-stone-950 shadow-2xl transform translate-x-full transition-all duration-300 ease-in-out z-10 border-l border-stone-800"
+    class="absolute right-0 top-0 h-full w-[640px] bg-gradient-to-br from-stone-900 via-stone-900 to-stone-950 shadow-2xl transform translate-x-full transition-all duration-300 ease-in-out z-10 border-l border-stone-800"
   >
     <!-- Toggle button attached to pane -->
     <button
@@ -53,6 +53,15 @@
             <span class="relative z-10">Log Stream</span>
             <div class="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
           </button>
+          <button
+            data-tab="instances"
+            data-tabs-target="tab"
+            data-action="click->tabs#switchTab"
+            class="flex-1 px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition-all duration-200 relative group"
+          >
+            <span class="relative z-10">Instances</span>
+            <div class="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+          </button>
         </nav>
       </div>
 
@@ -79,6 +88,19 @@
                 <div class="h-4 bg-stone-700 rounded w-full mb-2"></div>
                 <div class="h-4 bg-stone-700 rounded w-5/6 mb-2"></div>
                 <div class="h-4 bg-stone-700 rounded w-4/5"></div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Instances panel -->
+        <div data-panel="instances" data-tabs-target="panel" class="hidden h-full overflow-y-auto p-4">
+          <div id="instances-content">
+            <%= turbo_frame_tag "instances", src: instances_session_path(@session), loading: :lazy do %>
+              <div class="animate-pulse">
+                <div class="h-4 bg-stone-700 rounded w-3/4 mb-2"></div>
+                <div class="h-4 bg-stone-700 rounded w-1/2 mb-2"></div>
+                <div class="h-4 bg-stone-700 rounded w-2/3"></div>
               </div>
             <% end %>
           </div>

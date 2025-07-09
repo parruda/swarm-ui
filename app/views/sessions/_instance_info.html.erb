@@ -1,0 +1,179 @@
+<%= turbo_frame_tag "instances" do %>
+  <div class="space-y-6">
+    <!-- Instance Selector -->
+    <div class="bg-gradient-to-br from-stone-800/30 to-stone-900/30 rounded-xl p-6 backdrop-blur-sm border border-stone-700/50 shadow-lg">
+      <h3 class="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-4 flex items-center gap-2">
+        <%= heroicon "server-stack", variant: :solid, options: { class: "h-5 w-5 text-purple-400" } %>
+        Swarm Instances
+      </h3>
+      
+      <% if @instances.any? %>
+        <div class="mb-6">
+          <label for="instance-select" class="block text-sm font-medium text-slate-400 mb-2">Select Instance</label>
+          <select 
+            id="instance-select"
+            data-controller="instance-selector"
+            data-action="change->instance-selector#selectInstance"
+            class="w-full px-4 py-2 bg-stone-800/50 border border-stone-700/50 rounded-lg text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-200"
+          >
+            <% @instances.each_with_index do |(name, config), index| %>
+              <option value="<%= name %>" <%= 'selected' if index == 0 %>><%= name.humanize.titleize %></option>
+            <% end %>
+          </select>
+        </div>
+
+        <!-- Instance Details -->
+        <% @instances.each_with_index do |(name, config), index| %>
+          <div id="instance-<%= name %>" class="instance-details <%= 'hidden' unless index == 0 %>" data-instance-selector-target="details">
+            <div class="space-y-4">
+              <!-- Basic Info -->
+              <div class="border-t border-stone-700/50 pt-4">
+                <h4 class="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                  <%= heroicon "information-circle", variant: :outline, options: { class: "h-4 w-4" } %>
+                  Instance Configuration
+                </h4>
+                <dl class="space-y-2 text-sm">
+                  <div class="flex justify-between items-start hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+                    <dt class="text-slate-400 font-medium">Instance Name</dt>
+                    <dd class="text-white font-mono"><%= name %></dd>
+                  </div>
+                  <% if config['worktree_config'] %>
+                    <div class="flex justify-between items-start hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+                      <dt class="text-slate-400 font-medium">Worktree</dt>
+                      <dd class="text-white">
+                        <span class="<%= config['worktree_config']['skip'] ? 'text-slate-400' : 'text-emerald-400' %>">
+                          <%= config['worktree_config']['skip'] ? 'Disabled' : 'Enabled' %>
+                        </span>
+                      </dd>
+                    </div>
+                    <% if config['worktree_config']['name'] %>
+                      <div class="flex justify-between items-start hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+                        <dt class="text-slate-400 font-medium">Worktree Name</dt>
+                        <dd class="text-slate-200 font-mono text-xs break-all"><%= config['worktree_config']['name'] %></dd>
+                      </div>
+                    <% end %>
+                  <% end %>
+                </dl>
+              </div>
+
+              <!-- Directories -->
+              <% if config['directories']&.any? %>
+                <div class="border-t border-stone-700/50 pt-4">
+                  <h4 class="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                    <%= heroicon "folder", variant: :outline, options: { class: "h-4 w-4" } %>
+                    Directories
+                  </h4>
+                  <div class="space-y-2">
+                    <% config['directories'].each do |dir| %>
+                      <div class="bg-stone-800/50 px-3 py-2 rounded-lg border border-stone-700/50 hover:border-purple-500/50 transition-colors duration-200">
+                        <code class="text-xs text-slate-200 break-all"><%= dir %></code>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+
+              <!-- Worktree Paths -->
+              <% if config['worktree_paths']&.any? %>
+                <div class="border-t border-stone-700/50 pt-4">
+                  <h4 class="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                    <%= heroicon "code-bracket", variant: :outline, options: { class: "h-4 w-4" } %>
+                    Worktree Paths
+                  </h4>
+                  <div class="space-y-2">
+                    <% config['worktree_paths'].each do |path| %>
+                      <div class="bg-stone-800/50 px-3 py-2 rounded-lg border border-stone-700/50 hover:border-blue-500/50 transition-colors duration-200">
+                        <code class="text-xs text-blue-400 break-all"><%= path %></code>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+
+              <!-- Additional Metadata -->
+              <% if @swarm_config && @swarm_config['instances'] && @swarm_config['instances'][name.to_s] %>
+                <% instance_config = @swarm_config['instances'][name.to_s] %>
+                <div class="border-t border-stone-700/50 pt-4">
+                  <h4 class="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                    <%= heroicon "cog-6-tooth", variant: :outline, options: { class: "h-4 w-4" } %>
+                    Swarm Configuration
+                  </h4>
+                  <dl class="space-y-2 text-sm">
+                    <% if instance_config['name'] %>
+                      <div class="flex justify-between items-start hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+                        <dt class="text-slate-400 font-medium">Display Name</dt>
+                        <dd class="text-white"><%= instance_config['name'] %></dd>
+                      </div>
+                    <% end %>
+                    <% if instance_config['model'] %>
+                      <div class="flex justify-between items-start hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+                        <dt class="text-slate-400 font-medium">Model</dt>
+                        <dd class="text-purple-400 font-mono text-sm"><%= instance_config['model'] %></dd>
+                      </div>
+                    <% end %>
+                    <% if instance_config['cache_enabled'] != nil %>
+                      <div class="flex justify-between items-start hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+                        <dt class="text-slate-400 font-medium">Cache</dt>
+                        <dd class="text-white">
+                          <span class="<%= instance_config['cache_enabled'] ? 'text-emerald-400' : 'text-slate-400' %>">
+                            <%= instance_config['cache_enabled'] ? 'Enabled' : 'Disabled' %>
+                          </span>
+                        </dd>
+                      </div>
+                    <% end %>
+                  </dl>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="text-center py-8">
+          <p class="text-slate-400">No instance information available</p>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Swarm Metadata -->
+    <% if @metadata %>
+      <div class="bg-gradient-to-br from-stone-800/30 to-stone-900/30 rounded-xl p-6 backdrop-blur-sm border border-stone-700/50 shadow-lg">
+        <h3 class="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 mb-4 flex items-center gap-2">
+          <%= heroicon "cube", variant: :solid, options: { class: "h-5 w-5 text-blue-400" } %>
+          Swarm Metadata
+        </h3>
+        <dl class="space-y-3 text-sm">
+          <% if @metadata['swarm_name'] %>
+            <div class="flex justify-between items-center hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+              <dt class="text-slate-400 font-medium">Swarm Name</dt>
+              <dd class="text-white font-semibold"><%= @metadata['swarm_name'] %></dd>
+            </div>
+          <% end %>
+          <% if @metadata['claude_swarm_version'] %>
+            <div class="flex justify-between items-center hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+              <dt class="text-slate-400 font-medium">Claude Swarm Version</dt>
+              <dd class="text-cyan-400 font-mono"><%= @metadata['claude_swarm_version'] %></dd>
+            </div>
+          <% end %>
+          <% if @metadata['start_directory'] %>
+            <div class="flex justify-between items-start hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+              <dt class="text-slate-400 font-medium">Start Directory</dt>
+              <dd class="text-slate-200 font-mono text-xs break-all"><%= @metadata['start_directory'] %></dd>
+            </div>
+          <% end %>
+          <% if @metadata['worktree'] && @metadata['worktree']['enabled'] %>
+            <div class="flex justify-between items-center hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+              <dt class="text-slate-400 font-medium">Worktree Status</dt>
+              <dd class="text-emerald-400">Enabled</dd>
+            </div>
+            <% if @metadata['worktree']['shared_name'] %>
+              <div class="flex justify-between items-start hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
+                <dt class="text-slate-400 font-medium">Shared Worktree</dt>
+                <dd class="text-slate-200 font-mono text-xs break-all"><%= @metadata['worktree']['shared_name'] %></dd>
+              </div>
+            <% end %>
+          <% end %>
+        </dl>
+      </div>
+    <% end %>
+  </div>
+<% end %>

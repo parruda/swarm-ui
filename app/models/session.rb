@@ -15,7 +15,7 @@ class Session < ApplicationRecord
   before_validation :calculate_duration, if: :ended_at_changed?
   before_validation :set_project_folder_name
   before_validation :set_session_path
-  
+
   # Broadcast redirect when session stops
   after_update_commit :broadcast_redirect_if_stopped
 
@@ -78,9 +78,11 @@ class Session < ApplicationRecord
 
   def broadcast_redirect_if_stopped
     return unless saved_change_to_status? && status == "stopped" && status_before_last_save != "stopped"
-    
-    broadcast_prepend_to "session_#{id}",
-                         target: "session_redirect",
-                         html: "<script>window.location.href = '#{Rails.application.routes.url_helpers.sessions_path}';</script>"
+
+    broadcast_prepend_to(
+      "session_#{id}",
+      target: "session_redirect",
+      html: "<script>window.location.href = '#{Rails.application.routes.url_helpers.sessions_path}';</script>",
+    )
   end
 end

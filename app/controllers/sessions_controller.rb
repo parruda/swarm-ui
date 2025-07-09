@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :info, :log_stream]
+  before_action :set_session, only: [:show, :kill, :info, :log_stream, :instances]
 
   def index
     @filter = params[:filter] || "active"
@@ -62,15 +62,28 @@ class SessionsController < ApplicationController
     @session_metadata = fetch_session_metadata
     @instance_hierarchy = build_instance_hierarchy
     @total_cost = calculate_total_cost
-    
-    render partial: "session_info"
+
+    render(partial: "session_info")
   end
 
   def log_stream
     tailer = LogTailer.new(@session)
     @logs = tailer.read_existing_logs
-    
-    render partial: "log_stream"
+
+    render(partial: "log_stream")
+  end
+
+  def instances
+    # Get session metadata
+    @metadata = fetch_session_metadata
+
+    # Get instances from metadata's worktree instance_configs
+    @instances = @metadata.dig("worktree", "instance_configs") || {}
+
+    # Load swarm configuration to get additional instance details
+    @swarm_config = load_swarm_config
+
+    render(partial: "instance_info")
   end
 
   private
@@ -117,7 +130,7 @@ class SessionsController < ApplicationController
     File.foreach(log_file) do |line|
       event = JSON.parse(line)
       instance_name = event["instance"]
-      
+
       if event["event"]["type"] == "result" && event["event"]["total_cost_usd"]
         costs[instance_name] += event["event"]["total_cost_usd"]
         call_counts[instance_name] += 1
@@ -130,7 +143,7 @@ class SessionsController < ApplicationController
       {
         name: name,
         cost: cost,
-        calls: call_counts[name]
+        calls: call_counts[name],
       }
     end.sort_by { |i| -i[:cost] }
   end
@@ -154,5 +167,20 @@ class SessionsController < ApplicationController
 
   def session_log_file
     @session.session_path ? File.join(@session.session_path, "session.log.json") : nil
+  end
+
+  def load_swarm_config
+    return {} unless @session.configuration_path && File.exist?(@session.configuration_path)
+
+    # Try to parse as JSON first
+    config_content = File.read(@session.configuration_path)
+    JSON.parse(config_content)
+  rescue JSON::ParserError
+    # If JSON parsing fails, try YAML
+    require "yaml"
+    YAML.load_file(@session.configuration_path) || {}
+  rescue => e
+    Rails.logger.error("Failed to load swarm config: #{e.message}")
+    {}
   end
 end

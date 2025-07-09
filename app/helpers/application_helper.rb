@@ -21,9 +21,9 @@ module ApplicationHelper
       "text-purple-400",
       "text-orange-400",
       "text-pink-400",
-      "text-yellow-400"
+      "text-yellow-400",
     ]
-    
+
     # Simple hash to consistently color instances
     hash = instance.to_s.chars.map(&:ord).sum
     colors[hash % colors.length]

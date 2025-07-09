@@ -14,7 +14,7 @@ class LogTailer
     File.open(file_path, "r") do |file|
       # Start from the beginning to get all existing logs
       file.seek(0)
-      
+
       loop do
         line = file.gets
         if line
@@ -26,7 +26,7 @@ class LogTailer
           end
         else
           # Wait for new data
-          sleep 0.1
+          sleep(0.1)
         end
       end
     end
@@ -39,11 +39,9 @@ class LogTailer
 
     logs = []
     File.foreach(file_path) do |line|
-      begin
-        logs << JSON.parse(line)
-      rescue JSON::ParserError
-        # Skip malformed lines
-      end
+      logs << JSON.parse(line)
+    rescue JSON::ParserError
+      # Skip malformed lines
     end
     logs
   end
@@ -51,7 +49,8 @@ class LogTailer
   private
 
   def find_log_file
-    return nil unless session.session_path
+    return unless session.session_path
+
     File.join(session.session_path, "session.log.json")
   end
 end

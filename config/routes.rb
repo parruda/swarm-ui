@@ -8,6 +8,7 @@ Rails.application.routes.draw do
       post :kill
       get :info, as: :info
       get :log_stream
+      get :instances
     end
   end
 

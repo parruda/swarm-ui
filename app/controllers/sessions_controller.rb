@@ -7,19 +7,30 @@ class SessionsController < ApplicationController
 
   def index
     @filter = params[:filter] || "active"
+    @project_id = params[:project_id]
 
+    # Base query
+    @sessions = Session.includes(:project)
+
+    # Apply project filter if provided
+    @sessions = @sessions.where(project_id: @project_id) if @project_id.present?
+
+    # Apply status filter
     @sessions = case @filter
     when "active"
-      Session.includes(:project).active.recent
+      @sessions.active.recent
     when "stopped"
-      Session.includes(:project).stopped.recent
+      @sessions.stopped.recent
     when "archived"
-      Session.includes(:project).archived.recent
+      @sessions.archived.recent
     when "all"
-      Session.includes(:project).recent
+      @sessions.recent
     else
-      Session.includes(:project).active.recent
+      @sessions.active.recent
     end
+
+    # Load all projects for the filter dropdown
+    @projects = Project.active.ordered
   end
 
   def new
@@ -153,22 +164,22 @@ class SessionsController < ApplicationController
               directories = []
               if config["directory"]
                 dir = config["directory"]
-                if dir == "."
-                  directories << @session.project.path
+                directories << if dir == "."
+                  @session.project.path
                 elsif dir.start_with?("/")
-                  directories << dir
+                  dir
                 else
-                  directories << File.join(@session.project.path, dir)
+                  File.join(@session.project.path, dir)
                 end
               end
-              
+
               @instances[name] = {
                 "name" => name,
                 "directories" => directories,
                 "model" => config["model"],
                 "description" => config["description"],
                 "connections" => config["connections"],
-                "worktree_config" => { "skip" => true } # No worktree for non-worktree sessions
+                "worktree_config" => { "skip" => true }, # No worktree for non-worktree sessions
               }
             end
           end

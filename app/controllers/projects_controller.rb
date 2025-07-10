@@ -9,8 +9,8 @@ class ProjectsController < ApplicationController
   end
 
   def show
-    # TODO: Enable when Session model has project association
-    # @sessions = @project.sessions.includes(:swarm_template).order(created_at: :desc)
+    # Only show active sessions on project show page
+    @sessions = @project.sessions.active.order(started_at: :desc)
 
     respond_to do |format|
       format.html

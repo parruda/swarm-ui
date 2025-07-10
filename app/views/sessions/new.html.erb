@@ -59,18 +59,20 @@
                         wrapper: :tailwind_boolean %>
 
             <div class="space-y-2">
-              <%= f.input :environment_variables,
-                          as: :text,
-                          label: "Environment Variables",
-                          placeholder: "KEY1=value1\nKEY2=value2\nAPI_KEY=your-api-key",
-                          hint: "Enter environment variables (one per line, format: KEY=value). These will be encrypted and set in your session.",
-                          wrapper: :tailwind,
-                          input_html: { 
-                            rows: 4,
-                            wrap: "off",
-                            class: "block w-full rounded-md border-gray-300 dark:border-gray-600 py-2 px-3 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200 font-mono text-sm",
-                            style: "white-space: pre; overflow-x: auto;"
-                          } %>
+              <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Environment Variables</label>
+              <div data-controller="session-environment-variables">
+                <%= f.hidden_field :environment_variables, data: { session_environment_variables_target: "textField" } %>
+                <div data-session-environment-variables-target="container" class="space-y-2">
+                  <!-- Environment variable rows will be dynamically added here -->
+                </div>
+                <button type="button"
+                        data-action="click->session-environment-variables#add"
+                        class="mt-3 inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200">
+                  <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                  Add Variable
+                </button>
+                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Enter environment variables (format: KEY=value). These will be encrypted and set in your session.</p>
+              </div>
             </div>
 
             <div class="flex items-center justify-end gap-x-6">

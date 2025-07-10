@@ -25,7 +25,7 @@
               <%= heroicon "stop-circle", variant: :outline, options: { class: "h-16 w-16 text-stone-500 mx-auto mb-4" } %>
               <h2 class="text-3xl font-bold text-white mb-4">Session Stopped</h2>
               <p class="text-stone-400 text-lg">
-                This session ended <%= time_ago_in_words(@session.stopped_at) %> ago
+                This session ended <%= time_ago_in_words(@session.ended_at) %> ago
               </p>
             <% elsif @session.archived? %>
               <%= heroicon "archive-box", variant: :outline, options: { class: "h-16 w-16 text-stone-500 mx-auto mb-4" } %>
@@ -53,7 +53,7 @@
               </div>
               <div>
                 <h3 class="text-sm font-medium text-stone-400 mb-1">Duration</h3>
-                <p class="text-white"><%= distance_of_time_in_words(@session.started_at, @session.stopped_at || Time.current) %></p>
+                <p class="text-white"><%= distance_of_time_in_words(@session.started_at, @session.ended_at || Time.current) %></p>
               </div>
             </div>
             

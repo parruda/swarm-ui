@@ -106,11 +106,11 @@ class Session < ApplicationRecord
   def broadcast_redirect_if_stopped
     return unless saved_change_to_status? && status == "stopped" && status_before_last_save != "stopped"
 
-    # Instead of redirecting, reload the page to show the stopped session view
+    # Redirect to the session info view when session stops
     broadcast_prepend_to(
       "session_#{id}",
       target: "session_redirect",
-      html: "<script>window.location.reload();</script>",
+      html: "<script>window.location.href = '#{Rails.application.routes.url_helpers.session_path(self, view_only: true)}';</script>",
     )
   end
 

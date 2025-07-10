@@ -7,7 +7,7 @@ class ApplicationController < ActionController::Base
   before_action :set_theme_class
   before_action :check_version_update
 
-  helper_method :dark_mode?, :update_available?
+  helper_method :dark_mode?, :update_available?, :active_sessions
 
   private
 
@@ -36,5 +36,9 @@ class ApplicationController < ActionController::Base
   def update_available?
     # Always fetch fresh instance to ensure we have latest data
     VersionChecker.instance.update_available?
+  end
+
+  def active_sessions
+    @active_sessions ||= Session.active.recent
   end
 end

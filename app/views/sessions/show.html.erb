@@ -17,48 +17,48 @@
       ></iframe>
     <% else %>
       <!-- Session summary for stopped/archived sessions -->
-      <div class="w-full h-full bg-stone-950 flex items-center justify-center">
+      <div class="w-full h-full bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div class="max-w-4xl w-full px-8">
           <!-- Session ended message -->
           <div class="text-center mb-12">
             <% if @session.stopped? %>
-              <%= heroicon "stop-circle", variant: :outline, options: { class: "h-16 w-16 text-stone-500 mx-auto mb-4" } %>
-              <h2 class="text-3xl font-bold text-white mb-4">Session Stopped</h2>
-              <p class="text-stone-400 text-lg">
+              <%= heroicon "stop-circle", variant: :outline, options: { class: "h-16 w-16 text-gray-500 dark:text-gray-400 mx-auto mb-4" } %>
+              <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">Session Stopped</h2>
+              <p class="text-gray-600 dark:text-gray-400 text-lg">
                 This session ended <%= time_ago_in_words(@session.ended_at) %> ago
               </p>
             <% elsif @session.archived? %>
-              <%= heroicon "archive-box", variant: :outline, options: { class: "h-16 w-16 text-stone-500 mx-auto mb-4" } %>
-              <h2 class="text-3xl font-bold text-white mb-4">Archived Session</h2>
-              <p class="text-stone-400 text-lg">
+              <%= heroicon "archive-box", variant: :outline, options: { class: "h-16 w-16 text-gray-500 dark:text-gray-400 mx-auto mb-4" } %>
+              <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">Archived Session</h2>
+              <p class="text-gray-600 dark:text-gray-400 text-lg">
                 Archived <%= time_ago_in_words(@session.updated_at) %> ago
               </p>
             <% end %>
           </div>
           
           <!-- Session summary info -->
-          <div class="bg-stone-900 rounded-lg p-8 border border-stone-800 mb-8">
+          <div class="bg-white dark:bg-gray-800 rounded-lg p-8 border border-gray-200 dark:border-gray-700 shadow-sm mb-8">
             <div class="grid grid-cols-2 gap-6">
               <div>
-                <h3 class="text-sm font-medium text-stone-400 mb-1">Session Name</h3>
-                <p class="text-white text-lg font-semibold"><%= @session.swarm_name || "Unnamed Session" %></p>
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Session Name</h3>
+                <p class="text-gray-900 dark:text-gray-100 text-lg font-semibold"><%= @session.swarm_name || "Unnamed Session" %></p>
               </div>
               <div>
-                <h3 class="text-sm font-medium text-stone-400 mb-1">Project</h3>
-                <p class="text-white text-lg font-semibold"><%= @session.project.name %></p>
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Project</h3>
+                <p class="text-gray-900 dark:text-gray-100 text-lg font-semibold"><%= @session.project.name %></p>
               </div>
               <div>
-                <h3 class="text-sm font-medium text-stone-400 mb-1">Started</h3>
-                <p class="text-white"><%= @session.started_at.strftime("%B %d, %Y at %I:%M %p") %></p>
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Started</h3>
+                <p class="text-gray-900 dark:text-gray-100"><%= @session.started_at.strftime("%B %d, %Y at %I:%M %p") %></p>
               </div>
               <div>
-                <h3 class="text-sm font-medium text-stone-400 mb-1">Duration</h3>
-                <p class="text-white"><%= distance_of_time_in_words(@session.started_at, @session.ended_at || Time.current) %></p>
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Duration</h3>
+                <p class="text-gray-900 dark:text-gray-100"><%= distance_of_time_in_words(@session.started_at, @session.ended_at || Time.current) %></p>
               </div>
             </div>
             
-            <div class="mt-6 pt-6 border-t border-stone-800">
-              <p class="text-stone-400 text-sm">
+            <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <p class="text-gray-600 dark:text-gray-400 text-sm">
                 <%= heroicon "information-circle", variant: :mini, options: { class: "h-4 w-4 inline-block mr-1" } %>
                 Use the right panel to view session details, logs, and instance information.
               </p>
@@ -70,14 +70,14 @@
             <% if @session.archived? %>
               <%= button_to unarchive_session_path(@session), 
                   method: :patch,
-                  class: "inline-flex items-center px-6 py-3 bg-stone-800 hover:bg-stone-700 text-white font-medium rounded-lg transition-colors duration-200" do %>
+                  class: "inline-flex items-center px-6 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold rounded-md shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
                 <%= heroicon "archive-box-arrow-down", variant: :mini, options: { class: "h-5 w-5 mr-2" } %>
                 Unarchive Session
               <% end %>
             <% end %>
             
             <%= link_to clone_session_path(@session), 
-                class: "inline-flex items-center px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors duration-200" do %>
+                class: "inline-flex items-center px-6 py-3 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-semibold rounded-md shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
               <%= heroicon "document-duplicate", variant: :mini, options: { class: "h-5 w-5 mr-2" } %>
               Clone Session
             <% end %>

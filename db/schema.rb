@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_09_183843) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_09_211656) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -34,6 +34,24 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_09_183843) do
     t.datetime("created_at", null: false)
     t.datetime("updated_at", null: false)
     t.index(["name"], name: "index_instance_templates_on_name")
+  end
+
+  create_table "projects", force: :cascade do |t|
+    t.string("name", null: false)
+    t.string("path", null: false)
+    t.string("vcs_type")
+    t.string("default_config_path")
+    t.boolean("default_use_worktree", default: false)
+    t.boolean("archived", default: false)
+    t.datetime("last_session_at")
+    t.integer("total_sessions_count", default: 0)
+    t.integer("active_sessions_count", default: 0)
+    t.text("environment_variables")
+    t.jsonb("preferred_models", default: {})
+    t.datetime("created_at", null: false)
+    t.datetime("updated_at", null: false)
+    t.index(["archived"], name: "index_projects_on_archived")
+    t.index(["path"], name: "index_projects_on_path", unique: true)
   end
 
   create_table "sessions", force: :cascade do |t|

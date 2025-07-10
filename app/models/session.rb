@@ -1,12 +1,16 @@
 # frozen_string_literal: true
 
 class Session < ApplicationRecord
+  # Associations
+  belongs_to :project, optional: true
+
   # Encryption
   encrypts :environment_variables
 
   # Validations
   validates :session_id, presence: true, uniqueness: true
   validates :status, inclusion: { in: ["active", "stopped", "archived"] }
+  validate :project_or_project_path_present
 
   # Scopes
   scope :active, -> { where(status: "active") }
@@ -18,6 +22,13 @@ class Session < ApplicationRecord
   before_validation :calculate_duration, if: :ended_at_changed?
   before_validation :set_project_folder_name
   before_validation :set_session_path
+  before_validation :sync_project_path_from_project
+
+  # Project counter cache callbacks
+  after_create :increment_project_counters
+  after_update :update_project_active_sessions_count, if: :saved_change_to_status?
+  after_update :update_project_last_session_at
+  after_destroy :decrement_project_counters
 
   # Broadcast redirect when session stops
   after_update_commit :broadcast_redirect_if_stopped
@@ -89,5 +100,47 @@ class Session < ApplicationRecord
       target: "session_redirect",
       html: "<script>window.location.href = '#{Rails.application.routes.url_helpers.sessions_path}';</script>",
     )
+  end
+
+  def project_or_project_path_present
+    return if project_id.present? || project_path.present?
+
+    errors.add(:base, "Either project or project path must be present")
+  end
+
+  def sync_project_path_from_project
+    return unless project_id_changed? && project.present?
+
+    self.project_path = project.path
+  end
+
+  def increment_project_counters
+    return unless project
+
+    project.increment!(:total_sessions_count)
+    project.increment!(:active_sessions_count) if status == "active"
+  end
+
+  def update_project_active_sessions_count
+    return unless project
+
+    if status_before_last_save == "active" && status != "active"
+      project.decrement!(:active_sessions_count)
+    elsif status_before_last_save != "active" && status == "active"
+      project.increment!(:active_sessions_count)
+    end
+  end
+
+  def update_project_last_session_at
+    return unless project
+
+    project.update_column(:last_session_at, Time.current)
+  end
+
+  def decrement_project_counters
+    return unless project
+
+    project.decrement!(:total_sessions_count)
+    project.decrement!(:active_sessions_count) if status == "active"
   end
 end

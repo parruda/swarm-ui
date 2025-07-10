@@ -81,4 +81,3 @@ class ProjectsController < ApplicationController
     permitted
   end
 end
-

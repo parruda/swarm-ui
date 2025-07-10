@@ -35,5 +35,10 @@ FactoryBot.define do
         }
       end
     end
+
+    trait :with_project do
+      association :project
+      project_path { nil } # Will be synced from project.path
+    end
   end
 end

@@ -96,4 +96,3 @@ class ProjectsTest < ApplicationSystemTestCase
     assert_field "Project Path", with: @project.path
   end
 end
-

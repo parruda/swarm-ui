@@ -1,20 +1,40 @@
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  <div class="mb-8">
-    <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400 mb-2">
-      <%= link_to projects_path, class: "hover:text-neutral-900 dark:hover:text-neutral-100" do %>
-        Projects
-      <% end %>
-      <span>/</span>
-      <%= link_to @project.name, project_path(@project), class: "hover:text-neutral-900 dark:hover:text-neutral-100" %>
-      <span>/</span>
-      <span>Edit</span>
-    </div>
-    <h1 class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">Edit Project</h1>
-  </div>
+<% content_for :title, "Edit #{@project.name}" %>
 
-  <div class="bg-white dark:bg-neutral-800 rounded-lg shadow">
-    <div class="p-6">
-      <%= render "form", project: @project %>
+<div class="py-8">
+  <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <nav class="flex mb-4" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-4">
+          <li>
+            <div>
+              <%= link_to projects_path, class: "text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400" do %>
+                <%= heroicon "folder", variant: :outline, options: { class: "h-5 w-5 flex-shrink-0" } %>
+              <% end %>
+            </div>
+          </li>
+          <li>
+            <div class="flex items-center">
+              <%= heroicon "chevron-right", variant: :solid, options: { class: "h-5 w-5 flex-shrink-0 text-gray-400" } %>
+              <%= link_to @project.name, project_path(@project), class: "ml-4 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" %>
+            </div>
+          </li>
+          <li>
+            <div class="flex items-center">
+              <%= heroicon "chevron-right", variant: :solid, options: { class: "h-5 w-5 flex-shrink-0 text-gray-400" } %>
+              <span class="ml-4 text-sm font-medium text-gray-500 dark:text-gray-400">Edit</span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+      
+      <h1 class="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:truncate sm:text-3xl sm:tracking-tight">Edit Project</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Update project settings and configuration.</p>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-900/5 dark:ring-gray-700 sm:rounded-xl transition-colors duration-200">
+      <div class="px-4 py-6 sm:p-8">
+        <%= render "form", project: @project %>
+      </div>
     </div>
   </div>
 </div>

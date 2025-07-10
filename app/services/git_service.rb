@@ -185,4 +185,3 @@ class GitService
     end
   end
 end
-

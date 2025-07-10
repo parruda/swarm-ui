@@ -134,4 +134,3 @@ class GitServiceTest < ActiveSupport::TestCase
     assert_match(/uncommitted changes/, result[:error])
   end
 end
-

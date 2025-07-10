@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class Session < ApplicationRecord
+  # Associations
+  belongs_to :project
+
   # Encryption
   encrypts :environment_variables
 
@@ -19,6 +22,12 @@ class Session < ApplicationRecord
   before_validation :set_project_folder_name
   before_validation :set_session_path
 
+  # Project counter cache callbacks
+  after_create :increment_project_counters
+  after_update :update_project_active_sessions_count, if: :saved_change_to_status?
+  after_update :update_project_last_session_at
+  after_destroy :decrement_project_counters
+
   # Broadcast redirect when session stops
   after_update_commit :broadcast_redirect_if_stopped
 
@@ -26,7 +35,7 @@ class Session < ApplicationRecord
     # Build the JSON payload for the ttyd session
     payload = {
       tmux_session_name: "swarm-ui-#{session_id}",
-      working_dir: project_path,
+      working_dir: project.path,
       swarm_file: configuration_path,
       use_worktree: use_worktree,
       session_id: session_id,
@@ -63,11 +72,11 @@ class Session < ApplicationRecord
   end
 
   def set_project_folder_name
-    return unless project_path.present?
+    return unless project&.path.present?
 
     # Convert project path to folder name format
     # Remove first / and replace all remaining / or \ with +
-    folder_name = project_path.dup
+    folder_name = project.path.dup
     folder_name = folder_name[1..] if folder_name.start_with?("/")
     folder_name = folder_name[2..] if folder_name.match?(/^[A-Z]:/) # Windows drive letter
     self.project_folder_name = folder_name.gsub(%r{[/\\]}, "+")
@@ -89,5 +98,27 @@ class Session < ApplicationRecord
       target: "session_redirect",
       html: "<script>window.location.href = '#{Rails.application.routes.url_helpers.sessions_path}';</script>",
     )
+  end
+
+  def increment_project_counters
+    project.increment!(:total_sessions_count)
+    project.increment!(:active_sessions_count) if status == "active"
+  end
+
+  def update_project_active_sessions_count
+    if status_before_last_save == "active" && status != "active"
+      project.decrement!(:active_sessions_count)
+    elsif status_before_last_save != "active" && status == "active"
+      project.increment!(:active_sessions_count)
+    end
+  end
+
+  def update_project_last_session_at
+    project.update_column(:last_session_at, Time.current)
+  end
+
+  def decrement_project_counters
+    project.decrement!(:total_sessions_count)
+    project.decrement!(:active_sessions_count) if status == "active"
   end
 end

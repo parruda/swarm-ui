@@ -22,34 +22,44 @@
                           }
                         } %>
 
-            <div class="space-y-2">
-              <%= f.input :project_path, 
-                          label: "Project Path", 
-                          placeholder: "/path/to/your/project",
-                          hint: "The absolute path to your project directory",
-                          wrapper: :tailwind,
-                          input_html: { data: { filesystem_browser_target: "projectPathInput" } } %>
-              <button type="button"
-                      class="inline-flex items-center gap-2 rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
-                      data-action="click->filesystem-browser#open">
-                <%= heroicon "folder-open", variant: :outline, options: { class: "h-5 w-5" } %>
-                Browse
-              </button>
-              <span class="ml-3 text-sm text-gray-600 dark:text-gray-400" data-filesystem-browser-target="selectedPath"></span>
-            </div>
+            <%= f.association :project,
+                              collection: @projects,
+                              label_method: :name,
+                              value_method: :id,
+                              label: "Project",
+                              prompt: "Select a project",
+                              hint: "Choose the project for this session",
+                              wrapper: :tailwind,
+                              input_html: {
+                                data: {
+                                  action: "change->filesystem-browser#projectChanged",
+                                  filesystem_browser_target: "projectSelect"
+                                }
+                              } %>
 
-            <div class="space-y-2">
+            <div class="space-y-2" data-filesystem-browser-target="configSection">
               <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Configuration File</label>
               <select name="session[configuration_path]" 
-                      class="block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200"
+                      class="block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200 <%= @session.project_id.blank? ? 'opacity-50 cursor-not-allowed' : '' %>"
                       data-filesystem-browser-target="configSelect"
-                      data-current-value="<%= @session.configuration_path %>">
-                <option value="">Select project directory first</option>
-                <% if @session.configuration_path.present? %>
-                  <option value="<%= @session.configuration_path %>" selected><%= @session.configuration_path %></option>
+                      data-current-value="<%= @session.configuration_path %>"
+                      <%= @session.project_id.blank? ? 'disabled' : '' %>>
+                <% if @session.project_id.blank? %>
+                  <option value="">Select a project first</option>
+                <% else %>
+                  <option value="">Select a swarm configuration file (optional)</option>
+                  <% if @session.configuration_path.present? %>
+                    <option value="<%= @session.configuration_path %>" selected><%= @session.configuration_path %></option>
+                  <% end %>
                 <% end %>
               </select>
-              <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Automatically detected swarm configuration files</p>
+              <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                <% if @session.project_id.blank? %>
+                  Configuration files will be detected after selecting a project
+                <% else %>
+                  Automatically detected swarm configuration files
+                <% end %>
+              </p>
             </div>
 
             <%= f.input :use_worktree, 
@@ -84,50 +94,5 @@
       </div>
     </div>
 
-    <!-- Filesystem Browser Modal -->
-    <div class="hidden fixed inset-0 z-50 overflow-y-auto" data-filesystem-browser-target="modal">
-      <div class="flex min-h-full items-center justify-center p-4 text-center sm:items-center sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" data-action="click->filesystem-browser#close"></div>
-        
-        <div class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
-          <div class="bg-white dark:bg-gray-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-            <div class="mb-4">
-              <h3 class="text-lg font-semibold leading-6 text-gray-900 dark:text-gray-100">Select Project Directory</h3>
-              <div class="mt-2 flex items-center gap-2">
-                <button type="button"
-                        class="inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-2.5 py-1.5 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
-                        data-action="click->filesystem-browser#goUp">
-                  <%= heroicon "arrow-up", variant: :outline, options: { class: "h-4 w-4" } %>
-                  Up
-                </button>
-                <div class="flex-1 truncate text-sm text-gray-600 dark:text-gray-400">
-                  <span class="font-medium">Current:</span>
-                  <span data-filesystem-browser-target="currentPath">/</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="border border-gray-300 dark:border-gray-600 rounded-md h-96 overflow-y-auto bg-white dark:bg-gray-900">
-              <div data-filesystem-browser-target="fileList" class="divide-y divide-gray-200 dark:divide-gray-700">
-                <!-- Directory entries will be rendered here -->
-              </div>
-            </div>
-          </div>
-          
-          <div class="bg-gray-50 dark:bg-gray-800/50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-gray-200 dark:border-gray-700">
-            <button type="button"
-                    class="inline-flex w-full justify-center rounded-md bg-orange-600 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 dark:hover:bg-orange-800 sm:ml-3 sm:w-auto transition-colors duration-200"
-                    data-action="click->filesystem-browser#selectCurrentDirectory">
-              Select This Directory
-            </button>
-            <button type="button"
-                    class="mt-3 inline-flex w-full justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto transition-colors duration-200"
-                    data-action="click->filesystem-browser#close">
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </div>

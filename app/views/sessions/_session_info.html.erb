@@ -86,7 +86,7 @@
         <div class="group">
           <dt class="text-slate-400 font-medium mb-1.5 text-xs uppercase tracking-wider">Project Path</dt>
           <dd class="text-slate-200 font-mono text-xs break-all bg-stone-800/50 px-3 py-2 rounded-lg border border-stone-700/50">
-            <%= @session.project_path || "N/A" %>
+            <%= @session.project&.path || "N/A" %>
           </dd>
         </div>
         <% if @session.session_path %>

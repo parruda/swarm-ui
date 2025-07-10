@@ -28,7 +28,7 @@
         </div>
         
         <div class="mt-4 flex items-center gap-x-3 sm:ml-16 sm:mt-0 sm:flex-none">
-          <%= link_to new_session_path(project_path: @project.path), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+          <%= link_to new_session_path(project_id: @project.id), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
             <%= heroicon "plus", variant: :mini, options: { class: "h-5 w-5 mr-1.5" } %>
             New Session
           <% end %>
@@ -125,7 +125,7 @@
         <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Session association coming soon</h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Sessions will be displayed here once the association is implemented.</p>
         <div class="mt-6">
-          <%= link_to new_session_path(project_path: @project.path), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+          <%= link_to new_session_path(project_id: @project.id), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
             <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
             Create Session
           <% end %>

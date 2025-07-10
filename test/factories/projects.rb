@@ -45,7 +45,7 @@ FactoryBot.define do
       end
 
       after(:create) do |project, evaluator|
-        create_list(:session, evaluator.sessions_count, project: project, project_path: project.path)
+        create_list(:session, evaluator.sessions_count, project: project)
         project.update_session_counts!
       end
     end

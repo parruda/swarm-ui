@@ -14,12 +14,13 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should create session" do
+    project = create(:project)
+
     assert_difference("Session.count") do
       post sessions_url, params: {
         session: {
           swarm_name: "Test Swarm",
-          project_path: "/home/test/project",
-          project_folder_name: "test-project",
+          project_id: project.id,
           configuration_path: "/home/test/config.yml",
         },
       }
@@ -29,13 +30,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should show session" do
-    session = Session.create!(
-      session_id: SecureRandom.uuid,
-      swarm_name: "Test Swarm",
-      project_path: "/home/test/project",
-      status: "active",
-      started_at: Time.current,
-    )
+    project = create(:project)
+    session = create(:session, project: project)
 
     # Stub the Setting.openai_api_key method to avoid encryption issues
     Setting.stubs(:openai_api_key).returns("test_api_key")

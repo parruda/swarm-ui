@@ -2,9 +2,9 @@
 
 FactoryBot.define do
   factory :session do
+    association :project
     sequence(:session_id) { |n| "session-#{n}-#{SecureRandom.hex(4)}" }
     swarm_name { "MySwarm" }
-    project_path { "/path/to/project" }
     project_folder_name { "my-project" }
     started_at { Time.current }
     status { "active" }

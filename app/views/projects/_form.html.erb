@@ -7,14 +7,58 @@
                 wrapper: :tailwind %>
 
     <% if project.new_record? %>
-      <%= f.input :path,
-                  label: "Project Path",
-                  placeholder: "/path/to/project",
-                  hint: "The absolute path to your project directory",
-                  wrapper: :tailwind,
-                  input_html: { 
-                    class: "block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200 font-mono"
-                  } %>
+      <div class="space-y-2">
+        <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">
+          Project Path
+          <span class="text-red-500">*</span>
+        </label>
+        <%= f.hidden_field :path, data: { filesystem_browser_target: "projectPathInput" } %>
+        <div class="mt-3 flex items-center gap-3">
+          <button type="button"
+                  class="inline-flex items-center gap-2 rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
+                  data-action="click->filesystem-browser#open">
+            <%= heroicon "folder-open", variant: :outline, options: { class: "h-5 w-5" } %>
+            Browse
+          </button>
+          <span class="text-sm font-mono" data-filesystem-browser-target="selectedPath">
+            <% if project.path.present? %>
+              <span class="text-gray-700 dark:text-gray-300"><%= project.path %></span>
+            <% else %>
+              <span class="text-gray-500 dark:text-gray-400 italic">No directory selected</span>
+            <% end %>
+          </span>
+        </div>
+        <% if project.errors[:path].any? %>
+          <p class="mt-2 text-sm text-red-600 dark:text-red-400"><%= project.errors[:path].first %></p>
+        <% else %>
+          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">The absolute path to your project directory</p>
+        <% end %>
+      </div>
+
+      <div class="space-y-2" data-filesystem-browser-target="configSection">
+        <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Default Configuration File</label>
+        <select name="project[default_config_path]" 
+                class="block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200 <%= project.path.blank? ? 'opacity-50 cursor-not-allowed' : '' %>"
+                data-filesystem-browser-target="configSelect"
+                data-current-value="<%= project.default_config_path %>"
+                <%= project.path.blank? ? 'disabled' : '' %>>
+          <% if project.path.blank? %>
+            <option value="">Select project directory first</option>
+          <% else %>
+            <option value="">Select a swarm configuration file (optional)</option>
+            <% if project.default_config_path.present? %>
+              <option value="<%= project.default_config_path %>" selected><%= project.default_config_path %></option>
+            <% end %>
+          <% end %>
+        </select>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          <% if project.path.blank? %>
+            Configuration files will be detected after selecting a project directory
+          <% else %>
+            Automatically detected swarm configuration files
+          <% end %>
+        </p>
+      </div>
     <% else %>
       <div class="space-y-2">
         <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Project Path</label>
@@ -22,14 +66,24 @@
                          readonly: true,
                          class: "block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-700/50 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 sm:text-sm sm:leading-6 transition-colors duration-200 font-mono cursor-not-allowed opacity-75" %>
         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Project path cannot be changed after creation</p>
+        <%= f.hidden_field :path, value: project.path, data: { filesystem_browser_target: "projectPathInput" } %>
+      </div>
+
+      <div class="space-y-2" data-filesystem-browser-target="configSection">
+        <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Default Configuration File</label>
+        <select name="project[default_config_path]" 
+                class="block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200"
+                data-filesystem-browser-target="configSelect"
+                data-current-value="<%= project.default_config_path %>">
+          <option value="">Select a swarm configuration file (optional)</option>
+          <% if project.default_config_path.present? %>
+            <option value="<%= project.default_config_path %>" selected><%= project.default_config_path %></option>
+          <% end %>
+        </select>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Automatically detected swarm configuration files</p>
       </div>
     <% end %>
 
-    <%= f.input :default_config_path,
-                label: "Default Configuration File",
-                placeholder: "claude-swarm.yml",
-                hint: "Default configuration file name (optional)",
-                wrapper: :tailwind %>
 
     <%= f.input :default_use_worktree,
                 as: :boolean,
@@ -78,15 +132,15 @@
   <div class="mt-8 flex items-center justify-<%= project.persisted? ? 'between' : 'end' %> gap-x-6 pt-6 border-t border-gray-200 dark:border-gray-700">
     <% if project.persisted? && project.active? %>
       <div>
-        <%= link_to archive_project_path(project), method: :post, data: { turbo_method: :post, turbo_confirm: "Are you sure you want to archive this project?" }, class: "inline-flex items-center rounded-md bg-red-600 dark:bg-red-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 dark:hover:bg-red-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 dark:focus-visible:outline-red-900 transition-colors duration-200" do %>
+        <%= link_to archive_project_path(project), method: :post, data: { turbo_method: :post, turbo_confirm: "Are you sure you want to archive this project?" }, class: "inline-flex items-center rounded-md bg-gray-700 dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-600 dark:hover:bg-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-700 dark:focus-visible:outline-gray-700 transition-colors duration-200" do %>
           <%= heroicon "archive-box", variant: :mini, options: { class: "h-5 w-5 mr-1.5" } %>
           Archive Project
         <% end %>
       </div>
     <% end %>
     
-    <div class="flex gap-x-3">
-      <%= link_to "Cancel", project.persisted? ? project_path(project) : projects_path, class: "text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200" %>
+    <div class="flex items-center gap-x-3">
+      <%= link_to "Cancel", project.persisted? ? project_path(project) : projects_path, class: "inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200" %>
       <%= f.submit project.persisted? ? "Update Project" : "Create Project", class: "rounded-md bg-orange-600 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 dark:focus-visible:outline-orange-900 transition-colors duration-200" %>
     </div>
   </div>

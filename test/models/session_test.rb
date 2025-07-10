@@ -4,35 +4,41 @@ require "test_helper"
 
 class SessionTest < ActiveSupport::TestCase
   test "should not save session without session_id" do
-    session = Session.new
+    project = create(:project)
+    session = Session.new(project: project)
     assert_not session.save
   end
 
   test "should not save session with duplicate session_id" do
-    Session.create!(session_id: "test-123", status: "active", project_path: "/test/path")
-    session2 = Session.new(session_id: "test-123", status: "active", project_path: "/test/path")
+    project = create(:project)
+    create(:session, session_id: "test-123", status: "active", project: project)
+    session2 = build(:session, session_id: "test-123", status: "active", project: project)
     assert_not session2.save
   end
 
   test "should validate status inclusion" do
-    session = Session.new(session_id: "test-123", status: "invalid")
+    project = create(:project)
+    session = build(:session, session_id: "test-123", status: "invalid", project: project)
     assert_not session.valid?
     assert_includes session.errors[:status], "is not included in the list"
   end
 
   test "should accept valid statuses" do
+    project = create(:project)
     ["active", "stopped", "archived"].each do |status|
-      session = Session.new(session_id: "test-#{status}", status: status, project_path: "/test/path")
+      session = build(:session, session_id: "test-#{status}", status: status, project: project)
       assert session.valid?
     end
   end
 
   test "should calculate duration when ended_at changes" do
-    session = Session.create!(
+    project = create(:project)
+    session = create(
+      :session,
       session_id: "test-duration",
       status: "active",
       started_at: Time.current,
-      project_path: "/test/path",
+      project: project,
     )
 
     session.update!(ended_at: session.started_at + 1.hour, status: "stopped")
@@ -40,9 +46,10 @@ class SessionTest < ActiveSupport::TestCase
   end
 
   test "active scope returns only active sessions" do
-    Session.create!(session_id: "active-1", status: "active", project_path: "/test/path")
-    Session.create!(session_id: "stopped-1", status: "stopped", project_path: "/test/path")
-    Session.create!(session_id: "archived-1", status: "archived", project_path: "/test/path")
+    project = create(:project)
+    create(:session, session_id: "active-1", status: "active", project: project)
+    create(:session, session_id: "stopped-1", status: "stopped", project: project)
+    create(:session, session_id: "archived-1", status: "archived", project: project)
 
     active_sessions = Session.active
     assert_equal 1, active_sessions.count
@@ -50,17 +57,20 @@ class SessionTest < ActiveSupport::TestCase
   end
 
   test "recent scope orders by started_at descending" do
-    old_session = Session.create!(
+    project = create(:project)
+    old_session = create(
+      :session,
       session_id: "old",
       status: "stopped",
       started_at: 2.days.ago,
-      project_path: "/test/path",
+      project: project,
     )
-    new_session = Session.create!(
+    new_session = create(
+      :session,
       session_id: "new",
       status: "active",
       started_at: 1.hour.ago,
-      project_path: "/test/path",
+      project: project,
     )
 
     recent = Session.recent

@@ -11,6 +11,11 @@ class ProjectsController < ApplicationController
   def show
     # TODO: Enable when Session model has project association
     # @sessions = @project.sessions.includes(:swarm_template).order(created_at: :desc)
+
+    respond_to do |format|
+      format.html
+      format.json { render(json: @project) }
+    end
   end
 
   def new
@@ -81,4 +86,3 @@ class ProjectsController < ApplicationController
     permitted
   end
 end
-

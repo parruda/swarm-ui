@@ -61,9 +61,9 @@
                       <%= session.status&.capitalize || 'Unknown' %>
                     </span>
                   </div>
-                  <% if session.project_path.present? %>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate" title="<%= session.project_path %>">
-                      <span class="font-semibold">Project:</span> <%= session.project_path %>
+                  <% if session.project.present? %>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate" title="<%= session.project.path %>">
+                      <span class="font-semibold">Project:</span> <%= session.project.name %> (<%= session.project.path %>)
                     </p>
                   <% end %>
                   <% if session.configuration_path.present? %>

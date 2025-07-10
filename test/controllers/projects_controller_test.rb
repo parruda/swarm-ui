@@ -38,7 +38,7 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     get new_project_url
     assert_response :success
 
-    assert_select "h1", "New Project"
+    assert_select "h1", "Create Project"
     assert_select "form"
   end
 
@@ -201,4 +201,3 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_not @archived_project.archived?
   end
 end
-

@@ -10,7 +10,12 @@
       
       <!-- Main Navigation -->
       <div class="hidden md:flex items-center space-x-6">
-<%= link_to sessions_path, class: "flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors duration-200 #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(sessions_path) || params[:controller] == 'sessions'}" do %>
+        <%= link_to projects_path, class: "flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors duration-200 #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(projects_path) || params[:controller] == 'projects'}" do %>
+          <%= heroicon "folder", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+          Projects
+        <% end %>
+        
+<%= link_to sessions_path, class: "flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors duration-200 #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(sessions_path) || (params[:controller] == 'sessions' && action_name != 'show')}" do %>
           <%= heroicon "command-line", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
           Sessions
         <% end %>
@@ -77,14 +82,14 @@
   <!-- Mobile menu, show/hide based on menu state -->
   <div class="md:hidden hidden" id="mobile-menu" data-mobile-menu-target="menu">
     <div class="px-2 pt-2 pb-3 space-y-1 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+      <%= link_to projects_path, class: "flex items-center px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(projects_path) || params[:controller] == 'projects'}" do %>
+        <%= heroicon "folder", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+        Projects
+      <% end %>
+      
 <%= link_to sessions_path, class: "flex items-center px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(sessions_path) || params[:controller] == 'sessions'}" do %>
         <%= heroicon "command-line", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
         Sessions
-      <% end %>
-      
-      <%= link_to "#", class: "flex items-center px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md" do %>
-        <%= heroicon "document-duplicate", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
-        Templates
       <% end %>
     </div>
   </div>

@@ -1,0 +1,118 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="mb-8">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400 mb-2">
+          <%= link_to projects_path, class: "hover:text-neutral-900 dark:hover:text-neutral-100" do %>
+            Projects
+          <% end %>
+          <span>/</span>
+          <span><%= @project.name %></span>
+        </div>
+        <h1 class="text-3xl font-bold text-neutral-900 dark:text-neutral-100"><%= @project.name %></h1>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <%= link_to new_session_path(project_path: @project.path), class: "inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors" do %>
+          <%= heroicon "plus", variant: :solid, options: { class: "h-5 w-5 mr-2" } %>
+          New Session
+        <% end %>
+        
+        <%= link_to edit_project_path(@project), class: "inline-flex items-center px-4 py-2 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded-lg transition-colors" do %>
+          <%= heroicon "pencil", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+          Edit
+        <% end %>
+        
+        <% if @project.active? %>
+          <%= button_to archive_project_path(@project), method: :post, data: { turbo_confirm: "Are you sure you want to archive this project?" }, class: "inline-flex items-center px-4 py-2 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded-lg transition-colors" do %>
+            <%= heroicon "archive-box", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+            Archive
+          <% end %>
+        <% else %>
+          <%= button_to unarchive_project_path(@project), method: :post, class: "inline-flex items-center px-4 py-2 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded-lg transition-colors" do %>
+            <%= heroicon "arrow-uturn-left", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+            Restore
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white dark:bg-neutral-800 rounded-lg shadow mb-8">
+    <div class="p-6">
+      <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Project Details</h2>
+      
+      <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <dt class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Path</dt>
+          <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100 font-mono"><%= @project.path %></dd>
+        </div>
+        
+        <div>
+          <dt class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Version Control</dt>
+          <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100">
+            <% if @project.git? %>
+              <div class="flex items-center">
+                <%= heroicon "code-bracket-square", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+                Git Repository
+              </div>
+            <% else %>
+              <div class="flex items-center">
+                <%= heroicon "folder", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+                Local Directory
+              </div>
+            <% end %>
+          </dd>
+        </div>
+        
+        <div>
+          <dt class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Default Config</dt>
+          <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100">
+            <%= @project.default_config_path || "None" %>
+          </dd>
+        </div>
+        
+        <div>
+          <dt class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Use Worktree by Default</dt>
+          <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100">
+            <%= @project.default_use_worktree? ? "Yes" : "No" %>
+          </dd>
+        </div>
+        
+        <div>
+          <dt class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Total Sessions</dt>
+          <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100"><%= @project.total_sessions_count %></dd>
+        </div>
+        
+        <div>
+          <dt class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Active Sessions</dt>
+          <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100"><%= @project.active_sessions_count %></dd>
+        </div>
+        
+        <% if @project.last_session_at %>
+          <div>
+            <dt class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Last Activity</dt>
+            <dd class="mt-1 text-sm text-neutral-900 dark:text-neutral-100">
+              <%= time_ago_in_words(@project.last_session_at) %> ago
+            </dd>
+          </div>
+        <% end %>
+      </dl>
+    </div>
+  </div>
+
+  <div>
+    <h2 class="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mb-4">Sessions</h2>
+    
+    <div class="bg-white dark:bg-neutral-800 rounded-lg shadow p-8 text-center">
+      <div class="inline-flex items-center justify-center w-12 h-12 bg-neutral-100 dark:bg-neutral-700 rounded-full mb-4">
+        <%= heroicon "folder-open", variant: :outline, options: { class: "h-6 w-6 text-neutral-400" } %>
+      </div>
+      <p class="text-neutral-600 dark:text-neutral-400 mb-4">Session association coming soon.</p>
+      <%= link_to new_session_path(project_path: @project.path), class: "inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors" do %>
+        <%= heroicon "plus", variant: :solid, options: { class: "h-5 w-5 mr-2" } %>
+        Create Session
+      <% end %>
+    </div>
+  </div>
+</div>

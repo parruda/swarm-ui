@@ -1,0 +1,84 @@
+<%= simple_form_for project, wrapper: :tailwind do |f| %>
+  <div class="space-y-6">
+    <%= f.input :name,
+                placeholder: "My Project",
+                hint: "A descriptive name for your project" %>
+
+    <% if project.new_record? %>
+      <div class="field">
+        <%= f.input :path,
+                    placeholder: "/path/to/project",
+                    hint: "The absolute path to your project directory" %>
+      </div>
+    <% else %>
+      <div class="field">
+        <%= f.label :path, class: "block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-200" %>
+        <%= f.text_field :path,
+                         readonly: true,
+                         class: "w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm font-mono text-sm cursor-not-allowed opacity-75" %>
+        <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">Project path cannot be changed after creation</p>
+      </div>
+    <% end %>
+
+    <%= f.input :default_config_path,
+                placeholder: "claude-swarm.yml",
+                hint: "Default configuration file name (optional)" %>
+
+    <%= f.input :default_use_worktree,
+                as: :boolean,
+                wrapper: :tailwind_boolean,
+                label: "Use worktree by default",
+                hint: "Create a Git worktree for new sessions (only for Git repositories)" %>
+
+    <div class="field">
+      <%= f.label :environment_variables, class: "block text-sm font-medium mb-2 text-neutral-700 dark:text-neutral-200" %>
+      <div data-controller="environment-variables">
+        <div data-environment-variables-target="container" class="space-y-2">
+          <% if project.environment_variables.present? %>
+            <% project.environment_variables.each do |key, value| %>
+              <div class="flex gap-2 items-start" data-environment-variables-target="row">
+                <input type="text"
+                       name="project[environment_variables][<%= key %>][key]"
+                       value="<%= key %>"
+                       placeholder="KEY"
+                       data-environment-variables-target="keyInput"
+                       class="flex-1 px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 font-mono text-sm">
+                <input type="text"
+                       name="project[environment_variables][<%= key %>][value]"
+                       value="<%= value %>"
+                       placeholder="VALUE"
+                       class="flex-1 px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 font-mono text-sm">
+                <button type="button"
+                        data-action="click->environment-variables#remove"
+                        class="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                  <%= heroicon "trash", variant: :outline, options: { class: "h-5 w-5" } %>
+                </button>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+        <button type="button"
+                data-action="click->environment-variables#add"
+                class="mt-2 inline-flex items-center px-3 py-1 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-sm font-medium rounded transition-colors">
+          <%= heroicon "plus", variant: :solid, options: { class: "h-4 w-4 mr-1" } %>
+          Add Variable
+        </button>
+        <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">Environment variables will be encrypted and available to all sessions in this project</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-8 flex justify-<%= project.persisted? ? 'between' : 'end' %>">
+    <% if project.persisted? && project.active? %>
+      <%= link_to archive_project_path(project), method: :post, data: { turbo_method: :post, turbo_confirm: "Are you sure you want to archive this project?" }, class: "inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors" do %>
+        <%= heroicon "archive-box", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+        Archive Project
+      <% end %>
+    <% end %>
+    
+    <div class="flex gap-3">
+      <%= link_to "Cancel", project.persisted? ? project_path(project) : projects_path, class: "px-4 py-2 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-700 dark:text-neutral-300 font-medium rounded-lg transition-colors" %>
+      <%= f.button :submit, project.persisted? ? "Update Project" : "Create Project", class: "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors" %>
+    </div>
+  </div>
+<% end %>

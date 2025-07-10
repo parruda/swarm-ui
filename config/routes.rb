@@ -15,6 +15,13 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :projects do
+    member do
+      post :archive
+      post :unarchive
+    end
+  end
+
   # Filesystem navigation endpoints
   get "filesystem/browse", to: "filesystem#browse"
   get "filesystem/scan_swarm_configs", to: "filesystem#scan_swarm_configs"

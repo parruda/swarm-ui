@@ -1,0 +1,110 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="mb-8">
+    <div class="flex justify-between items-center">
+      <h1 class="text-3xl font-bold text-neutral-900 dark:text-neutral-100">Projects</h1>
+      <%= link_to new_project_path, class: "inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors" do %>
+        <%= heroicon "plus", variant: :solid, options: { class: "h-5 w-5 mr-2" } %>
+        New Project
+      <% end %>
+    </div>
+  </div>
+
+  <% if @active_projects.any? %>
+    <div class="mb-12">
+      <h2 class="text-xl font-semibold text-neutral-800 dark:text-neutral-200 mb-4">Active Projects</h2>
+      <div class="grid gap-4">
+        <% @active_projects.each do |project| %>
+          <div class="bg-white dark:bg-neutral-800 rounded-lg shadow hover:shadow-md transition-shadow">
+            <%= link_to project, class: "block p-6" do %>
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h3 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100"><%= project.name %></h3>
+                  <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-1 font-mono"><%= project.path %></p>
+                  
+                  <div class="flex items-center gap-4 mt-3">
+                    <% if project.git? %>
+                      <div class="flex items-center text-sm text-neutral-600 dark:text-neutral-400">
+                        <%= heroicon "code-bracket-square", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+                        Git
+                      </div>
+                    <% end %>
+                    
+                    <div class="flex items-center text-sm text-neutral-600 dark:text-neutral-400">
+                      <%= heroicon "folder", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+                      <%= pluralize(project.active_sessions_count, "active") %> / <%= pluralize(project.total_sessions_count, "session") %>
+                    </div>
+                    
+                    <% if project.last_session_at %>
+                      <div class="flex items-center text-sm text-neutral-600 dark:text-neutral-400">
+                        <%= heroicon "clock", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+                        Last active <%= time_ago_in_words(project.last_session_at) %> ago
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+                
+                <div class="flex items-center gap-2 ml-4">
+                  <%= link_to edit_project_path(project), class: "p-2 text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100" do %>
+                    <%= heroicon "pencil", variant: :outline, options: { class: "h-5 w-5" } %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <% if @archived_projects.any? %>
+    <div>
+      <h2 class="text-xl font-semibold text-neutral-800 dark:text-neutral-200 mb-4">Archived Projects</h2>
+      <div class="grid gap-4">
+        <% @archived_projects.each do |project| %>
+          <div class="bg-neutral-50 dark:bg-neutral-900 rounded-lg shadow opacity-75">
+            <div class="p-6">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h3 class="text-lg font-semibold text-neutral-700 dark:text-neutral-300"><%= project.name %></h3>
+                  <p class="text-sm text-neutral-500 dark:text-neutral-500 mt-1 font-mono"><%= project.path %></p>
+                  
+                  <div class="flex items-center gap-4 mt-3">
+                    <div class="flex items-center text-sm text-neutral-500 dark:text-neutral-500">
+                      <%= heroicon "archive-box", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+                      Archived
+                    </div>
+                    <div class="flex items-center text-sm text-neutral-500 dark:text-neutral-500">
+                      <%= heroicon "folder", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+                      <%= pluralize(project.total_sessions_count, "session") %>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="flex items-center gap-2 ml-4">
+                  <%= button_to unarchive_project_path(project), method: :post, class: "inline-flex items-center px-3 py-1 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-sm font-medium rounded transition-colors" do %>
+                    <%= heroicon "arrow-uturn-left", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+                    Restore
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <% if @active_projects.empty? && @archived_projects.empty? %>
+    <div class="text-center py-12">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full mb-4">
+        <%= heroicon "folder-open", variant: :outline, options: { class: "h-8 w-8 text-neutral-400" } %>
+      </div>
+      <h3 class="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">No projects yet</h3>
+      <p class="text-neutral-600 dark:text-neutral-400 mb-6">Get started by creating your first project.</p>
+      <%= link_to new_project_path, class: "inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors" do %>
+        <%= heroicon "plus", variant: :solid, options: { class: "h-5 w-5 mr-2" } %>
+        New Project
+      <% end %>
+    </div>
+  <% end %>
+</div>

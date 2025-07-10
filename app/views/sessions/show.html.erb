@@ -7,7 +7,7 @@
 <div class="fixed inset-0 top-16 bg-stone-950 overflow-hidden" data-controller="right-pane">
   <!-- Terminal iframe or session summary -->
   <div class="w-full h-full">
-    <% if @session.active? %>
+    <% if @terminal_url %>
       <iframe 
         src="<%= @terminal_url %>" 
         class="w-full h-full border-0"

@@ -76,7 +76,10 @@ class SessionsController < ApplicationController
   end
 
   def show
-    @terminal_url = @session.terminal_url(new_session: params[:new_session]) if @session.active?
+    # Set terminal URL for active sessions or when resuming a stopped session
+    if @session.active? || (@session.stopped? && params[:view_only] != "true")
+      @terminal_url = @session.terminal_url(new_session: params[:new_session])
+    end
   end
 
   def kill

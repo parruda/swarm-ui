@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+set -e
+
+echo "SwarmUI Installation Script"
+echo "=========================="
+echo
+
+# Detect OS
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+
+# Function to check if command exists
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+# Function to install on macOS
+install_macos() {
+  # Check if Homebrew is installed
+  if ! command_exists brew; then
+    echo "Error: Homebrew is required but not installed."
+    echo "Please install Homebrew from https://brew.sh"
+    exit 1
+  fi
+
+  echo "Installing on macOS..."
+  
+  # Install ttyd
+  if ! command_exists ttyd; then
+    echo "Installing ttyd..."
+    brew install ttyd
+  else
+    echo "ttyd is already installed"
+  fi
+
+  # Install tmux
+  if ! command_exists tmux; then
+    echo "Installing tmux..."
+    brew install tmux
+  else
+    echo "tmux is already installed"
+  fi
+
+  # Install gh CLI
+  if ! command_exists gh; then
+    echo "Installing GitHub CLI..."
+    brew install gh
+  else
+    echo "GitHub CLI is already installed"
+  fi
+}
+
+# Function to install on Linux
+install_linux() {
+  echo "Installing on Linux..."
+  
+  # Detect package manager
+  if command_exists apt-get; then
+    PKG_MANAGER="apt-get"
+    PKG_UPDATE="sudo apt-get update"
+    PKG_INSTALL="sudo apt-get install -y"
+  elif command_exists yum; then
+    PKG_MANAGER="yum"
+    PKG_UPDATE="sudo yum check-update || true"
+    PKG_INSTALL="sudo yum install -y"
+  elif command_exists dnf; then
+    PKG_MANAGER="dnf"
+    PKG_UPDATE="sudo dnf check-update || true"
+    PKG_INSTALL="sudo dnf install -y"
+  else
+    echo "Error: No supported package manager found (apt-get, yum, or dnf)"
+    exit 1
+  fi
+
+  # Update package lists
+  echo "Updating package lists..."
+  eval $PKG_UPDATE
+
+  # Install tmux
+  if ! command_exists tmux; then
+    echo "Installing tmux..."
+    eval $PKG_INSTALL tmux
+  else
+    echo "tmux is already installed"
+  fi
+
+  # Install ttyd
+  if ! command_exists ttyd; then
+    echo "Installing ttyd..."
+    
+    # ttyd needs to be installed from GitHub releases for most Linux distros
+    TTYD_VERSION="1.7.4"
+    TTYD_URL=""
+    
+    case "$ARCH" in
+      x86_64)
+        TTYD_URL="https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.x86_64"
+        ;;
+      aarch64|arm64)
+        TTYD_URL="https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.aarch64"
+        ;;
+      *)
+        echo "Error: Unsupported architecture: $ARCH"
+        echo "Please install ttyd manually from: https://github.com/tsl0922/ttyd"
+        exit 1
+        ;;
+    esac
+    
+    echo "Downloading ttyd from GitHub..."
+    sudo curl -L "$TTYD_URL" -o /usr/local/bin/ttyd
+    sudo chmod +x /usr/local/bin/ttyd
+    echo "ttyd installed successfully"
+  else
+    echo "ttyd is already installed"
+  fi
+
+  # Install gh CLI
+  if ! command_exists gh; then
+    echo "Installing GitHub CLI..."
+    
+    if [ "$PKG_MANAGER" = "apt-get" ]; then
+      # Add GitHub CLI repository for Debian/Ubuntu
+      curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+      sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+      sudo apt update
+      sudo apt install gh -y
+    elif [ "$PKG_MANAGER" = "yum" ] || [ "$PKG_MANAGER" = "dnf" ]; then
+      # Add GitHub CLI repository for RHEL/CentOS/Fedora
+      sudo dnf install -y 'dnf-command(config-manager)'
+      sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+      sudo dnf install -y gh
+    fi
+  else
+    echo "GitHub CLI is already installed"
+  fi
+}
+
+# Main installation logic
+case "$OS" in
+  Darwin)
+    install_macos
+    ;;
+  Linux)
+    install_linux
+    ;;
+  *)
+    echo "Error: Unsupported operating system: $OS"
+    echo "This script supports macOS and Linux only."
+    exit 1
+    ;;
+esac
+
+# Install gh webhook extension
+echo
+echo "Installing gh webhook extension..."
+if gh extension list | grep -q "cli/gh-webhook"; then
+  echo "gh webhook extension is already installed"
+else
+  gh extension install cli/gh-webhook
+  echo "gh webhook extension installed successfully"
+fi
+
+echo
+echo "Installation complete!"
+echo
+echo "Installed tools:"
+command_exists ttyd && echo "✓ ttyd $(ttyd --version 2>&1 | head -n1)"
+command_exists tmux && echo "✓ tmux $(tmux -V)"
+command_exists gh && echo "✓ gh $(gh --version | head -n1)"
+gh extension list | grep -q "cli/gh-webhook" && echo "✓ gh webhook extension"

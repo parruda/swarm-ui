@@ -1,0 +1,16 @@
+<% content_for :title, "New Project" %>
+
+<div class="py-8">
+  <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:truncate sm:text-3xl sm:tracking-tight">Create Project</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Create a new project to organize your claude-swarm sessions.</p>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-900/5 dark:ring-gray-700 sm:rounded-xl transition-colors duration-200">
+      <div class="px-4 py-6 sm:p-8">
+        <%= render "form", project: @project %>
+      </div>
+    </div>
+  </div>
+</div>

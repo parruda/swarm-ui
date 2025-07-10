@@ -1,0 +1,136 @@
+<% content_for :title, @project.name %>
+
+<div class="py-8">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <nav class="flex mb-4" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-4">
+          <li>
+            <div>
+              <%= link_to projects_path, class: "text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400" do %>
+                <%= heroicon "folder", variant: :outline, options: { class: "h-5 w-5 flex-shrink-0" } %>
+              <% end %>
+            </div>
+          </li>
+          <li>
+            <div class="flex items-center">
+              <%= heroicon "chevron-right", variant: :solid, options: { class: "h-5 w-5 flex-shrink-0 text-gray-400" } %>
+              <span class="ml-4 text-sm font-medium text-gray-500 dark:text-gray-400"><%= @project.name %></span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+      
+      <div class="sm:flex sm:items-center sm:justify-between">
+        <div class="sm:flex-auto">
+          <h1 class="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:truncate sm:text-3xl sm:tracking-tight"><%= @project.name %></h1>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 font-mono truncate"><%= @project.path %></p>
+        </div>
+        
+        <div class="mt-4 flex items-center gap-x-3 sm:ml-16 sm:mt-0 sm:flex-none">
+          <%= link_to new_session_path(project_path: @project.path), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+            <%= heroicon "plus", variant: :mini, options: { class: "h-5 w-5 mr-1.5" } %>
+            New Session
+          <% end %>
+          
+          <%= link_to edit_project_path(@project), class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+            <%= heroicon "pencil", variant: :mini, options: { class: "h-5 w-5 mr-1.5" } %>
+            Edit
+          <% end %>
+          
+          <% if @project.active? %>
+            <%= button_to archive_project_path(@project), method: :post, data: { turbo_confirm: "Are you sure you want to archive this project?" }, class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+              <%= heroicon "archive-box", variant: :mini, options: { class: "h-5 w-5 mr-1.5" } %>
+              Archive
+            <% end %>
+          <% else %>
+            <%= button_to unarchive_project_path(@project), method: :post, class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200" do %>
+              <%= heroicon "arrow-uturn-left", variant: :mini, options: { class: "h-5 w-5 mr-1.5" } %>
+              Restore
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Project Details</h2>
+      </div>
+      
+      <div class="px-6 py-4">
+        <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+          <div>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Version Control</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <% if @project.git? %>
+                <span class="inline-flex items-center rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                  <%= heroicon "code-bracket", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                  Git Repository
+                </span>
+              <% else %>
+                <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                  <%= heroicon "folder", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                  Local Directory
+                </span>
+              <% end %>
+            </dd>
+          </div>
+          
+          <div>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Default Config</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <%= @project.default_config_path || "None" %>
+            </dd>
+          </div>
+          
+          <div>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Use Worktree by Default</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <% if @project.default_use_worktree? %>
+                <span class="inline-flex items-center rounded-md bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-green-600/20 dark:ring-green-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">Yes</span>
+              <% else %>
+                <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">No</span>
+              <% end %>
+            </dd>
+          </div>
+          
+          <div>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Sessions</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <span class="text-green-600 dark:text-green-400"><%= @project.active_sessions_count %> active</span> / 
+              <span><%= @project.total_sessions_count %> total</span>
+            </dd>
+          </div>
+          
+          <% if @project.last_session_at %>
+            <div>
+              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Activity</dt>
+              <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <%= time_ago_in_words(@project.last_session_at) %> ago
+              </dd>
+            </div>
+          <% end %>
+        </dl>
+      </div>
+    </div>
+
+    <div class="mt-8">
+      <h2 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100 mb-4">Sessions</h2>
+      
+      <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center border-2 border-dashed border-gray-300 dark:border-gray-700">
+        <div class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500">
+          <%= heroicon "command-line", variant: :outline, options: { class: "h-12 w-12" } %>
+        </div>
+        <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Session association coming soon</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Sessions will be displayed here once the association is implemented.</p>
+        <div class="mt-6">
+          <%= link_to new_session_path(project_path: @project.path), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+            <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+            Create Session
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

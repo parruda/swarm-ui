@@ -1,0 +1,156 @@
+<% content_for :title, "Projects" %>
+
+<div class="py-8">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="sm:flex sm:items-center">
+      <div class="sm:flex-auto">
+        <h1 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100 flex items-center">
+          <%= heroicon "folder", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+          Projects
+        </h1>
+        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Manage your claude-swarm projects.</p>
+      </div>
+      <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+        <%= link_to new_project_path, class: "inline-flex items-center justify-center gap-x-1.5 rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+          <%= heroicon "plus", variant: :mini, options: { class: "h-5 w-5" } %>
+          New Project
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="mt-8">
+      <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+          <a href="#" class="border-orange-900 dark:border-orange-500 text-orange-900 dark:text-orange-400 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
+            <%= heroicon "folder-open", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            Active
+            <span class="ml-2 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-400 px-2.5 py-0.5 text-xs font-medium"><%= @active_projects.count %></span>
+          </a>
+          <a href="#" class="border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
+            <%= heroicon "archive-box", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            Archived
+            <span class="ml-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2.5 py-0.5 text-xs font-medium"><%= @archived_projects.count %></span>
+          </a>
+        </nav>
+      </div>
+    </div>
+
+    <% if @active_projects.any? %>
+      <div class="mt-8 space-y-4">
+        <% @active_projects.each do |project| %>
+          <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg p-6 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
+            <div class="flex items-center justify-between">
+              <div class="flex items-start space-x-8 flex-1">
+                <div class="min-w-0">
+                  <div class="flex items-center space-x-3">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                      <%= link_to project.name, project_path(project), class: "hover:text-orange-900 dark:hover:text-orange-400" %>
+                    </h3>
+                    <% if project.git? %>
+                      <span class="inline-flex items-center rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                        <%= heroicon "code-bracket", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                        Git
+                      </span>
+                    <% end %>
+                  </div>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate font-mono" title="<%= project.path %>">
+                    <%= project.path %>
+                  </p>
+                  <% if project.default_config_path.present? %>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <span class="font-semibold">Config:</span> <%= project.default_config_path %>
+                    </p>
+                  <% end %>
+                </div>
+                
+                <div class="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
+                  <div>
+                    <span class="font-medium">Sessions:</span> 
+                    <span class="text-green-600 dark:text-green-400"><%= project.active_sessions_count %> active</span> / 
+                    <span><%= project.total_sessions_count %> total</span>
+                  </div>
+                  <% if project.last_session_at %>
+                    <div>
+                      <span class="font-medium">Last active:</span> <%= time_ago_in_words(project.last_session_at) %> ago
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+
+              <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
+                <%= link_to new_session_path(project_path: project.path), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                  <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                  New Session
+                <% end %>
+                <%= link_to edit_project_path(project), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                  <%= heroicon "pencil", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                  Edit
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if @archived_projects.any? %>
+      <div class="mt-8">
+        <h2 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100 mb-4">Archived Projects</h2>
+        <div class="space-y-4">
+          <% @archived_projects.each do |project| %>
+            <div class="bg-gray-50 dark:bg-gray-900 shadow dark:shadow-gray-700/50 rounded-lg p-6 border border-gray-200 dark:border-gray-700 transition-colors duration-200 opacity-75">
+              <div class="flex items-center justify-between">
+                <div class="flex items-start space-x-8 flex-1">
+                  <div class="min-w-0">
+                    <div class="flex items-center space-x-3">
+                      <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">
+                        <%= project.name %>
+                      </h3>
+                      <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                        <%= heroicon "archive-box", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                        Archived
+                      </span>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate font-mono" title="<%= project.path %>">
+                      <%= project.path %>
+                    </p>
+                  </div>
+                  
+                  <div class="flex items-center space-x-6 text-sm text-gray-500 dark:text-gray-500">
+                    <div>
+                      <span class="font-medium">Total sessions:</span> <%= project.total_sessions_count %>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
+                  <%= button_to unarchive_project_path(project), method: :post, class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200" do %>
+                    <%= heroicon "arrow-uturn-left", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                    Restore
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @active_projects.empty? && @archived_projects.empty? %>
+      <div class="mt-8 text-center">
+        <div class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500">
+          <%= heroicon 'folder-open', variant: :outline, options: { class: "h-12 w-12" } %>
+        </div>
+        <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">No projects</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new project.</p>
+        <div class="mt-6">
+          <%= link_to new_project_path, class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+            <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+            Create Project
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

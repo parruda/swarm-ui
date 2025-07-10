@@ -45,6 +45,8 @@ swarm:
         - Modern frontend development without build steps (importmap)
         
         Read and follow CLAUDE.md guidelines strictly.
+
+        NEVER try to run the server. Never run bin/dev or bin/start.
         
         The project is a Rails 8 application that provides a web UI for claude-swarm, featuring session management, ttyd-based terminal access via iframe, real-time monitoring, and configuration management.
         

@@ -9,6 +9,11 @@ class Project < ApplicationRecord
 
   # Associations
   has_many :sessions
+  has_many :github_webhook_events, dependent: :destroy
+  has_many :github_webhook_processes, dependent: :destroy
+
+  # Nested attributes
+  accepts_nested_attributes_for :github_webhook_events, allow_destroy: true
 
   # Validations
   validates :name, presence: true
@@ -26,6 +31,7 @@ class Project < ApplicationRecord
   # Callbacks
   before_validation :detect_vcs_type, on: :create
   before_validation :normalize_path
+  after_save :populate_github_fields_from_remote, if: :saved_change_to_vcs_type?
 
   # Class methods
   class << self
@@ -104,6 +110,43 @@ class Project < ApplicationRecord
     Rails.cache.delete("project_#{id}_current_branch")
     Rails.cache.delete("project_#{id}_git_dirty")
     Rails.cache.delete("project_#{id}_git_status")
+  end
+
+  # GitHub webhook methods
+  def populate_github_fields_from_remote
+    return unless git?
+    return if github_repo_owner.present? && github_repo_name.present?
+
+    remote_url = git_service.remote_url
+    return unless remote_url.present?
+
+    # Parse GitHub URL formats:
+    # https://github.com/owner/repo.git
+    # git@github.com:owner/repo.git
+    if remote_url =~ %r{github\.com[:/]([^/]+)/([^/]+?)(?:\.git)?$}
+      update_columns(
+        github_repo_owner: ::Regexp.last_match(1),
+        github_repo_name: ::Regexp.last_match(2),
+      )
+    end
+  end
+
+  def github_configured?
+    github_repo_owner.present? && github_repo_name.present?
+  end
+
+  def github_repo_full_name
+    return unless github_configured?
+
+    "#{github_repo_owner}/#{github_repo_name}"
+  end
+
+  def webhook_running?
+    github_webhook_processes.where(status: "running").exists?
+  end
+
+  def stop_all_webhooks!
+    WebhookProcessService.stop_all_for_project(self)
   end
 
   private

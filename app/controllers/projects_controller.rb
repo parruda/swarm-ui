@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class ProjectsController < ApplicationController
-  before_action :set_project, only: [:show, :edit, :update, :destroy, :archive, :unarchive, :sync]
+  before_action :set_project, only: [:show, :edit, :update, :destroy, :archive, :unarchive, :sync, :toggle_webhook, :webhook_status]
 
   def index
     @active_projects = Project.active.ordered
@@ -33,9 +33,16 @@ class ProjectsController < ApplicationController
   end
 
   def edit
+    # Try to populate GitHub fields if not already set
+    @project.populate_github_fields_from_remote if @project.git?
   end
 
   def update
+    # Handle webhook events specially
+    if params[:project].key?(:webhook_events)
+      handle_webhook_events
+    end
+
     if @project.update(project_params)
       redirect_to(@project, notice: "Project was successfully updated.")
     else
@@ -72,6 +79,43 @@ class ProjectsController < ApplicationController
     render(json: result)
   end
 
+  def toggle_webhook
+    unless @project.github_configured?
+      redirect_to(edit_project_path(@project), alert: "Please configure GitHub repository information first.")
+      return
+    end
+
+    # Ensure default webhook events exist
+    if @project.github_webhook_events.empty?
+      GithubWebhookEvent.create_defaults_for_project(@project)
+    end
+
+    # Toggle webhook state
+    @project.update!(github_webhook_enabled: !@project.github_webhook_enabled)
+
+    if @project.github_webhook_enabled?
+      redirect_to(edit_project_path(@project), notice: "GitHub webhooks enabled. The webhook forwarder will start shortly.")
+    else
+      redirect_to(edit_project_path(@project), notice: "GitHub webhooks disabled.")
+    end
+  end
+
+  def webhook_status
+    status = if @project.webhook_running?
+      process = @project.github_webhook_processes.running.first
+      {
+        running: true,
+        pid: process.pid,
+        started_at: process.started_at,
+        duration: process.duration,
+      }
+    else
+      { running: false }
+    end
+
+    render(json: status)
+  end
+
   private
 
   def set_project
@@ -84,6 +128,10 @@ class ProjectsController < ApplicationController
       :path,
       :default_config_path,
       :default_use_worktree,
+      :github_webhook_enabled,
+      :github_webhook_auto_start,
+      :github_repo_owner,
+      :github_repo_name,
     )
 
     # Handle environment variables separately
@@ -98,5 +146,17 @@ class ProjectsController < ApplicationController
     end
 
     permitted
+  end
+
+  def handle_webhook_events
+    # Get all the selected event types from the form
+    selected_events = params[:project][:webhook_events] || []
+
+    # Update existing or create new webhook events
+    GithubWebhookEvent::AVAILABLE_EVENTS.each do |event_type|
+      webhook_event = @project.github_webhook_events.find_or_initialize_by(event_type: event_type)
+      webhook_event.enabled = selected_events.include?(event_type)
+      webhook_event.save!
+    end
   end
 end

@@ -20,8 +20,13 @@ Rails.application.routes.draw do
       post :archive
       post :unarchive
       post :sync
+      post :toggle_webhook
+      get :webhook_status
     end
   end
+
+  # GitHub webhook receiver endpoint
+  post "/github/webhooks/:project_id", to: "github_webhooks#receive", as: :github_webhooks
 
   # Filesystem navigation endpoints
   get "filesystem/browse", to: "filesystem#browse"

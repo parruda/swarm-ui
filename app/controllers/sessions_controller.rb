@@ -24,6 +24,17 @@ class SessionsController < ApplicationController
     @session = Session.new
     @projects = Project.active.ordered
 
+    # Check if we're starting from a specific project
+    if params[:project_id].present?
+      project = Project.find_by(id: params[:project_id])
+      if project
+        @session.project_id = project.id
+        @session.configuration_path = project.default_config_path
+        @session.use_worktree = project.default_use_worktree
+        @focus_name_field = true
+      end
+    end
+
     # Check if we're cloning from another session
     if params[:clone_from].present?
       @clone_source = Session.find_by(id: params[:clone_from])

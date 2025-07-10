@@ -13,7 +13,7 @@
           <span class="text-red-500">*</span>
         </label>
         <%= f.hidden_field :path, data: { filesystem_browser_target: "projectPathInput" } %>
-        <div class="flex items-center gap-3">
+        <div class="mt-3 flex items-center gap-3">
           <button type="button"
                   class="inline-flex items-center gap-2 rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
                   data-action="click->filesystem-browser#open">
@@ -34,6 +34,31 @@
           <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">The absolute path to your project directory</p>
         <% end %>
       </div>
+
+      <div class="space-y-2" data-filesystem-browser-target="configSection">
+        <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Default Configuration File</label>
+        <select name="project[default_config_path]" 
+                class="block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200 <%= project.path.blank? ? 'opacity-50 cursor-not-allowed' : '' %>"
+                data-filesystem-browser-target="configSelect"
+                data-current-value="<%= project.default_config_path %>"
+                <%= project.path.blank? ? 'disabled' : '' %>>
+          <% if project.path.blank? %>
+            <option value="">Select project directory first</option>
+          <% else %>
+            <option value="">Select a swarm configuration file (optional)</option>
+            <% if project.default_config_path.present? %>
+              <option value="<%= project.default_config_path %>" selected><%= project.default_config_path %></option>
+            <% end %>
+          <% end %>
+        </select>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          <% if project.path.blank? %>
+            Configuration files will be detected after selecting a project directory
+          <% else %>
+            Automatically detected swarm configuration files
+          <% end %>
+        </p>
+      </div>
     <% else %>
       <div class="space-y-2">
         <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Project Path</label>
@@ -41,14 +66,24 @@
                          readonly: true,
                          class: "block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-700/50 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 sm:text-sm sm:leading-6 transition-colors duration-200 font-mono cursor-not-allowed opacity-75" %>
         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Project path cannot be changed after creation</p>
+        <%= f.hidden_field :path, value: project.path, data: { filesystem_browser_target: "projectPathInput" } %>
+      </div>
+
+      <div class="space-y-2" data-filesystem-browser-target="configSection">
+        <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Default Configuration File</label>
+        <select name="project[default_config_path]" 
+                class="block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200"
+                data-filesystem-browser-target="configSelect"
+                data-current-value="<%= project.default_config_path %>">
+          <option value="">Select a swarm configuration file (optional)</option>
+          <% if project.default_config_path.present? %>
+            <option value="<%= project.default_config_path %>" selected><%= project.default_config_path %></option>
+          <% end %>
+        </select>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Automatically detected swarm configuration files</p>
       </div>
     <% end %>
 
-    <%= f.input :default_config_path,
-                label: "Default Configuration File",
-                placeholder: "claude-swarm.yml",
-                hint: "Default configuration file name (optional)",
-                wrapper: :tailwind %>
 
     <%= f.input :default_use_worktree,
                 as: :boolean,

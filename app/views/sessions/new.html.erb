@@ -1,6 +1,6 @@
 <% content_for :title, "New Session" %>
 
-<div class="py-8">
+<div class="py-8" data-controller="filesystem-browser">
   <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
     <div class="mb-8">
       <h1 class="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:truncate sm:text-3xl sm:tracking-tight">Create Claude Swarm Session</h1>
@@ -29,13 +29,38 @@
                               label: "Project",
                               prompt: "Select a project",
                               hint: "Choose the project for this session",
-                              wrapper: :tailwind %>
+                              wrapper: :tailwind,
+                              input_html: {
+                                data: {
+                                  action: "change->filesystem-browser#projectChanged",
+                                  filesystem_browser_target: "projectSelect"
+                                }
+                              } %>
 
-            <%= f.input :configuration_path,
-                        label: "Configuration File",
-                        placeholder: "swarm.yml",
-                        hint: "Path to your swarm configuration file (relative to project root)",
-                        wrapper: :tailwind %>
+            <div class="space-y-2" data-filesystem-browser-target="configSection">
+              <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Configuration File</label>
+              <select name="session[configuration_path]" 
+                      class="block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200 <%= @session.project_id.blank? ? 'opacity-50 cursor-not-allowed' : '' %>"
+                      data-filesystem-browser-target="configSelect"
+                      data-current-value="<%= @session.configuration_path %>"
+                      <%= @session.project_id.blank? ? 'disabled' : '' %>>
+                <% if @session.project_id.blank? %>
+                  <option value="">Select a project first</option>
+                <% else %>
+                  <option value="">Select a swarm configuration file (optional)</option>
+                  <% if @session.configuration_path.present? %>
+                    <option value="<%= @session.configuration_path %>" selected><%= @session.configuration_path %></option>
+                  <% end %>
+                <% end %>
+              </select>
+              <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                <% if @session.project_id.blank? %>
+                  Configuration files will be detected after selecting a project
+                <% else %>
+                  Automatically detected swarm configuration files
+                <% end %>
+              </p>
+            </div>
 
             <%= f.input :use_worktree, 
                         as: :boolean,

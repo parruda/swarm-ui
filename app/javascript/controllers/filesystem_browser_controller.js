@@ -1,16 +1,22 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["modal", "currentPath", "fileList", "selectedPath", "projectPathInput", "configSelect"]
+  static targets = ["modal", "currentPath", "fileList", "selectedPath", "projectPathInput", "configSelect", "configSection", "projectSelect"]
   static values = { currentPath: String }
 
   connect() {
     this.currentPathValue = this.currentPathValue || ""
     
-    // If project path is already filled, trigger config scan (only if config select exists)
-    if (this.projectPathInputTarget.value && this.hasConfigSelectTarget) {
+    // If we're on a project form and project path is already filled
+    if (this.hasProjectPathInputTarget && this.projectPathInputTarget.value && this.hasConfigSelectTarget) {
       this.currentPathValue = this.projectPathInputTarget.value
       this.scanForSwarmConfigs()
+    }
+    
+    // If we're on a session form with a pre-selected project
+    if (this.hasProjectSelectTarget && this.projectSelectTarget.value && this.hasConfigSelectTarget) {
+      // Trigger project changed to load configs
+      this.projectChanged({ target: this.projectSelectTarget })
     }
     
     // Focus on name field if requested
@@ -129,8 +135,10 @@ export default class extends Controller {
     this.projectPathInputTarget.value = this.currentPathValue
     this.close()
     
-    // Only scan for configs if the config select target exists
+    // Enable config select and scan for configs
     if (this.hasConfigSelectTarget) {
+      this.configSelectTarget.disabled = false
+      this.configSelectTarget.classList.remove('opacity-50', 'cursor-not-allowed')
       this.scanForSwarmConfigs()
     }
   }
@@ -145,7 +153,7 @@ export default class extends Controller {
       const data = await response.json()
       
       if (data.configs.length > 0) {
-        this.configSelectTarget.innerHTML = '<option value="">Select a configuration file</option>'
+        this.configSelectTarget.innerHTML = '<option value="">Select a swarm configuration file (optional)</option>'
         data.configs.forEach(config => {
           const option = document.createElement("option")
           option.value = config.path
@@ -158,8 +166,24 @@ export default class extends Controller {
         if (currentValue) {
           this.configSelectTarget.value = currentValue
         }
+        
+        // Update hint text
+        if (this.hasConfigSectionTarget) {
+          const hint = this.configSectionTarget.querySelector('p.text-gray-500')
+          if (hint) {
+            hint.textContent = 'Automatically detected swarm configuration files'
+          }
+        }
       } else {
         this.configSelectTarget.innerHTML = '<option value="">No swarm configuration files found</option>'
+        
+        // Update hint text
+        if (this.hasConfigSectionTarget) {
+          const hint = this.configSectionTarget.querySelector('p.text-gray-500')
+          if (hint) {
+            hint.textContent = 'No swarm configuration files found in the selected directory'
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to scan for configs:", error)
@@ -183,5 +207,60 @@ export default class extends Controller {
     return `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
     </svg>`
+  }
+
+  async projectChanged(event) {
+    const projectId = event.target.value
+    
+    if (!projectId) {
+      // No project selected
+      this.configSelectTarget.disabled = true
+      this.configSelectTarget.classList.add('opacity-50', 'cursor-not-allowed')
+      this.configSelectTarget.innerHTML = '<option value="">Select a project first</option>'
+      
+      // Update hint text
+      if (this.hasConfigSectionTarget) {
+        const hint = this.configSectionTarget.querySelector('p.text-gray-500')
+        if (hint) {
+          hint.textContent = 'Configuration files will be detected after selecting a project'
+        }
+      }
+      return
+    }
+
+    try {
+      // Enable the select
+      this.configSelectTarget.disabled = false
+      this.configSelectTarget.classList.remove('opacity-50', 'cursor-not-allowed')
+      this.configSelectTarget.innerHTML = '<option value="">Loading project information...</option>'
+      
+      // Fetch project details to get the path and default config
+      const response = await fetch(`/projects/${projectId}.json`)
+      const project = await response.json()
+      
+      if (project && project.path) {
+        this.currentPathValue = project.path
+        
+        // Store the default config path
+        const defaultConfigPath = project.default_config_path
+        
+        // Scan for configs
+        await this.scanForSwarmConfigs()
+        
+        // If there's a default config path and it exists in the options, select it
+        if (defaultConfigPath) {
+          // Check if the default config exists in the select options
+          const options = Array.from(this.configSelectTarget.options)
+          const defaultOption = options.find(opt => opt.value === defaultConfigPath || opt.value.endsWith(`/${defaultConfigPath}`))
+          
+          if (defaultOption) {
+            this.configSelectTarget.value = defaultOption.value
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load project:", error)
+      this.configSelectTarget.innerHTML = '<option value="">Error loading project</option>'
+    }
   }
 }

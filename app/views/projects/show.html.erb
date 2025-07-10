@@ -115,6 +115,153 @@
       </div>
     </div>
 
+    <% if @project.git? && @project.git_status %>
+      <div class="mt-8 bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200" data-controller="git-sync">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+            </svg>
+            Git Repository Status
+          </h2>
+        </div>
+        
+        <div class="px-6 py-4">
+          <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+            <div>
+              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Current Branch</dt>
+              <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-blue-600/20 dark:ring-blue-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                  <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                  </svg>
+                  <%= @project.git_status[:branch] || "unknown" %>
+                </span>
+              </dd>
+            </div>
+            
+            <div>
+              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Working Directory</dt>
+              <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <% if @project.git_status[:dirty] %>
+                  <% summary = @project.git_status[:status_summary] %>
+                  <span class="inline-flex items-center rounded-md bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 ring-yellow-600/20 dark:ring-yellow-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                    <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                    Dirty
+                  </span>
+                  <% if summary && summary[:total] > 0 %>
+                    <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                      <%= summary[:modified] %> modified, 
+                      <%= summary[:staged] %> staged, 
+                      <%= summary[:untracked] %> untracked
+                    </span>
+                  <% end %>
+                <% else %>
+                  <span class="inline-flex items-center rounded-md bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-green-600/20 dark:ring-green-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                    <%= heroicon "check-circle", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                    Clean
+                  </span>
+                <% end %>
+              </dd>
+            </div>
+            
+            <% if @project.git_status[:last_commit] %>
+              <div class="sm:col-span-2">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Commit</dt>
+                <dd class="mt-1">
+                  <div class="flex items-start space-x-2">
+                    <code class="text-xs font-mono text-gray-600 dark:text-gray-400"><%= @project.git_status[:last_commit][:hash] %></code>
+                    <div class="flex-1">
+                      <p class="text-sm text-gray-900 dark:text-gray-100"><%= @project.git_status[:last_commit][:message] %></p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        by <%= @project.git_status[:last_commit][:author] %> • <%= @project.git_status[:last_commit][:date] %>
+                      </p>
+                    </div>
+                  </div>
+                </dd>
+              </div>
+            <% end %>
+            
+            <% if @project.git_status[:remote_url] %>
+              <div class="sm:col-span-2">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Remote Repository</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 font-mono text-xs truncate">
+                  <% 
+                    remote_url = @project.git_status[:remote_url]
+                    # Convert SSH URLs to HTTPS for GitHub/GitLab/Bitbucket
+                    https_url = case remote_url
+                    when /^git@github\.com:(.+)\.git$/
+                      "https://github.com/#{$1}"
+                    when /^git@gitlab\.com:(.+)\.git$/
+                      "https://gitlab.com/#{$1}"
+                    when /^git@bitbucket\.org:(.+)\.git$/
+                      "https://bitbucket.org/#{$1}"
+                    when /^https?:\/\/.+/
+                      remote_url.sub(/\.git$/, '')
+                    else
+                      nil
+                    end
+                  %>
+                  <% if https_url %>
+                    <%= link_to https_url, target: "_blank", rel: "noopener", class: "inline-flex items-center text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:underline" do %>
+                      <%= remote_url %>
+                      <%= heroicon "arrow-top-right-on-square", variant: :mini, options: { class: "h-3 w-3 ml-1" } %>
+                    <% end %>
+                  <% else %>
+                    <%= remote_url %>
+                  <% end %>
+                </dd>
+              </div>
+            <% end %>
+            
+            <% ahead_behind = @project.git_status[:ahead_behind] %>
+            <% if ahead_behind && ahead_behind[:ahead] && ahead_behind[:behind] && (ahead_behind[:ahead] > 0 || ahead_behind[:behind] > 0) %>
+              <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Sync Status</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  <div class="flex items-center space-x-3">
+                    <% if ahead_behind[:ahead] > 0 %>
+                      <span class="inline-flex items-center">
+                        <svg class="h-4 w-4 mr-1 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>
+                        </svg>
+                        <span class="text-green-600 dark:text-green-400"><%= ahead_behind[:ahead] %> ahead</span>
+                      </span>
+                    <% end %>
+                    <% if ahead_behind[:behind] > 0 %>
+                      <span class="inline-flex items-center">
+                        <svg class="h-4 w-4 mr-1 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path>
+                        </svg>
+                        <span class="text-orange-600 dark:text-orange-400"><%= ahead_behind[:behind] %> behind</span>
+                      </span>
+                    <% end %>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                      vs origin/<%= ahead_behind[:base_branch] %>
+                    </span>
+                  </div>
+                </dd>
+              </div>
+            <% end %>
+          </dl>
+          
+          <% if @project.git_status[:remote_url] %>
+            <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <button type="button"
+                      data-action="click->git-sync#sync"
+                      data-project-id="<%= @project.id %>"
+                      class="inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200">
+                <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Sync with Remote
+              </button>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
     <div class="mt-8">
       <h2 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100 mb-4">Sessions</h2>
       

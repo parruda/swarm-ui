@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class ProjectsController < ApplicationController
-  before_action :set_project, only: [:show, :edit, :update, :destroy, :archive, :unarchive]
+  before_action :set_project, only: [:show, :edit, :update, :destroy, :archive, :unarchive, :sync]
 
   def index
     @active_projects = Project.active.ordered
@@ -56,6 +56,20 @@ class ProjectsController < ApplicationController
   def unarchive
     @project.unarchive!
     redirect_to(projects_url, notice: "Project was successfully restored.")
+  end
+
+  def sync
+    unless @project.git?
+      render(json: { success: false, error: "Not a Git repository" }, status: :unprocessable_entity)
+      return
+    end
+
+    result = @project.git_service.sync_with_remote
+
+    # Clear cached git status after sync
+    @project.clear_git_cache if result[:success]
+
+    render(json: result)
   end
 
   private

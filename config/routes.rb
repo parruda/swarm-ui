@@ -19,6 +19,7 @@ Rails.application.routes.draw do
     member do
       post :archive
       post :unarchive
+      post :sync
     end
   end
 

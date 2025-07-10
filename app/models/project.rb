@@ -68,6 +68,44 @@ class Project < ApplicationRecord
     name
   end
 
+  # Git-related methods
+  def git_service
+    @git_service ||= GitService.new(path)
+  end
+
+  def current_branch
+    Rails.cache.fetch("project_#{id}_current_branch", expires_in: 1.minute) do
+      git_service.current_branch
+    end
+  end
+
+  def git_dirty?
+    Rails.cache.fetch("project_#{id}_git_dirty", expires_in: 1.minute) do
+      git_service.dirty?
+    end
+  end
+
+  def git_status
+    Rails.cache.fetch("project_#{id}_git_status", expires_in: 1.minute) do
+      return unless git?
+
+      {
+        branch: git_service.current_branch,
+        dirty: git_service.dirty?,
+        status_summary: git_service.status_summary,
+        ahead_behind: git_service.ahead_behind,
+        last_commit: git_service.last_commit,
+        remote_url: git_service.remote_url,
+      }
+    end
+  end
+
+  def clear_git_cache
+    Rails.cache.delete("project_#{id}_current_branch")
+    Rails.cache.delete("project_#{id}_git_dirty")
+    Rails.cache.delete("project_#{id}_git_status")
+  end
+
   private
 
   def detect_vcs_type

@@ -52,6 +52,20 @@
                         <%= heroicon "code-bracket", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
                         Git
                       </span>
+                      <% if project.current_branch %>
+                        <span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-blue-600/20 dark:ring-blue-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                          <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                          </svg>
+                          <%= project.current_branch %>
+                        </span>
+                        <% if project.git_dirty? %>
+                          <span class="inline-flex items-center rounded-md bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 ring-yellow-600/20 dark:ring-yellow-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                            <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                            Dirty
+                          </span>
+                        <% end %>
+                      <% end %>
                     <% end %>
                   </div>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate font-mono" title="<%= project.path %>">
@@ -61,6 +75,29 @@
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       <span class="font-semibold">Config:</span> <%= project.default_config_path %>
                     </p>
+                  <% end %>
+                  <% if project.git? && project.git_status %>
+                    <% ahead_behind = project.git_status[:ahead_behind] %>
+                    <% if ahead_behind && ahead_behind[:ahead] && ahead_behind[:behind] && (ahead_behind[:ahead] > 0 || ahead_behind[:behind] > 0) %>
+                      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <% if ahead_behind[:ahead] > 0 %>
+                          <span class="inline-flex items-center">
+                            <svg class="h-3 w-3 mr-1 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>
+                            </svg>
+                            <span class="text-green-600 dark:text-green-400"><%= ahead_behind[:ahead] %> ahead</span>
+                          </span>
+                        <% end %>
+                        <% if ahead_behind[:behind] > 0 %>
+                          <span class="inline-flex items-center <%= ahead_behind[:ahead] > 0 ? 'ml-2' : '' %>">
+                            <svg class="h-3 w-3 mr-1 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path>
+                            </svg>
+                            <span class="text-orange-600 dark:text-orange-400"><%= ahead_behind[:behind] %> behind</span>
+                          </span>
+                        <% end %>
+                      </p>
+                    <% end %>
                   <% end %>
                 </div>
                 

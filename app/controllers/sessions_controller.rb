@@ -8,25 +8,27 @@ class SessionsController < ApplicationController
 
     @sessions = case @filter
     when "active"
-      Session.active.recent
+      Session.includes(:project).active.recent
     when "stopped"
-      Session.stopped.recent
+      Session.includes(:project).stopped.recent
     when "archived"
-      Session.archived.recent
+      Session.includes(:project).archived.recent
     when "all"
-      Session.recent
+      Session.includes(:project).recent
     else
-      Session.active.recent
+      Session.includes(:project).active.recent
     end
   end
 
   def new
     @session = Session.new
+    @projects = Project.active.ordered
+
     # Check if we're cloning from another session
     if params[:clone_from].present?
       @clone_source = Session.find_by(id: params[:clone_from])
       if @clone_source
-        @session.project_path = @clone_source.project_path
+        @session.project_id = @clone_source.project_id
         @session.configuration_path = @clone_source.configuration_path
         @session.use_worktree = @clone_source.use_worktree
         @session.environment_variables = @clone_source.environment_variables
@@ -44,6 +46,7 @@ class SessionsController < ApplicationController
     if @session.save
       redirect_to(session_path(@session, new_session: true))
     else
+      @projects = Project.active.ordered
       render(:new, status: :unprocessable_entity)
     end
   end
@@ -137,7 +140,7 @@ class SessionsController < ApplicationController
   def session_params
     params.require(:session).permit(
       :swarm_name,
-      :project_path,
+      :project_id,
       :configuration,
       :configuration_path,
       :metadata,

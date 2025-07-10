@@ -57,7 +57,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_10_113416) do
   create_table "sessions", force: :cascade do |t|
     t.string("session_id", null: false)
     t.string("swarm_name")
-    t.string("project_path")
     t.string("project_folder_name")
     t.datetime("started_at")
     t.datetime("ended_at")
@@ -72,7 +71,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_10_113416) do
     t.string("session_path", null: false)
     t.datetime("resumed_at")
     t.text("environment_variables")
-    t.bigint("project_id")
+    t.bigint("project_id", null: false)
     t.index(["project_id"], name: "index_sessions_on_project_id")
     t.index(["session_id"], name: "index_sessions_on_session_id", unique: true)
   end

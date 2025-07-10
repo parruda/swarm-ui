@@ -2,7 +2,7 @@
 
 class Session < ApplicationRecord
   # Associations
-  belongs_to :project, optional: true
+  belongs_to :project
 
   # Encryption
   encrypts :environment_variables
@@ -10,7 +10,6 @@ class Session < ApplicationRecord
   # Validations
   validates :session_id, presence: true, uniqueness: true
   validates :status, inclusion: { in: ["active", "stopped", "archived"] }
-  validate :project_or_project_path_present
 
   # Scopes
   scope :active, -> { where(status: "active") }
@@ -22,7 +21,6 @@ class Session < ApplicationRecord
   before_validation :calculate_duration, if: :ended_at_changed?
   before_validation :set_project_folder_name
   before_validation :set_session_path
-  before_validation :sync_project_path_from_project
 
   # Project counter cache callbacks
   after_create :increment_project_counters
@@ -37,7 +35,7 @@ class Session < ApplicationRecord
     # Build the JSON payload for the ttyd session
     payload = {
       tmux_session_name: "swarm-ui-#{session_id}",
-      working_dir: project_path,
+      working_dir: project.path,
       swarm_file: configuration_path,
       use_worktree: use_worktree,
       session_id: session_id,
@@ -74,11 +72,11 @@ class Session < ApplicationRecord
   end
 
   def set_project_folder_name
-    return unless project_path.present?
+    return unless project&.path.present?
 
     # Convert project path to folder name format
     # Remove first / and replace all remaining / or \ with +
-    folder_name = project_path.dup
+    folder_name = project.path.dup
     folder_name = folder_name[1..] if folder_name.start_with?("/")
     folder_name = folder_name[2..] if folder_name.match?(/^[A-Z]:/) # Windows drive letter
     self.project_folder_name = folder_name.gsub(%r{[/\\]}, "+")
@@ -102,28 +100,12 @@ class Session < ApplicationRecord
     )
   end
 
-  def project_or_project_path_present
-    return if project_id.present? || project_path.present?
-
-    errors.add(:base, "Either project or project path must be present")
-  end
-
-  def sync_project_path_from_project
-    return unless project_id_changed? && project.present?
-
-    self.project_path = project.path
-  end
-
   def increment_project_counters
-    return unless project
-
     project.increment!(:total_sessions_count)
     project.increment!(:active_sessions_count) if status == "active"
   end
 
   def update_project_active_sessions_count
-    return unless project
-
     if status_before_last_save == "active" && status != "active"
       project.decrement!(:active_sessions_count)
     elsif status_before_last_save != "active" && status == "active"
@@ -132,14 +114,10 @@ class Session < ApplicationRecord
   end
 
   def update_project_last_session_at
-    return unless project
-
     project.update_column(:last_session_at, Time.current)
   end
 
   def decrement_project_counters
-    return unless project
-
     project.decrement!(:total_sessions_count)
     project.decrement!(:active_sessions_count) if status == "active"
   end

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "yaml"
+
 class SessionsController < ApplicationController
   before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances]
 
@@ -136,6 +138,45 @@ class SessionsController < ApplicationController
 
     # Load swarm configuration to get additional instance details
     @swarm_config = load_swarm_config
+
+    # If no worktree instances, load from the session's config.yml
+    if @instances.empty? && @session.session_path
+      config_path = File.join(@session.session_path, "config.yml")
+      if File.exist?(config_path)
+        begin
+          session_config = YAML.load_file(config_path)
+          if session_config && session_config["swarm"] && session_config["swarm"]["instances"]
+            # Convert the instances from config.yml to the expected format
+            @instances = {}
+            session_config["swarm"]["instances"].each do |name, config|
+              # Handle directory path - it could be relative or absolute
+              directories = []
+              if config["directory"]
+                dir = config["directory"]
+                if dir == "."
+                  directories << @session.project.path
+                elsif dir.start_with?("/")
+                  directories << dir
+                else
+                  directories << File.join(@session.project.path, dir)
+                end
+              end
+              
+              @instances[name] = {
+                "name" => name,
+                "directories" => directories,
+                "model" => config["model"],
+                "description" => config["description"],
+                "connections" => config["connections"],
+                "worktree_config" => { "skip" => true } # No worktree for non-worktree sessions
+              }
+            end
+          end
+        rescue => e
+          Rails.logger.error("Failed to load session config.yml: #{e.message}")
+        end
+      end
+    end
 
     render(partial: "instance_info")
   end

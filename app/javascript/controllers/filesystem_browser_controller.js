@@ -123,7 +123,9 @@ export default class extends Controller {
   }
 
   selectCurrentDirectory() {
-    this.selectedPathTarget.textContent = this.currentPathValue
+    // Update the displayed path
+    this.selectedPathTarget.innerHTML = `<span class="text-gray-700 dark:text-gray-300">${this.currentPathValue}</span>`
+    // Update the hidden input value
     this.projectPathInputTarget.value = this.currentPathValue
     this.close()
     

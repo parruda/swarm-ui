@@ -76,7 +76,7 @@ class SessionsController < ApplicationController
   end
 
   def show
-    @terminal_url = @session.terminal_url(new_session: params[:new_session])
+    @terminal_url = @session.terminal_url(new_session: params[:new_session]) if @session.active?
   end
 
   def kill

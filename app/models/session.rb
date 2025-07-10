@@ -17,6 +17,19 @@ class Session < ApplicationRecord
   scope :archived, -> { where(status: "archived") }
   scope :recent, -> { order(started_at: :desc) }
 
+  # Status helpers
+  def active?
+    status == "active"
+  end
+
+  def stopped?
+    status == "stopped"
+  end
+
+  def archived?
+    status == "archived"
+  end
+
   # Callbacks
   before_validation :calculate_duration, if: :ended_at_changed?
   before_validation :set_project_folder_name
@@ -93,10 +106,11 @@ class Session < ApplicationRecord
   def broadcast_redirect_if_stopped
     return unless saved_change_to_status? && status == "stopped" && status_before_last_save != "stopped"
 
+    # Instead of redirecting, reload the page to show the stopped session view
     broadcast_prepend_to(
       "session_#{id}",
       target: "session_redirect",
-      html: "<script>window.location.href = '#{Rails.application.routes.url_helpers.sessions_path}';</script>",
+      html: "<script>window.location.reload();</script>",
     )
   end
 

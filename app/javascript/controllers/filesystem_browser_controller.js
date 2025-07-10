@@ -7,8 +7,8 @@ export default class extends Controller {
   connect() {
     this.currentPathValue = this.currentPathValue || ""
     
-    // If project path is already filled, trigger config scan
-    if (this.projectPathInputTarget.value) {
+    // If project path is already filled, trigger config scan (only if config select exists)
+    if (this.projectPathInputTarget.value && this.hasConfigSelectTarget) {
       this.currentPathValue = this.projectPathInputTarget.value
       this.scanForSwarmConfigs()
     }
@@ -74,7 +74,11 @@ export default class extends Controller {
     this.selectedPathTarget.textContent = this.currentPathValue
     this.projectPathInputTarget.value = this.currentPathValue
     this.close()
-    this.scanForSwarmConfigs()
+    
+    // Only scan for configs if the config select target exists
+    if (this.hasConfigSelectTarget) {
+      this.scanForSwarmConfigs()
+    }
   }
 
   async scanForSwarmConfigs() {

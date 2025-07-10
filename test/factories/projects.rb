@@ -3,13 +3,22 @@
 FactoryBot.define do
   factory :project do
     sequence(:name) { |n| "Project #{n}" }
-    sequence(:path) { |n| "/tmp/test_projects/project_#{n}" }
+    sequence(:path) { |n| "/tmp/test_projects/project_#{n}_#{SecureRandom.hex(4)}" }
     vcs_type { "git" }
     default_use_worktree { false }
     archived { false }
 
     # Ensure the directory exists for tests
     after(:build) do |project|
+      if project.path.present?
+        FileUtils.mkdir_p(project.path)
+        if project.git?
+          FileUtils.mkdir_p(File.join(project.path, ".git"))
+        end
+      end
+    end
+
+    before(:create) do |project|
       if project.path.present?
         FileUtils.mkdir_p(project.path)
         if project.git?

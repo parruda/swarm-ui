@@ -76,7 +76,7 @@ class SessionsController < ApplicationController
   end
 
   def show
-    @terminal_url = @session.terminal_url(new_session: params[:new_session])
+    @terminal_url = @session.terminal_url(new_session: params[:new_session]) if @session.active?
   end
 
   def kill
@@ -152,41 +152,7 @@ class SessionsController < ApplicationController
 
     # If no worktree instances, load from the session's config.yml
     if @instances.empty? && @session.session_path
-      config_path = File.join(@session.session_path, "config.yml")
-      if File.exist?(config_path)
-        begin
-          session_config = YAML.load_file(config_path)
-          if session_config && session_config["swarm"] && session_config["swarm"]["instances"]
-            # Convert the instances from config.yml to the expected format
-            @instances = {}
-            session_config["swarm"]["instances"].each do |name, config|
-              # Handle directory path - it could be relative or absolute
-              directories = []
-              if config["directory"]
-                dir = config["directory"]
-                directories << if dir == "."
-                  @session.project.path
-                elsif dir.start_with?("/")
-                  dir
-                else
-                  File.join(@session.project.path, dir)
-                end
-              end
-
-              @instances[name] = {
-                "name" => name,
-                "directories" => directories,
-                "model" => config["model"],
-                "description" => config["description"],
-                "connections" => config["connections"],
-                "worktree_config" => { "skip" => true }, # No worktree for non-worktree sessions
-              }
-            end
-          end
-        rescue => e
-          Rails.logger.error("Failed to load session config.yml: #{e.message}")
-        end
-      end
+      load_instances_from_session_config
     end
 
     render(partial: "instance_info")
@@ -289,5 +255,47 @@ class SessionsController < ApplicationController
   rescue => e
     Rails.logger.error("Failed to load swarm config: #{e.message}")
     {}
+  end
+
+  def load_instances_from_session_config
+    config_path = File.join(@session.session_path, "config.yml")
+    return unless File.exist?(config_path)
+
+    begin
+      session_config = YAML.load_file(config_path)
+      return unless session_config && session_config["swarm"] && session_config["swarm"]["instances"]
+
+      # Convert the instances from config.yml to the expected format
+      @instances = {}
+      session_config["swarm"]["instances"].each do |name, config|
+        directories = build_instance_directories(config)
+
+        @instances[name] = {
+          "name" => name,
+          "directories" => directories,
+          "model" => config["model"],
+          "description" => config["description"],
+          "connections" => config["connections"],
+          "worktree_config" => { "skip" => true }, # No worktree for non-worktree sessions
+        }
+      end
+    rescue => e
+      Rails.logger.error("Failed to load session config.yml: #{e.message}")
+    end
+  end
+
+  def build_instance_directories(config)
+    directories = []
+    return directories unless config["directory"]
+
+    dir = config["directory"]
+    directories << if dir == "."
+      @session.project.path
+    elsif dir.start_with?("/")
+      dir
+    else
+      File.join(@session.project.path, dir)
+    end
+    directories
   end
 end

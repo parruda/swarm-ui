@@ -186,7 +186,30 @@
               <div class="sm:col-span-2">
                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Remote Repository</dt>
                 <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 font-mono text-xs truncate">
-                  <%= @project.git_status[:remote_url] %>
+                  <% 
+                    remote_url = @project.git_status[:remote_url]
+                    # Convert SSH URLs to HTTPS for GitHub/GitLab/Bitbucket
+                    https_url = case remote_url
+                    when /^git@github\.com:(.+)\.git$/
+                      "https://github.com/#{$1}"
+                    when /^git@gitlab\.com:(.+)\.git$/
+                      "https://gitlab.com/#{$1}"
+                    when /^git@bitbucket\.org:(.+)\.git$/
+                      "https://bitbucket.org/#{$1}"
+                    when /^https?:\/\/.+/
+                      remote_url.sub(/\.git$/, '')
+                    else
+                      nil
+                    end
+                  %>
+                  <% if https_url %>
+                    <%= link_to https_url, target: "_blank", rel: "noopener", class: "inline-flex items-center text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:underline" do %>
+                      <%= remote_url %>
+                      <%= heroicon "arrow-top-right-on-square", variant: :mini, options: { class: "h-3 w-3 ml-1" } %>
+                    <% end %>
+                  <% else %>
+                    <%= remote_url %>
+                  <% end %>
                 </dd>
               </div>
             <% end %>

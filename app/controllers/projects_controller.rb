@@ -5,14 +5,14 @@ class ProjectsController < ApplicationController
 
   def index
     @filter = params[:filter] || "active"
-    
+
     @projects = case @filter
     when "archived"
       Project.archived.ordered
     else
       Project.active.ordered
     end
-    
+
     # For tab counts
     @active_count = Project.active.count
     @archived_count = Project.archived.count
@@ -67,12 +67,12 @@ class ProjectsController < ApplicationController
 
   def destroy
     @project.archive!
-    redirect_to(projects_url(filter: 'archived'), notice: "Project was successfully archived.")
+    redirect_to(projects_url(filter: "archived"), notice: "Project was successfully archived.")
   end
 
   def archive
     @project.archive!
-    redirect_to(projects_url(filter: 'archived'), notice: "Project was successfully archived.")
+    redirect_to(projects_url(filter: "archived"), notice: "Project was successfully archived.")
   end
 
   def unarchive

@@ -80,7 +80,7 @@ class SessionsController < ApplicationController
     if @session.active? || (@session.stopped? && params[:view_only] != "true")
       @terminal_url = @session.terminal_url(new_session: params[:new_session])
     end
-    
+
     # Fetch git status for active sessions
     if @session.active?
       git_service = GitStatusService.new(@session)
@@ -178,18 +178,18 @@ class SessionsController < ApplicationController
 
     # Generate HTML using diff2html directly
     Dir.chdir(directory) do
-      cmd = %Q{diff2html -t "Changes in #{instance_name}" -s side --cs dark -d word --su open --output stdout | xmllint --html --xpath '//div[@id="diff"]' - 2>/dev/null}
-      html_output = `#{cmd}`
+      cmd = %{diff2html -t "Changes in #{instance_name}" -s side --cs dark -d word --su open --output stdout | xmllint --html --xpath '//div[@id="diff"]' - 2>/dev/null}
+      html_output = %x(#{cmd})
 
       # Get the raw diff for the JS controller
-      diff_output = `git diff --no-ext-diff 2>&1`
+      diff_output = %x(git diff --no-ext-diff 2>&1)
       if diff_output.empty?
-        diff_output = `git diff --cached --no-ext-diff 2>&1`
+        diff_output = %x(git diff --cached --no-ext-diff 2>&1)
       end
 
-      render(json: { 
+      render(json: {
         html: html_output.presence || "<div class='p-4 text-gray-500 dark:text-gray-400'>No changes to display</div>",
-        diff: diff_output
+        diff: diff_output,
       })
     end
   rescue => e

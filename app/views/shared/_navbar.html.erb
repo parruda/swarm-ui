@@ -68,7 +68,7 @@
         <!-- Git Status Display -->
         <% if @session.active? && @git_statuses&.any? %>
           <div class="h-10 w-px bg-gray-300 dark:bg-gray-600"></div>
-          <div class="flex items-center" data-controller="git-status git-diff-modal">
+          <div class="flex items-center" data-controller="git-diff-modal">
             <div class="relative group" data-controller="dropdown-hover" data-dropdown-hover-has-items-value="true">
               <!-- Compact summary button -->
               <button class="flex items-center space-x-2 px-3 py-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
@@ -282,9 +282,6 @@
                       <div class="relative" data-git-diff-modal-target="content">
                         <!-- Content will be injected here -->
                       </div>
-                      
-                      <!-- Gradient fade at bottom for long content -->
-                      <!-- Removed to prevent visual artifacts -->
                     </div>
                     
                     <!-- Optional footer with actions -->

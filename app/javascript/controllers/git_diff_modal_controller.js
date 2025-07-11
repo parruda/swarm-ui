@@ -28,7 +28,6 @@ export default class extends Controller {
     // Show modal with animation
     this.modalTarget.classList.remove("hidden")
     requestAnimationFrame(() => {
-      this.modalTarget.classList.add("showing")
       // Add animation classes
       const backdrop = this.modalTarget.querySelector("div:first-child")
       const modalContent = this.modalTarget.querySelector(".rounded-2xl")
@@ -161,7 +160,6 @@ export default class extends Controller {
     
     setTimeout(() => {
       this.modalTarget.classList.add("hidden")
-      this.modalTarget.classList.remove("showing")
       // Reset styles
       backdrop.style = ""
       modalContent.style = ""

@@ -1,4 +1,4 @@
 web: bin/rails server
 css: bin/rails tailwindcss:watch
-ttyd: ttyd -p 8999 -W -a -t 'fontSize=12' bin/ttyd
+ttyd: ttyd -p 8999 -W -a -t 'fontSize=14' bin/ttyd
 webhook_manager: bin/rails webhook:manager

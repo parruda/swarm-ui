@@ -201,13 +201,17 @@ export default class extends Controller {
       const header = fileWrapper.querySelector('.d2h-file-header')
       if (!header) return
       
+      // Make the entire header clickable
+      header.style.cursor = 'pointer'
+      header.style.userSelect = 'none'
+      
       // Check if there's already a Viewed checkbox
       const existingCheckbox = header.querySelector('.d2h-file-collapse')
       
       // Add chevron icon before the checkbox
       const chevron = document.createElement('span')
       chevron.className = 'diff-toggle-chevron'
-      chevron.style.cssText = 'margin-right: 10px; cursor: pointer; display: inline-flex; align-items: center;'
+      chevron.style.cssText = 'margin-right: 10px; display: inline-flex; align-items: center;'
       chevron.innerHTML = `
         <svg class="diff-toggle-icon inline-block w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -224,23 +228,16 @@ export default class extends Controller {
       // Get the content (files diff)
       const contentWrapper = fileWrapper.querySelector('.d2h-files-diff')
       if (contentWrapper) {
-        // Add click handler to chevron only
-        chevron.addEventListener('click', (e) => {
+        // Add click handler to the entire header
+        header.addEventListener('click', (e) => {
+          // Don't toggle if clicking on the checkbox
+          if (e.target.type === 'checkbox' || e.target.classList.contains('d2h-file-collapse')) {
+            return
+          }
           e.preventDefault()
           e.stopPropagation()
           this.toggleFile(chevron, contentWrapper)
         })
-        
-        // Also make the file name clickable
-        const fileName = header.querySelector('.d2h-file-name')
-        if (fileName) {
-          fileName.style.cursor = 'pointer'
-          fileName.addEventListener('click', (e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            this.toggleFile(chevron, contentWrapper)
-          })
-        }
         
         // Start expanded
         contentWrapper.dataset.expanded = 'true'

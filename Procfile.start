@@ -1,5 +1,5 @@
 postgres: bin/pg-start
 web: sleep 3 && bin/rails server -p $PORT
 css: bin/rails tailwindcss:watch
-ttyd: ttyd -p $TTYD_PORT -W -a -t 'fontSize=12' bin/ttyd
-# webhook_manager: sleep 5 && bin/rails webhook:manager
+ttyd: ttyd -p $TTYD_PORT -W -a -t 'fontSize=14' bin/ttyd
+webhook_manager: sleep 5 && bin/rails webhook:manager

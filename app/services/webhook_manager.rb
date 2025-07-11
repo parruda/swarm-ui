@@ -1,6 +1,11 @@
 # frozen_string_literal: true
 
 class WebhookManager
+  def initialize
+    @running = true
+    setup_signal_handlers
+  end
+
   def run
     Rails.logger.info("Starting Webhook Manager with PostgreSQL LISTEN")
 
@@ -12,31 +17,131 @@ class WebhookManager
 
     begin
       connection.exec("LISTEN webhook_changes")
+      connection.exec("LISTEN webhook_events_changed")
       Rails.logger.info("Listening for webhook changes...")
 
-      loop do
+      while @running
         # Wait for notifications (with timeout for periodic health checks)
-        connection.wait_for_notify(30) do |channel, _pid, payload|
-          handle_notification(payload) if channel == "webhook_changes"
+        connection.wait_for_notify(1) do |channel, _pid, payload|
+          case channel
+          when "webhook_changes"
+            handle_notification(payload)
+          when "webhook_events_changed"
+            handle_events_changed(payload)
+          end
         end
 
         # Periodic health check even without notifications
-        check_process_health
+        check_process_health if @running
       end
     rescue => e
       Rails.logger.error("WebhookManager error: #{e.message}")
       Rails.logger.error(e.backtrace.join("\n"))
       raise
     ensure
+      Rails.logger.info("WebhookManager shutting down...")
+
+      # Stop all webhook processes
+      stop_all_webhook_processes
+
+      # Cleanup PostgreSQL listeners
       begin
         connection.exec("UNLISTEN webhook_changes")
+        connection.exec("UNLISTEN webhook_events_changed")
       rescue
         nil
       end
+
+      Rails.logger.info("WebhookManager shutdown complete")
     end
   end
 
   private
+
+  def setup_signal_handlers
+    ["INT", "TERM", "QUIT"].each do |signal|
+      Signal.trap(signal) do
+        Rails.logger.info("Received #{signal} signal, shutting down WebhookManager...")
+        @running = false
+      end
+    end
+  end
+
+  def stop_all_webhook_processes
+    Rails.logger.info("Stopping all webhook processes...")
+
+    # Get all running webhook processes
+    running_processes = GithubWebhookProcess.where(status: "running")
+
+    Rails.logger.info("Found #{running_processes.count} running webhook processes")
+
+    running_processes.find_each do |process|
+      Rails.logger.info("Stopping webhook process #{process.pid} for project #{process.project_id}")
+      WebhookProcessService.stop(process)
+    rescue => e
+      Rails.logger.error("Error stopping process #{process.pid}: #{e.message}")
+    end
+
+    # Also kill any orphaned gh webhook processes that might not be tracked
+    kill_orphaned_gh_processes
+
+    Rails.logger.info("All webhook processes stopped")
+  end
+
+  def kill_orphaned_gh_processes
+    # Find any gh webhook forward processes that might be orphaned
+    Rails.logger.info("Looking for orphaned gh webhook processes...")
+
+    # First try pgrep if available
+    pids = []
+
+    # Try to find gh processes - look for both "gh webhook" and just "gh" with webhook args
+    begin
+      gh_pids = %x(pgrep -f "gh.*webhook.*forward").strip.split("\n").map(&:to_i).reject(&:zero?)
+      pids.concat(gh_pids)
+    rescue
+      # pgrep not available, fall back to ps
+      output = %x(ps aux | grep -E "gh.*webhook.*forward" | grep -v grep)
+      output.each_line do |line|
+        parts = line.split
+        pids << parts[1].to_i
+      end
+    end
+
+    Rails.logger.info("Found #{pids.size} gh webhook processes to check")
+
+    # Kill ALL gh webhook processes, even tracked ones during shutdown
+    pids.uniq.each do |pid|
+      Rails.logger.warn("Killing gh webhook process with PID #{pid}")
+      begin
+        # Try graceful first
+        Process.kill("TERM", pid)
+        sleep(0.2)
+
+        # Check if still alive and force kill
+        Process.kill(0, pid)
+        Rails.logger.warn("Process #{pid} still alive after TERM, sending KILL")
+        Process.kill("KILL", pid)
+      rescue Errno::ESRCH
+        Rails.logger.info("Process #{pid} successfully terminated")
+      end
+    end
+
+    # Also clean up any webhook processes that claim to be running but have no process
+    GithubWebhookProcess.where(status: "running").find_each do |process|
+      Process.kill(0, process.pid)
+      Rails.logger.info("Database process #{process.pid} is still running, killing it")
+      Process.kill("TERM", process.pid)
+      sleep(0.2)
+      Process.kill("KILL", process.pid)
+    rescue Errno::ESRCH
+      Rails.logger.warn("Database shows process #{process.pid} as running but it's dead, updating status")
+      process.update!(status: "stopped", stopped_at: Time.current)
+    end
+  rescue => e
+    Rails.logger.error("Error killing orphaned processes: #{e.message}")
+    Rails.logger.error(e.backtrace.join("\n"))
+  end
 
   def handle_notification(payload)
     data = JSON.parse(payload)
@@ -54,6 +159,21 @@ class WebhookManager
     end
   rescue => e
     Rails.logger.error("Error handling notification: #{e.message}")
+    Rails.logger.error(e.backtrace.join("\n"))
+  end
+
+  def handle_events_changed(project_id)
+    Rails.logger.info("Received webhook events change for project #{project_id}")
+
+    project = Project.find(project_id)
+
+    # Only restart if webhook is enabled and running
+    if project.github_webhook_enabled? && project.webhook_running?
+      Rails.logger.info("Restarting webhook forwarder with updated events for project #{project_id}")
+      WebhookProcessService.restart(project)
+    end
+  rescue => e
+    Rails.logger.error("Error handling events changed notification: #{e.message}")
     Rails.logger.error(e.backtrace.join("\n"))
   end
 
@@ -129,18 +249,6 @@ class WebhookManager
     rescue Errno::ESRCH
       Rails.logger.info("Cleaning up orphaned process record #{process.id}")
       process.update!(status: "stopped", stopped_at: Time.current)
-    end
-  end
-
-  # Handle auto-start on boot
-  def self.start_auto_webhooks
-    Rails.logger.info("Starting auto-start webhooks")
-
-    Project.where(github_webhook_auto_start: true, github_webhook_enabled: true).find_each do |project|
-      Rails.logger.info("Auto-starting webhook for project #{project.id} (#{project.name})")
-      WebhookProcessService.start(project)
-    rescue => e
-      Rails.logger.error("Failed to auto-start webhook for project #{project.id}: #{e.message}")
     end
   end
 end

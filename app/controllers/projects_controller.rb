@@ -44,7 +44,7 @@ class ProjectsController < ApplicationController
     end
 
     if @project.update(project_params)
-      redirect_to(@project, notice: "Project was successfully updated.")
+      redirect_to(edit_project_path(@project), notice: "Project was successfully updated.")
     else
       render(:edit, status: :unprocessable_entity)
     end
@@ -81,7 +81,7 @@ class ProjectsController < ApplicationController
 
   def toggle_webhook
     unless @project.github_configured?
-      redirect_to(edit_project_path(@project), alert: "Please configure GitHub repository information first.")
+      redirect_back(fallback_location: edit_project_path(@project), alert: "Please configure GitHub repository information first.")
       return
     end
 
@@ -94,9 +94,9 @@ class ProjectsController < ApplicationController
     @project.update!(github_webhook_enabled: !@project.github_webhook_enabled)
 
     if @project.github_webhook_enabled?
-      redirect_to(edit_project_path(@project), notice: "GitHub webhooks enabled. The webhook forwarder will start shortly.")
+      redirect_back(fallback_location: @project, notice: "GitHub webhooks enabled. The webhook forwarder will start shortly.")
     else
-      redirect_to(edit_project_path(@project), notice: "GitHub webhooks disabled.")
+      redirect_back(fallback_location: @project, notice: "GitHub webhooks disabled.")
     end
   end
 
@@ -129,7 +129,6 @@ class ProjectsController < ApplicationController
       :default_config_path,
       :default_use_worktree,
       :github_webhook_enabled,
-      :github_webhook_auto_start,
       :github_repo_owner,
       :github_repo_name,
     )
@@ -152,11 +151,25 @@ class ProjectsController < ApplicationController
     # Get all the selected event types from the form
     selected_events = params[:project][:webhook_events] || []
 
+    # Track if any events changed
+    events_changed = false
+
     # Update existing or create new webhook events
     GithubWebhookEvent::AVAILABLE_EVENTS.each do |event_type|
       webhook_event = @project.github_webhook_events.find_or_initialize_by(event_type: event_type)
+      was_enabled = webhook_event.enabled?
       webhook_event.enabled = selected_events.include?(event_type)
-      webhook_event.save!
+
+      if webhook_event.save! && was_enabled != webhook_event.enabled?
+        events_changed = true
+      end
+    end
+
+    # If events changed and webhook is running, notify to restart
+    if events_changed && @project.github_webhook_enabled? && @project.webhook_running?
+      ActiveRecord::Base.connection.execute(
+        "NOTIFY webhook_events_changed, '#{@project.id}'",
+      )
     end
   end
 end

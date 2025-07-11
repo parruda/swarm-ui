@@ -59,6 +59,8 @@ class WebhookProcessService
           pgroup: true, # Create new process group for easier management
         )
 
+        Rails.logger.info("Spawned gh process with PID #{pid}, PGID: #{Process.getpgid(pid)}")
+
         write_out.close
         write_err.close
 
@@ -82,27 +84,45 @@ class WebhookProcessService
     def stop(process)
       return unless process.status == "running" && process.pid
 
+      Rails.logger.info("Stopping webhook process PID #{process.pid}")
+
       begin
+        # First, check if the process exists
+        Process.kill(0, process.pid)
+        Rails.logger.info("Process #{process.pid} is alive, sending SIGTERM to process group")
+
         # Send SIGTERM to the process group
         Process.kill("-TERM", process.pid)
 
-        # Wait up to 5 seconds for graceful shutdown
-        Timeout.timeout(5) do
+        # Wait up to 2 seconds for graceful shutdown
+        Timeout.timeout(2) do
           Process.waitpid(process.pid)
         end
+
+        Rails.logger.info("Process #{process.pid} terminated gracefully")
       rescue Errno::ESRCH
         # Process already dead
         Rails.logger.info("Process #{process.pid} already terminated")
+      rescue Errno::ECHILD
+        # Child process already reaped
+        Rails.logger.info("Process #{process.pid} already reaped")
       rescue Timeout::Error
         # Force kill if graceful shutdown failed
-        Rails.logger.warn("Force killing process #{process.pid}")
+        Rails.logger.warn("Process #{process.pid} did not terminate within 2 seconds, force killing")
         begin
+          # Kill the entire process group
           Process.kill("-KILL", process.pid)
-        rescue
-          nil
+          Rails.logger.info("Sent SIGKILL to process group #{process.pid}")
+
+          # Try to reap the zombie process
+          Process.waitpid(process.pid, Process::WNOHANG)
+        rescue Errno::ESRCH
+          Rails.logger.info("Process #{process.pid} died after SIGKILL")
+        rescue => e
+          Rails.logger.error("Error force killing process #{process.pid}: #{e.message}")
         end
       rescue => e
-        Rails.logger.error("Error stopping process #{process.pid}: #{e.message}")
+        Rails.logger.error("Error stopping process #{process.pid}: #{e.class} - #{e.message}")
       ensure
         process.update!(status: "stopped", stopped_at: Time.current)
       end
@@ -112,6 +132,19 @@ class WebhookProcessService
       project.github_webhook_processes.where(status: "running").each do |process|
         stop(process)
       end
+    end
+
+    def restart(project)
+      Rails.logger.info("Restarting webhook forwarder for project #{project.id}")
+
+      # Stop any running processes
+      stop_all_for_project(project)
+
+      # Small delay to ensure process is fully stopped
+      sleep(0.5)
+
+      # Start with new configuration
+      start(project)
     end
 
     private

@@ -200,4 +200,68 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     @archived_project.reload
     assert_not @archived_project.archived?
   end
+
+  test "should update webhook events and trigger restart notification" do
+    # Setup project with GitHub configuration
+    @project.update!(
+      github_webhook_enabled: true,
+      github_repo_owner: "test",
+      github_repo_name: "repo"
+    )
+    
+    # Create initial webhook events
+    push_event = @project.github_webhook_events.create!(event_type: "push", enabled: true)
+    pr_event = @project.github_webhook_events.create!(event_type: "pull_request", enabled: false)
+    
+    # Mock webhook running state
+    process = @project.github_webhook_processes.create!(
+      pid: 12345,
+      status: "running",
+      started_at: Time.current
+    )
+    
+    # Expect PostgreSQL notification
+    ActiveRecord::Base.connection.expects(:execute).with(
+      "NOTIFY webhook_events_changed, '#{@project.id}'"
+    )
+    
+    # Update webhook events
+    patch project_url(@project), params: {
+      project: {
+        name: @project.name,
+        webhook_events: ["push", "pull_request", "issues"]
+      }
+    }
+    
+    assert_redirected_to project_url(@project)
+    
+    # Verify events were updated
+    @project.reload
+    assert_equal 3, @project.github_webhook_events.enabled.count
+    assert @project.github_webhook_events.find_by(event_type: "push").enabled?
+    assert @project.github_webhook_events.find_by(event_type: "pull_request").enabled?
+    assert @project.github_webhook_events.find_by(event_type: "issues").enabled?
+  end
+
+  test "should not trigger restart notification if webhook not running" do
+    # Setup project with GitHub configuration but webhook disabled
+    @project.update!(
+      github_webhook_enabled: false,
+      github_repo_owner: "test",
+      github_repo_name: "repo"
+    )
+    
+    # Should not expect any notification
+    ActiveRecord::Base.connection.expects(:execute).never
+    
+    # Update webhook events
+    patch project_url(@project), params: {
+      project: {
+        name: @project.name,
+        webhook_events: ["push", "pull_request"]
+      }
+    }
+    
+    assert_redirected_to project_url(@project)
+  end
 end

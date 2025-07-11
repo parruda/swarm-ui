@@ -27,6 +27,15 @@ class GithubWebhookEvent < ApplicationRecord
     "fork",
     "star",
     "watch",
+    "discussion",
+    "discussion_comment",
+    "milestone",
+    "project",
+    "project_card",
+    "project_column",
+    "public",
+    "label",
+    "branch_protection_rule",
   ].freeze
 
   # Validations

@@ -14,6 +14,7 @@ class WebhookProcessServiceTest < ActiveSupport::TestCase
 
     # Mock Process.spawn to avoid creating real processes
     Process.stubs(:spawn).returns(12345)
+    Process.stubs(:getpgid).returns(12345)
     Process.stubs(:waitpid)
     Process.stubs(:kill)
     IO.stubs(:pipe).returns([mock_io, mock_io])
@@ -142,5 +143,20 @@ class WebhookProcessServiceTest < ActiveSupport::TestCase
     WebhookProcessService.expects(:stop).with(stopped).never
 
     WebhookProcessService.stop_all_for_project(@project)
+  end
+
+  test "restart stops all processes and starts new one" do
+    running_process = create(:github_webhook_process, :running, project: @project)
+    
+    # Expect stop_all_for_project to be called
+    WebhookProcessService.expects(:stop_all_for_project).with(@project)
+    
+    # Expect sleep for process cleanup
+    WebhookProcessService.expects(:sleep).with(0.5)
+    
+    # Expect start to be called
+    WebhookProcessService.expects(:start).with(@project)
+    
+    WebhookProcessService.restart(@project)
   end
 end

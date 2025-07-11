@@ -115,6 +115,59 @@
       </div>
     </div>
 
+    <% if @project.git? && @project.github_configured? %>
+      <div class="mt-8 bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+            <%= heroicon "globe-alt", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+            GitHub Webhooks
+          </h2>
+        </div>
+        
+        <div class="px-6 py-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-700 dark:text-gray-300">
+                Repository: <span class="font-mono font-semibold"><%= @project.github_repo_full_name %></span>
+              </p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Status: 
+                <span data-webhook-status-target="status" class="font-medium">
+                  <% if @project.webhook_running? %>
+                    <span class="text-green-600 dark:text-green-400">Running</span>
+                  <% else %>
+                    <span class="text-gray-600 dark:text-gray-400">Stopped</span>
+                  <% end %>
+                </span>
+              </p>
+              <% if @project.github_webhook_enabled? %>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Events: <%= @project.selected_event_names.join(", ") %>
+                </p>
+              <% end %>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <%= link_to edit_project_path(@project, anchor: "webhook-configuration"), class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                <%= heroicon "cog-6-tooth", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                Configure
+              <% end %>
+              
+              <%= link_to toggle_webhook_project_path(@project), method: :post, data: { turbo_method: :post }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{@project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-orange-900 hover:bg-orange-800 text-white'}" do %>
+                <% if @project.github_webhook_enabled? %>
+                  <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                  Disable Webhooks
+                <% else %>
+                  <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                  Enable Webhooks
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
     <% if @project.git? && @project.git_status %>
       <div class="mt-8 bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200" data-controller="git-sync">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">

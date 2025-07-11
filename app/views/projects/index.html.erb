@@ -67,6 +67,12 @@
                         <% end %>
                       <% end %>
                     <% end %>
+                    <% if project.git? && project.github_configured? && project.github_webhook_enabled? %>
+                      <span class="inline-flex items-center rounded-md bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 ring-orange-600/20 dark:ring-orange-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                        <%= heroicon "globe-alt", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                        Webhooks
+                      </span>
+                    <% end %>
                   </div>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate font-mono" title="<%= project.path %>">
                     <%= project.path %>

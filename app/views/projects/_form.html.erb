@@ -129,7 +129,7 @@
     </div>
     
     <% if project.persisted? && project.git? %>
-      <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
+      <div class="pt-6 border-t border-gray-200 dark:border-gray-700" id="webhook-configuration">
         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">GitHub Webhook Configuration</h3>
         
         <% if project.github_configured? %>
@@ -146,7 +146,7 @@
               </div>
               
               <div class="flex items-center gap-3">
-                <%= link_to toggle_webhook_project_path(project), method: :post, data: { turbo_method: :post }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-green-600 hover:bg-green-500 text-white'}" do %>
+                <%= link_to toggle_webhook_project_path(project), method: :post, data: { turbo_method: :post }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-orange-900 hover:bg-orange-800 text-white'}" do %>
                   <% if project.github_webhook_enabled? %>
                     <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
                     Disable Webhooks
@@ -158,44 +158,38 @@
               </div>
             </div>
             
-            <%= f.input :github_webhook_auto_start,
-                        as: :boolean,
-                        label: "Auto-start webhooks on application boot",
-                        wrapper: :tailwind_boolean %>
-            
-            <div class="space-y-2">
-              <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Webhook Events</label>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Select which GitHub events to forward</p>
-              <div class="mt-2 space-y-2">
-                <% common_events = ["push", "pull_request", "issues", "release"] %>
-                <% common_events.each do |event_type| %>
+            <div class="space-y-2" data-controller="webhook-events">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Webhook Events</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Select which GitHub events to forward</p>
+                </div>
+                <div class="flex gap-2">
+                  <button type="button"
+                          data-action="click->webhook-events#selectAll"
+                          class="text-xs text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 font-medium">
+                    Select All
+                  </button>
+                  <span class="text-gray-400 dark:text-gray-600">|</span>
+                  <button type="button"
+                          data-action="click->webhook-events#deselectAll"
+                          class="text-xs text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 font-medium">
+                    Deselect All
+                  </button>
+                </div>
+              </div>
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <% GithubWebhookEvent::AVAILABLE_EVENTS.sort.each do |event_type| %>
                   <% webhook_event = project.github_webhook_events.find_or_initialize_by(event_type: event_type) %>
-                  <label class="flex items-center">
+                  <label class="flex items-center cursor-pointer hover:text-gray-900 dark:hover:text-gray-100">
                     <input type="checkbox" 
                            name="project[webhook_events][]"
                            value="<%= event_type %>"
                            <%= webhook_event.persisted? && webhook_event.enabled? ? 'checked' : '' %>
-                           class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                           class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-orange-500 cursor-pointer">
                     <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><%= event_type.humanize %></span>
                   </label>
                 <% end %>
-                
-                <details class="mt-2">
-                  <summary class="text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">Show all events</summary>
-                  <div class="mt-2 space-y-2 pl-4">
-                    <% (GithubWebhookEvent::AVAILABLE_EVENTS - common_events).each do |event_type| %>
-                      <% webhook_event = project.github_webhook_events.find_or_initialize_by(event_type: event_type) %>
-                      <label class="flex items-center">
-                        <input type="checkbox" 
-                               name="project[webhook_events][]"
-                               value="<%= event_type %>"
-                               <%= webhook_event.persisted? && webhook_event.enabled? ? 'checked' : '' %>
-                               class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
-                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><%= event_type.humanize %></span>
-                      </label>
-                    <% end %>
-                  </div>
-                </details>
               </div>
             </div>
           </div>

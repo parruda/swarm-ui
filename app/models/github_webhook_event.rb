@@ -51,13 +51,5 @@ class GithubWebhookEvent < ApplicationRecord
     def common_events
       ["push", "pull_request", "issues", "release"]
     end
-
-    def create_defaults_for_project(project)
-      common_events.each do |event|
-        project.github_webhook_events.find_or_create_by(event_type: event) do |e|
-          e.enabled = true
-        end
-      end
-    end
   end
 end

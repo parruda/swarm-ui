@@ -153,14 +153,22 @@
                 Configure
               <% end %>
               
-              <%= link_to toggle_webhook_project_path(@project), method: :post, data: { turbo_method: :post }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{@project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-orange-900 hover:bg-orange-800 text-white'}" do %>
-                <% if @project.github_webhook_enabled? %>
-                  <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-                  Disable Webhooks
-                <% else %>
+              <% has_enabled_events = @project.github_webhook_events.enabled.any? %>
+              <% if @project.github_webhook_enabled? || has_enabled_events %>
+                <%= link_to toggle_webhook_project_path(@project), method: :post, data: { turbo_method: :post }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{@project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-orange-900 hover:bg-orange-800 text-white'}" do %>
+                  <% if @project.github_webhook_enabled? %>
+                    <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                    Disable Webhooks
+                  <% else %>
+                    <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                    Enable Webhooks
+                  <% end %>
+                <% end %>
+              <% else %>
+                <button type="button" disabled class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed" title="Select at least one event to enable webhooks">
                   <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
                   Enable Webhooks
-                <% end %>
+                </button>
               <% end %>
             </div>
           </div>

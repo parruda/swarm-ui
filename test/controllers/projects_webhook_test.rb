@@ -15,22 +15,27 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
   test "toggle_webhook enables webhooks" do
     assert_not @project.github_webhook_enabled?
 
-    post toggle_webhook_project_path(@project)
+    # Create some events first
+    @project.github_webhook_events.create!(event_type: "push", enabled: true)
+    @project.github_webhook_events.create!(event_type: "pull_request", enabled: true)
 
-    assert_redirected_to edit_project_path(@project)
+    post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
+
+    assert_redirected_to project_path(@project)
     assert_equal "GitHub webhooks enabled. The webhook forwarder will start shortly.", flash[:notice]
 
     @project.reload
     assert @project.github_webhook_enabled?
-    assert_equal 4, @project.github_webhook_events.count # default events created
   end
 
   test "toggle_webhook disables webhooks" do
+    # Create some events first so we can enable webhooks
+    @project.github_webhook_events.create!(event_type: "push", enabled: true)
     @project.update!(github_webhook_enabled: true)
 
-    post toggle_webhook_project_path(@project)
+    post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
 
-    assert_redirected_to edit_project_path(@project)
+    assert_redirected_to project_path(@project)
     assert_equal "GitHub webhooks disabled.", flash[:notice]
 
     @project.reload
@@ -40,9 +45,9 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
   test "toggle_webhook redirects if github not configured" do
     @project.update!(github_repo_owner: nil)
 
-    post toggle_webhook_project_path(@project)
+    post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
 
-    assert_redirected_to edit_project_path(@project)
+    assert_redirected_to project_path(@project)
     assert_equal "Please configure GitHub repository information first.", flash[:alert]
 
     @project.reload
@@ -81,7 +86,7 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
       },
     }
 
-    assert_redirected_to project_path(@project)
+    assert_redirected_to edit_project_path(@project)
 
     @project.reload
     push_event = @project.github_webhook_events.find_by(event_type: "push")
@@ -103,7 +108,7 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
       },
     }
 
-    assert_redirected_to project_path(@project)
+    assert_redirected_to edit_project_path(@project)
 
     # Should disable all events when none selected
     @project.reload

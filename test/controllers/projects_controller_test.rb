@@ -145,7 +145,7 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
       },
     }
 
-    assert_redirected_to project_url(@project)
+    assert_redirected_to edit_project_url(@project)
     assert_equal "Project was successfully updated.", flash[:notice]
 
     @project.reload
@@ -206,35 +206,35 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     @project.update!(
       github_webhook_enabled: true,
       github_repo_owner: "test",
-      github_repo_name: "repo"
+      github_repo_name: "repo",
     )
-    
+
     # Create initial webhook events
-    push_event = @project.github_webhook_events.create!(event_type: "push", enabled: true)
-    pr_event = @project.github_webhook_events.create!(event_type: "pull_request", enabled: false)
-    
+    @project.github_webhook_events.create!(event_type: "push", enabled: true)
+    @project.github_webhook_events.create!(event_type: "pull_request", enabled: false)
+
     # Mock webhook running state
-    process = @project.github_webhook_processes.create!(
+    @project.github_webhook_processes.create!(
       pid: 12345,
       status: "running",
-      started_at: Time.current
+      started_at: Time.current,
     )
-    
+
     # Expect PostgreSQL notification
     ActiveRecord::Base.connection.expects(:execute).with(
-      "NOTIFY webhook_events_changed, '#{@project.id}'"
+      "NOTIFY webhook_events_changed, '#{@project.id}'",
     )
-    
+
     # Update webhook events
     patch project_url(@project), params: {
       project: {
         name: @project.name,
-        webhook_events: ["push", "pull_request", "issues"]
-      }
+        webhook_events: ["push", "pull_request", "issues"],
+      },
     }
-    
-    assert_redirected_to project_url(@project)
-    
+
+    assert_redirected_to edit_project_url(@project)
+
     # Verify events were updated
     @project.reload
     assert_equal 3, @project.github_webhook_events.enabled.count
@@ -248,20 +248,68 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     @project.update!(
       github_webhook_enabled: false,
       github_repo_owner: "test",
-      github_repo_name: "repo"
+      github_repo_name: "repo",
     )
-    
+
     # Should not expect any notification
     ActiveRecord::Base.connection.expects(:execute).never
-    
+
     # Update webhook events
     patch project_url(@project), params: {
       project: {
         name: @project.name,
-        webhook_events: ["push", "pull_request"]
-      }
+        webhook_events: ["push", "pull_request"],
+      },
     }
-    
+
+    assert_redirected_to edit_project_url(@project)
+  end
+
+  test "should not enable webhooks without selected events" do
+    # Setup project with GitHub configuration
+    @project.update!(
+      github_webhook_enabled: false,
+      github_repo_owner: "test",
+      github_repo_name: "repo",
+    )
+
+    # Try to enable webhooks without any events
+    post toggle_webhook_project_url(@project), headers: { "HTTP_REFERER" => project_url(@project) }
+
     assert_redirected_to project_url(@project)
+    assert_equal "Please select at least one webhook event before enabling webhooks.", flash[:alert]
+
+    @project.reload
+    assert_not @project.github_webhook_enabled?
+  end
+
+  test "should disable webhooks when all events are unchecked" do
+    # Setup project with webhooks enabled
+    @project.update!(
+      github_webhook_enabled: true,
+      github_repo_owner: "test",
+      github_repo_name: "repo",
+    )
+
+    # Create some events
+    @project.github_webhook_events.create!(event_type: "push", enabled: true)
+    @project.github_webhook_events.create!(event_type: "pull_request", enabled: true)
+
+    # Update project with no events selected
+    # Note: When no checkboxes are selected, Rails doesn't send the parameter at all
+    # So we need to explicitly send an empty array
+    patch project_url(@project), params: {
+      project: {
+        name: @project.name,
+        webhook_events: [],
+      },
+    }
+
+    assert_redirected_to edit_project_url(@project)
+    assert_equal "Webhooks have been disabled because no events were selected.", flash[:alert]
+
+    @project.reload
+    assert_not @project.github_webhook_enabled?
+    assert_equal 0, @project.github_webhook_events.enabled.count
   end
 end

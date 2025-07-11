@@ -45,22 +45,8 @@ class GithubWebhookEventTest < ActiveSupport::TestCase
     assert_not_includes results, disabled
   end
 
-  test "create_defaults_for_project creates common events" do
-    new_project = create(:project)
-    assert_equal 0, new_project.github_webhook_events.count
-
-    GithubWebhookEvent.create_defaults_for_project(new_project)
-
-    assert_equal 4, new_project.github_webhook_events.count
-    assert_equal new_project.github_webhook_events.pluck(:event_type).sort, ["issues", "pull_request", "push", "release"]
-    assert new_project.github_webhook_events.all?(&:enabled?)
-  end
-
-  test "create_defaults_for_project is idempotent" do
-    GithubWebhookEvent.create_defaults_for_project(@project)
-    count = @project.github_webhook_events.count
-
-    GithubWebhookEvent.create_defaults_for_project(@project)
-    assert_equal count, @project.github_webhook_events.count
+  test "common_events returns expected events" do
+    expected = ["push", "pull_request", "issues", "release"]
+    assert_equal expected, GithubWebhookEvent.common_events
   end
 end

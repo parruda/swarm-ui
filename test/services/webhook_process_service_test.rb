@@ -146,17 +146,17 @@ class WebhookProcessServiceTest < ActiveSupport::TestCase
   end
 
   test "restart stops all processes and starts new one" do
-    running_process = create(:github_webhook_process, :running, project: @project)
-    
+    create(:github_webhook_process, :running, project: @project)
+
     # Expect stop_all_for_project to be called
     WebhookProcessService.expects(:stop_all_for_project).with(@project)
-    
+
     # Expect sleep for process cleanup
     WebhookProcessService.expects(:sleep).with(0.5)
-    
+
     # Expect start to be called
     WebhookProcessService.expects(:start).with(@project)
-    
+
     WebhookProcessService.restart(@project)
   end
 end

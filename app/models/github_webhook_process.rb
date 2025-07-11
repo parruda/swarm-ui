@@ -40,9 +40,11 @@ class GithubWebhookProcess < ApplicationRecord
   end
 
   # Class methods
-  def self.cleanup_old_records(days_to_keep: 7)
-    where(status: ["stopped", "error"])
-      .where("stopped_at < ?", days_to_keep.days.ago)
-      .destroy_all
+  class << self
+    def cleanup_old_records(days_to_keep: 7)
+      where(status: ["stopped", "error"])
+        .where("stopped_at < ?", days_to_keep.days.ago)
+        .destroy_all
+    end
   end
 end

@@ -146,14 +146,22 @@
               </div>
               
               <div class="flex items-center gap-3">
-                <%= link_to toggle_webhook_project_path(project), method: :post, data: { turbo_method: :post }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-orange-900 hover:bg-orange-800 text-white'}" do %>
-                  <% if project.github_webhook_enabled? %>
-                    <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-                    Disable Webhooks
-                  <% else %>
+                <% has_enabled_events = project.github_webhook_events.enabled.any? %>
+                <% if project.github_webhook_enabled? || has_enabled_events %>
+                  <%= link_to toggle_webhook_project_path(project), method: :post, data: { turbo_method: :post }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-orange-900 hover:bg-orange-800 text-white'}" do %>
+                    <% if project.github_webhook_enabled? %>
+                      <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                      Disable Webhooks
+                    <% else %>
+                      <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                      Enable Webhooks
+                    <% end %>
+                  <% end %>
+                <% else %>
+                  <button type="button" disabled class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed" title="Select at least one event to enable webhooks">
                     <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
                     Enable Webhooks
-                  <% end %>
+                  </button>
                 <% end %>
               </div>
             </div>
@@ -179,6 +187,8 @@
                 </div>
               </div>
               <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <!-- Hidden field to ensure webhook_events is always sent -->
+                <input type="hidden" name="project[webhook_events][]" value="">
                 <% GithubWebhookEvent::AVAILABLE_EVENTS.sort.each do |event_type| %>
                   <% webhook_event = project.github_webhook_events.find_or_initialize_by(event_type: event_type) %>
                   <label class="flex items-center cursor-pointer hover:text-gray-900 dark:hover:text-gray-100">

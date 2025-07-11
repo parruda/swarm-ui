@@ -39,12 +39,17 @@ class ProjectsController < ApplicationController
 
   def update
     # Handle webhook events specially
-    if params[:project].key?(:webhook_events)
-      handle_webhook_events
+    webhook_alert = nil
+    if params[:project]&.key?(:webhook_events)
+      webhook_alert = handle_webhook_events
     end
 
     if @project.update(project_params)
-      redirect_to(edit_project_path(@project), notice: "Project was successfully updated.")
+      if webhook_alert
+        redirect_to(edit_project_path(@project), alert: webhook_alert)
+      else
+        redirect_to(edit_project_path(@project), notice: "Project was successfully updated.")
+      end
     else
       render(:edit, status: :unprocessable_entity)
     end
@@ -85,9 +90,10 @@ class ProjectsController < ApplicationController
       return
     end
 
-    # Ensure default webhook events exist
-    if @project.github_webhook_events.empty?
-      GithubWebhookEvent.create_defaults_for_project(@project)
+    # Check if any events are enabled
+    if @project.github_webhook_events.enabled.empty?
+      redirect_back(fallback_location: edit_project_path(@project, anchor: "webhook-configuration"), alert: "Please select at least one webhook event before enabling webhooks.")
+      return
     end
 
     # Toggle webhook state
@@ -149,7 +155,9 @@ class ProjectsController < ApplicationController
 
   def handle_webhook_events
     # Get all the selected event types from the form
+    # Rails sends [""] when no checkboxes are selected due to our hidden field
     selected_events = params[:project][:webhook_events] || []
+    selected_events = selected_events.reject(&:blank?)
 
     # Track if any events changed
     events_changed = false
@@ -165,11 +173,23 @@ class ProjectsController < ApplicationController
       end
     end
 
+    # Reload to get current state after event updates
+    @project.reload
+
+    # If no events are selected and webhooks are enabled, disable them
+    alert_message = nil
+    if selected_events.empty? && @project.github_webhook_enabled?
+      @project.update!(github_webhook_enabled: false)
+      alert_message = "Webhooks have been disabled because no events were selected."
+    end
+
     # If events changed and webhook is running, notify to restart
     if events_changed && @project.github_webhook_enabled? && @project.webhook_running?
       ActiveRecord::Base.connection.execute(
         "NOTIFY webhook_events_changed, '#{@project.id}'",
       )
     end
+
+    alert_message
   end
 end

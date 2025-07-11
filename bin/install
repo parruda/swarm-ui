@@ -14,6 +14,59 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# Check for Ruby
+echo "Checking for Ruby..."
+if ! command_exists ruby; then
+  echo
+  echo "ERROR: Ruby is not installed!"
+  echo
+  echo "Ruby (version 3.4 or higher) is a hard dependency for SwarmUI."
+  echo "Please install Ruby first before running this script."
+  echo
+  echo "Installation options:"
+  echo "  • macOS: brew install ruby"
+  echo "  • Ubuntu/Debian: sudo apt-get install ruby-full"
+  echo "  • Other: https://www.ruby-lang.org/en/documentation/installation/"
+  echo
+  exit 1
+fi
+
+# Check Ruby version
+RUBY_VERSION=$(ruby -e 'puts RUBY_VERSION')
+RUBY_MAJOR=$(echo "$RUBY_VERSION" | cut -d. -f1)
+RUBY_MINOR=$(echo "$RUBY_VERSION" | cut -d. -f2)
+
+if [ "$RUBY_MAJOR" -lt 3 ] || ([ "$RUBY_MAJOR" -eq 3 ] && [ "$RUBY_MINOR" -lt 4 ]); then
+  echo
+  echo "ERROR: Ruby version $RUBY_VERSION is too old!"
+  echo
+  echo "SwarmUI requires Ruby 3.4 or higher."
+  echo "Please upgrade Ruby before running this script."
+  echo
+  exit 1
+fi
+
+echo "✓ Ruby $RUBY_VERSION found"
+echo
+
+# Display dependencies
+echo "This script will install the following dependencies if not already present:"
+echo
+echo "Required dependencies:"
+echo "  • Ruby >= 3.4       - ✓ Already installed ($RUBY_VERSION)"
+echo "  • ttyd              - Terminal emulator for web access"
+echo "  • tmux              - Terminal multiplexer"
+echo "  • gh CLI            - GitHub command line interface"
+echo "  • gh webhook ext    - GitHub webhook extension"
+echo "  • Container runtime - Podman or Docker (Podman will be installed if neither is present)"
+echo
+echo "Platform: $OS ($ARCH)"
+echo
+echo "NOTE: If this script fails, you will need to install these dependencies manually."
+echo
+echo "Press ENTER to continue or Ctrl+C to cancel..."
+read -r
+
 # Function to install on macOS
 install_macos() {
   # Check if Homebrew is installed
@@ -47,6 +100,16 @@ install_macos() {
     brew install gh
   else
     echo "GitHub CLI is already installed"
+  fi
+
+  # Check for container runtime (Docker or Podman)
+  if command_exists docker; then
+    echo "Docker is already installed"
+  elif command_exists podman; then
+    echo "Podman is already installed"
+  else
+    echo "No container runtime found. Installing Podman..."
+    brew install podman
   fi
 }
 
@@ -89,7 +152,7 @@ install_linux() {
     echo "Installing ttyd..."
     
     # ttyd needs to be installed from GitHub releases for most Linux distros
-    TTYD_VERSION="1.7.4"
+    TTYD_VERSION="1.7.7"
     TTYD_URL=""
     
     case "$ARCH" in
@@ -134,6 +197,16 @@ install_linux() {
   else
     echo "GitHub CLI is already installed"
   fi
+
+  # Check for container runtime (Docker or Podman)
+  if command_exists docker; then
+    echo "Docker is already installed"
+  elif command_exists podman; then
+    echo "Podman is already installed"
+  else
+    echo "No container runtime found. Installing Podman..."
+    eval $PKG_INSTALL podman
+  fi
 }
 
 # Main installation logic
@@ -151,6 +224,58 @@ case "$OS" in
     ;;
 esac
 
+# Function to setup container runtime
+setup_container_runtime() {
+  echo
+  echo "Setting up container runtime..."
+  
+  # Check if we're on macOS
+  if [ "$OS" = "Darwin" ]; then
+    if command_exists docker; then
+      # Check if Docker daemon is running
+      if docker info >/dev/null 2>&1; then
+        echo "Docker daemon is running"
+      else
+        echo "Docker is installed but not running. Please start Docker Desktop."
+      fi
+    elif command_exists podman; then
+      # Check if a Podman machine exists
+      if podman machine list --format "{{.Name}}" | grep -q "podman-machine-default"; then
+        echo "Podman machine already exists"
+        
+        # Check if it's running
+        if podman machine list --format "{{.Name}} {{.Running}}" | grep -q "podman-machine-default true"; then
+          echo "Podman machine is already running"
+        else
+          echo "Starting Podman machine..."
+          podman machine start
+        fi
+      else
+        echo "Initializing Podman machine..."
+        podman machine init
+        echo "Starting Podman machine..."
+        podman machine start
+      fi
+    fi
+  else
+    # On Linux, just check if the service is running
+    if command_exists docker; then
+      if docker info >/dev/null 2>&1; then
+        echo "Docker daemon is running"
+      else
+        echo "Docker is installed but not running. You may need to start the Docker service."
+        echo "Try: sudo systemctl start docker"
+      fi
+    elif command_exists podman; then
+      if podman info >/dev/null 2>&1; then
+        echo "Podman is ready"
+      else
+        echo "Podman is installed but may need additional setup."
+      fi
+    fi
+  fi
+}
+
 # Install gh webhook extension
 echo
 echo "Installing gh webhook extension..."
@@ -161,6 +286,11 @@ else
   echo "gh webhook extension installed successfully"
 fi
 
+# Setup container runtime if either Docker or Podman is installed
+if command_exists docker || command_exists podman; then
+  setup_container_runtime
+fi
+
 echo
 echo "Installation complete!"
 echo
@@ -169,3 +299,30 @@ command_exists ttyd && echo "✓ ttyd $(ttyd --version 2>&1 | head -n1)"
 command_exists tmux && echo "✓ tmux $(tmux -V)"
 command_exists gh && echo "✓ gh $(gh --version | head -n1)"
 gh extension list | grep -q "cli/gh-webhook" && echo "✓ gh webhook extension"
+
+# Show container runtime status
+if command_exists docker; then
+  echo "✓ docker $(docker --version)"
+  if docker info >/dev/null 2>&1; then
+    echo "  ✓ Docker daemon is running"
+  else
+    echo "  ✗ Docker daemon is not running"
+  fi
+elif command_exists podman; then
+  echo "✓ podman $(podman --version)"
+  if [ "$OS" = "Darwin" ]; then
+    if podman machine list --format "{{.Name}} {{.Running}}" | grep -q "podman-machine-default true"; then
+      echo "  ✓ Podman machine is running"
+    else
+      echo "  ✗ Podman machine is not running (run 'podman machine start' to start it)"
+    fi
+  else
+    if podman info >/dev/null 2>&1; then
+      echo "  ✓ Podman is ready"
+    else
+      echo "  ✗ Podman may need additional setup"
+    fi
+  fi
+else
+  echo "✗ No container runtime installed (Docker or Podman required)"
+fi

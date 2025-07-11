@@ -14,13 +14,36 @@ A modern web interface for managing Claude Swarm sessions. SwarmUI provides an i
 
 ## Requirements
 
-- Ruby 3.4.2
-- Rails 8.0.2
-- PostgreSQL (or Podman/Docker for containerized PostgreSQL)
-- Redis (for Solid Queue/Cable)
-- ttyd (for terminal integration)
+### Core Dependencies
+- **Ruby >= 3.4** (required - must be installed before running the installer)
+- **Bundler** (Ruby's package manager)
+
+### System Dependencies
+The following will be installed automatically by the installation script:
+- **ttyd** - Terminal emulator for web access
+- **tmux** - Terminal multiplexer for session management
+- **gh CLI** - GitHub command line interface
+- **gh webhook extension** - For GitHub webhook integration
+- **Container runtime** - Either Docker or Podman (Podman will be installed if neither is present)
+
+### Services
+- **PostgreSQL** - Can run containerized via Docker/Podman or use existing installation
+- **Redis** - For Solid Queue/Cable (handled by Rails)
 
 ## Installation
+
+### Prerequisites
+Ensure Ruby 3.4 or higher is installed:
+```bash
+ruby --version  # Should show 3.4.0 or higher
+```
+
+If Ruby is not installed or needs upgrading:
+- **macOS**: `brew install ruby`
+- **Ubuntu/Debian**: `sudo apt-get install ruby-full`
+- **Other platforms**: See [Ruby installation guide](https://www.ruby-lang.org/en/documentation/installation/)
+
+### Quick Setup
 
 1. Clone the repository:
 ```bash
@@ -28,26 +51,37 @@ git clone https://github.com/parruda/swarm-ui.git
 cd swarm-ui
 ```
 
-2. Install dependencies:
+2. Run the installer script:
+```bash
+bin/install
+```
+This will install all required system dependencies (ttyd, tmux, gh CLI, and container runtime).
+
+3. Install Ruby dependencies:
 ```bash
 bundle install
 ```
 
-3. Setup the database:
+4. Setup the database:
 ```bash
 bin/rails db:prepare
 ```
 
-4. Start the application:
+5. Start the application:
 
 **Option A: Full stack with PostgreSQL** (recommended for first-time setup)
 ```bash
 bin/start
 ```
-This starts all services including PostgreSQL in a container using Podman.
+This starts all services including PostgreSQL in a container.
 - Rails app runs on port 4269
 - ttyd terminal runs on port 4268
 - PostgreSQL runs on port 4267
+
+By default, this uses Podman as the container engine. If you prefer to use Docker instead:
+```bash
+CONTAINER_ENGINE=docker bin/start
+```
 
 **Option B: Development mode** (if you have PostgreSQL already running)
 ```bash

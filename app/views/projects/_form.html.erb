@@ -127,6 +127,106 @@
         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Enter environment variables (format: KEY=value). These will be encrypted and available to all sessions in this project.</p>
       </div>
     </div>
+    
+    <% if project.persisted? && project.git? %>
+      <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">GitHub Webhook Configuration</h3>
+        
+        <% if project.github_configured? %>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-700 dark:text-gray-300">Repository: <span class="font-mono font-semibold"><%= project.github_repo_full_name %></span></p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Status: 
+                  <span data-webhook-status-target="status" class="font-medium">
+                    <%= project.webhook_running? ? "Running" : "Stopped" %>
+                  </span>
+                </p>
+              </div>
+              
+              <div class="flex items-center gap-3">
+                <%= link_to toggle_webhook_project_path(project), method: :post, data: { turbo_method: :post }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-green-600 hover:bg-green-500 text-white'}" do %>
+                  <% if project.github_webhook_enabled? %>
+                    <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                    Disable Webhooks
+                  <% else %>
+                    <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                    Enable Webhooks
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+            
+            <%= f.input :github_webhook_auto_start,
+                        as: :boolean,
+                        label: "Auto-start webhooks on application boot",
+                        wrapper: :tailwind_boolean %>
+            
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Webhook Events</label>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Select which GitHub events to forward</p>
+              <div class="mt-2 space-y-2">
+                <% common_events = ["push", "pull_request", "issues", "release"] %>
+                <% common_events.each do |event_type| %>
+                  <% webhook_event = project.github_webhook_events.find_or_initialize_by(event_type: event_type) %>
+                  <label class="flex items-center">
+                    <input type="checkbox" 
+                           name="project[webhook_events][]"
+                           value="<%= event_type %>"
+                           <%= webhook_event.persisted? && webhook_event.enabled? ? 'checked' : '' %>
+                           class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><%= event_type.humanize %></span>
+                  </label>
+                <% end %>
+                
+                <details class="mt-2">
+                  <summary class="text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">Show all events</summary>
+                  <div class="mt-2 space-y-2 pl-4">
+                    <% (GithubWebhookEvent::AVAILABLE_EVENTS - common_events).each do |event_type| %>
+                      <% webhook_event = project.github_webhook_events.find_or_initialize_by(event_type: event_type) %>
+                      <label class="flex items-center">
+                        <input type="checkbox" 
+                               name="project[webhook_events][]"
+                               value="<%= event_type %>"
+                               <%= webhook_event.persisted? && webhook_event.enabled? ? 'checked' : '' %>
+                               class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
+                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><%= event_type.humanize %></span>
+                      </label>
+                    <% end %>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+        <% else %>
+          <div class="rounded-md bg-yellow-50 dark:bg-yellow-900/20 p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <%= heroicon "exclamation-triangle", variant: :solid, options: { class: "h-5 w-5 text-yellow-400" } %>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-300">GitHub repository not detected</h3>
+                <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
+                  <p>Could not automatically detect GitHub repository information from git remote.</p>
+                  <p class="mt-2">You can manually configure it:</p>
+                </div>
+                <div class="mt-4 space-y-3">
+                  <%= f.input :github_repo_owner,
+                              label: "Repository Owner",
+                              placeholder: "username or organization",
+                              wrapper: :tailwind %>
+                  <%= f.input :github_repo_name,
+                              label: "Repository Name",
+                              placeholder: "repository-name",
+                              wrapper: :tailwind %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
   </div>
 
   <div class="mt-8 flex items-center justify-<%= project.persisted? ? 'between' : 'end' %> gap-x-6 pt-6 border-t border-gray-200 dark:border-gray-700">

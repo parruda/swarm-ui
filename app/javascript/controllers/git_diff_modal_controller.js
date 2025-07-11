@@ -167,7 +167,19 @@ export default class extends Controller {
       // Return focus to the terminal iframe
       const iframe = document.querySelector('iframe[title*="Terminal"]')
       if (iframe) {
+        // First focus the iframe element
         iframe.focus()
+        
+        // Then simulate a click to transfer focus to the iframe content
+        // This works around cross-origin restrictions
+        const clickEvent = new MouseEvent('click', {
+          view: window,
+          bubbles: true,
+          cancelable: true,
+          clientX: iframe.getBoundingClientRect().left + 50,
+          clientY: iframe.getBoundingClientRect().top + 50
+        })
+        iframe.dispatchEvent(clickEvent)
       }
     }, 200)
     

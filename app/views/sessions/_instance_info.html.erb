@@ -166,10 +166,10 @@
               <dd class="text-cyan-400 font-mono"><%= @metadata['claude_swarm_version'] %></dd>
             </div>
           <% end %>
-          <% if @metadata['start_directory'] %>
+          <% if @metadata['root_directory'] %>
             <div class="flex justify-between items-start hover:bg-white/5 -mx-2 px-2 py-1 rounded-lg transition-colors duration-150">
-              <dt class="text-slate-400 font-medium">Start Directory</dt>
-              <dd class="text-slate-200 font-mono text-xs break-all"><%= @metadata['start_directory'] %></dd>
+              <dt class="text-slate-400 font-medium">Root Directory</dt>
+              <dd class="text-slate-200 font-mono text-xs break-all"><%= @metadata['root_directory'] %></dd>
             </div>
           <% end %>
           <% if @metadata['worktree'] && @metadata['worktree']['enabled'] %>

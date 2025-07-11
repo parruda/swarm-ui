@@ -48,7 +48,7 @@ class Session < ApplicationRecord
     # Build the JSON payload for the ttyd session
     payload = {
       tmux_session_name: "swarm-ui-#{session_id}",
-      working_dir: project.path,
+      project_path: project.path,
       swarm_file: configuration_path,
       use_worktree: use_worktree,
       session_id: session_id,

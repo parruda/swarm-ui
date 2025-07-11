@@ -13,7 +13,7 @@ params = JSON.parse(decoded, symbolize_names: true)
 
 # Extract parameters
 tmux_session_name = params[:tmux_session_name]
-working_dir = params[:working_dir]
+project_path = params[:project_path]
 swarm_file = params[:swarm_file]
 use_worktree = params[:use_worktree]
 session_id = params[:session_id]
@@ -26,6 +26,7 @@ if new_session
   command = "bundle exec claude-swarm start #{swarm_file}"
   command += " --session-id #{session_id}"
   command += " --worktree" if use_worktree
+  command += " --root-dir #{project_path}"
 else
   command = "bundle exec claude-swarm restore #{session_id}"
 end
@@ -54,7 +55,10 @@ if environment_variables && !environment_variables.empty?
 end
 
 # Execute tmux session (this will block until the session ends)
-system(env, "tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, "-c", working_dir, command)
+puts "Executing ENV: #{env.inspect}"
+puts "Executing COMMAND: tmux -f config/tmux.conf new -A -s #{tmux_session_name} #{command}"
+
+system(env, "tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, command)
 
 # After tmux exits, mark the session as stopped
 system(status_script, session_id, "stopped")

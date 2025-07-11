@@ -62,3 +62,35 @@ iframe::-webkit-scrollbar {
 [data-log-expansion-target="entry"]:hover {
   background-color: rgba(255, 255, 255, 0.02);
 }
+
+/* Diff2html dark mode overrides */
+.dark .d2h-wrapper {
+  color: #e5e7eb;
+}
+
+.dark .d2h-diff-tbody tr {
+  background-color: #1f2937;
+}
+
+.dark .d2h-diff-tbody tr:hover {
+  background-color: #374151;
+}
+
+.dark .d2h-code-line-ctn {
+  background-color: #1f2937;
+}
+
+.dark .d2h-file-header {
+  background-color: #111827;
+  border-color: #374151;
+}
+
+.dark .d2h-file-wrapper {
+  border-color: #374151;
+}
+
+.dark .d2h-code-linenumber {
+  background-color: #111827;
+  color: #6b7280;
+  border-color: #374151;
+}

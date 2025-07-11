@@ -3,7 +3,7 @@
 require "yaml"
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff]
 
   def index
     @filter = params[:filter] || "active"
@@ -165,6 +165,50 @@ class SessionsController < ApplicationController
     end
 
     render(partial: "instance_info")
+  end
+
+  def git_diff
+    directory = params[:directory]
+    instance_name = params[:instance_name]
+
+    unless directory.present?
+      render(json: { error: "Directory is required" }, status: :bad_request)
+      return
+    end
+
+    # Generate the diff using git
+    Dir.chdir(directory) do
+      diff_output = `git diff --no-ext-diff 2>&1`
+      
+      if diff_output.empty?
+        # Try to get staged changes if no unstaged changes
+        diff_output = `git diff --cached --no-ext-diff 2>&1`
+      end
+
+      # Generate HTML using diff2html
+      html_output = if diff_output.present?
+        # Create a temporary file with the diff
+        require "tempfile"
+        Tempfile.create(["diff", ".diff"]) do |file|
+          file.write(diff_output)
+          file.flush
+          
+          # Run diff2html command
+          cmd = %Q{diff2html -i file -F "#{file.path}" -t "Changes in #{instance_name}" -s side --cs dark -d word --su open --output stdout | xmllint --html --xpath '//div[@id="diff"]' - 2>/dev/null}
+          `#{cmd}`
+        end
+      else
+        "<div class='p-4 text-gray-500 dark:text-gray-400'>No changes to display</div>"
+      end
+
+      render(json: { 
+        html: html_output.presence || "<div class='p-4 text-gray-500 dark:text-gray-400'>No changes to display</div>",
+        diff: diff_output
+      })
+    end
+  rescue => e
+    Rails.logger.error("Git diff error: #{e.message}")
+    render(json: { error: "Failed to generate diff: #{e.message}" }, status: :internal_server_error)
   end
 
   private

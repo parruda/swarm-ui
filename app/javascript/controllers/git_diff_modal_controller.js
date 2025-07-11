@@ -163,6 +163,12 @@ export default class extends Controller {
       // Reset styles
       backdrop.style = ""
       modalContent.style = ""
+      
+      // Return focus to the terminal iframe
+      const iframe = document.querySelector('iframe[title*="Terminal"]')
+      if (iframe) {
+        iframe.focus()
+      }
     }, 200)
     
     document.removeEventListener("keydown", this.boundCloseOnEscape)

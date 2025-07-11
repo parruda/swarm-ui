@@ -171,6 +171,8 @@ class GitStatusService
     dir = config["directory"]
     directories << if dir == "."
       @session.project.path
+    elsif dir.start_with?("~")
+      File.expand_path(dir)
     elsif dir.start_with?("/")
       dir
     else

@@ -8,23 +8,23 @@
       </h3>
       
       <% if @instances.any? %>
-        <div class="mb-6">
-          <label for="instance-select" class="block text-sm font-medium text-slate-400 mb-2">Select Instance</label>
-          <select 
-            id="instance-select"
-            data-controller="instance-selector"
-            data-action="change->instance-selector#selectInstance"
-            class="w-full px-4 py-2 bg-stone-800/50 border border-stone-700/50 rounded-lg text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-200"
-          >
-            <% @instances.each_with_index do |(name, config), index| %>
-              <option value="<%= name %>" <%= 'selected' if index == 0 %>><%= name.humanize.titleize %></option>
-            <% end %>
-          </select>
-        </div>
+        <div data-controller="instance-selector">
+          <div class="mb-6">
+            <label for="instance-select" class="block text-sm font-medium text-slate-400 mb-2">Select Instance</label>
+            <select 
+              id="instance-select"
+              data-action="change->instance-selector#selectInstance"
+              class="w-full px-4 py-2 bg-stone-800/50 border border-stone-700/50 rounded-lg text-white focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none transition-all duration-200"
+            >
+              <% @instances.each_with_index do |(name, config), index| %>
+                <option value="<%= name %>" <%= 'selected' if index == 0 %>><%= name.humanize.titleize %></option>
+              <% end %>
+            </select>
+          </div>
 
-        <!-- Instance Details -->
-        <% @instances.each_with_index do |(name, config), index| %>
-          <div id="instance-<%= name %>" class="instance-details <%= 'hidden' unless index == 0 %>" data-instance-selector-target="details">
+          <!-- Instance Details -->
+          <% @instances.each_with_index do |(name, config), index| %>
+            <div id="instance-<%= name %>" class="instance-details <%= 'hidden' unless index == 0 %>" data-instance-selector-target="details">
             <div class="space-y-4">
               <!-- Basic Info -->
               <div class="border-t border-stone-700/50 pt-4">
@@ -139,6 +139,7 @@
             </div>
           </div>
         <% end %>
+        </div>
       <% else %>
         <div class="text-center py-8">
           <p class="text-slate-400">No instance information available</p>

@@ -139,7 +139,7 @@ iframe::-webkit-scrollbar {
 
 .dark .d2h-file-wrapper {
   border-color: #374151;
-  background-color: #111827;
+  background-color: transparent;
   box-shadow: none;
 }
 
@@ -250,6 +250,25 @@ iframe::-webkit-scrollbar {
 
 .dark .d2h-file-header:hover {
   background-color: #374151;
+}
+
+/* File list wrapper background to match modal */
+.d2h-file-list-wrapper {
+  background-color: transparent !important;
+}
+
+.dark .d2h-file-list-wrapper.d2h-dark-color-scheme {
+  background-color: transparent !important;
+}
+
+.d2h-file-list-header {
+  background-color: transparent !important;
+  border-color: #e5e7eb;
+}
+
+.dark .d2h-file-list-header {
+  background-color: transparent !important;
+  border-color: #374151;
 }
 
 /* Modal animations */

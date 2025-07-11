@@ -10,7 +10,7 @@ export default class extends Controller {
 
   disconnect() {
     document.removeEventListener("keydown", this.boundCloseOnEscape)
-    document.removeEventListener("click", this.boundCloseOnClickOutside)
+    this.modalTarget.removeEventListener("click", this.boundCloseOnClickOutside)
   }
 
   async open(event) {
@@ -51,7 +51,10 @@ export default class extends Controller {
     this.contentTarget.innerHTML = ""
     
     document.addEventListener("keydown", this.boundCloseOnEscape)
-    document.addEventListener("click", this.boundCloseOnClickOutside)
+    // Add click listener after a small delay to prevent immediate closing
+    setTimeout(() => {
+      this.modalTarget.addEventListener("click", this.boundCloseOnClickOutside)
+    }, 100)
     
     try {
       const response = await fetch(`/sessions/${sessionId}/git_diff`, {
@@ -165,7 +168,7 @@ export default class extends Controller {
     }, 200)
     
     document.removeEventListener("keydown", this.boundCloseOnEscape)
-    document.removeEventListener("click", this.boundCloseOnClickOutside)
+    this.modalTarget.removeEventListener("click", this.boundCloseOnClickOutside)
   }
 
   closeOnEscape(event) {
@@ -175,8 +178,9 @@ export default class extends Controller {
   }
 
   closeOnClickOutside(event) {
-    // Check if click is on backdrop
-    if (event.target.classList.contains("backdrop-blur-md")) {
+    // Check if click is on the modal wrapper (outside the content)
+    const modalContent = this.modalTarget.querySelector('.rounded-2xl')
+    if (!modalContent.contains(event.target)) {
       this.close()
     }
   }

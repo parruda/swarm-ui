@@ -2,10 +2,10 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   connect() {
-    // Refresh git status every 30 seconds
+    // Refresh git status every 10 seconds
     this.refreshInterval = setInterval(() => {
       this.refreshStatus()
-    }, 30000)
+    }, 10000)
   }
 
   disconnect() {

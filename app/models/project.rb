@@ -115,6 +115,8 @@ class Project < ApplicationRecord
   # GitHub webhook methods
   def populate_github_fields_from_remote
     return unless git?
+    # Check if the github columns exist before using them
+    return unless self.class.column_names.include?("github_repo_owner")
     return if github_repo_owner.present? && github_repo_name.present?
 
     remote_url = git_service.remote_url
@@ -132,6 +134,9 @@ class Project < ApplicationRecord
   end
 
   def github_configured?
+    # Check if the github columns exist before using them
+    return false unless self.class.column_names.include?("github_repo_owner")
+    
     github_repo_owner.present? && github_repo_name.present?
   end
 
@@ -142,6 +147,9 @@ class Project < ApplicationRecord
   end
 
   def webhook_running?
+    # Check if the association exists before using it
+    return false unless self.class.reflect_on_association(:github_webhook_processes)
+    
     github_webhook_processes.where(status: "running").exists?
   end
 

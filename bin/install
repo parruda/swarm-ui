@@ -58,6 +58,7 @@ echo "  • ttyd              - Terminal emulator for web access"
 echo "  • tmux              - Terminal multiplexer"
 echo "  • gh CLI            - GitHub command line interface"
 echo "  • gh webhook ext    - GitHub webhook extension"
+echo "  • diff2html-cli     - Diff to HTML converter (npm package)"
 echo "  • Container runtime - Podman or Docker (Podman will be installed if neither is present)"
 echo
 echo "Platform: $OS ($ARCH)"
@@ -100,6 +101,22 @@ install_macos() {
     brew install gh
   else
     echo "GitHub CLI is already installed"
+  fi
+
+  # Check for Node.js/npm
+  if ! command_exists npm; then
+    echo "Installing Node.js (for npm)..."
+    brew install node
+  else
+    echo "npm is already installed"
+  fi
+
+  # Install diff2html-cli
+  if ! command_exists diff2html; then
+    echo "Installing diff2html-cli..."
+    npm install -g diff2html-cli
+  else
+    echo "diff2html-cli is already installed"
   fi
 
   # Check for container runtime (Docker or Podman)
@@ -196,6 +213,30 @@ install_linux() {
     fi
   else
     echo "GitHub CLI is already installed"
+  fi
+
+  # Check for Node.js/npm
+  if ! command_exists npm; then
+    echo "Installing Node.js (for npm)..."
+    if [ "$PKG_MANAGER" = "apt-get" ]; then
+      # Install Node.js from NodeSource repository for Debian/Ubuntu
+      curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+      sudo apt-get install -y nodejs
+    elif [ "$PKG_MANAGER" = "yum" ] || [ "$PKG_MANAGER" = "dnf" ]; then
+      # Install Node.js from NodeSource repository for RHEL/CentOS/Fedora
+      curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash -
+      eval $PKG_INSTALL nodejs
+    fi
+  else
+    echo "npm is already installed"
+  fi
+
+  # Install diff2html-cli
+  if ! command_exists diff2html; then
+    echo "Installing diff2html-cli..."
+    npm install -g diff2html-cli
+  else
+    echo "diff2html-cli is already installed"
   fi
 
   # Check for container runtime (Docker or Podman)
@@ -299,6 +340,7 @@ command_exists ttyd && echo "✓ ttyd $(ttyd --version 2>&1 | head -n1)"
 command_exists tmux && echo "✓ tmux $(tmux -V)"
 command_exists gh && echo "✓ gh $(gh --version | head -n1)"
 gh extension list | grep -q "cli/gh-webhook" && echo "✓ gh webhook extension"
+command_exists diff2html && echo "✓ diff2html-cli $(diff2html --version 2>&1)"
 
 # Show container runtime status
 if command_exists docker; then

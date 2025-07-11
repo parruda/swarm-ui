@@ -12,6 +12,7 @@ Rails.application.routes.draw do
       get :log_stream
       get :instances
       get :clone
+      post :git_diff
     end
   end
 

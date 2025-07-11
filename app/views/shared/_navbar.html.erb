@@ -64,6 +64,160 @@
           <span class="text-lg font-medium text-gray-800 dark:text-gray-200"><%= @session.swarm_name.capitalize %></span>
           <span class="text-xs text-gray-500 dark:text-gray-400">To terminate the session, exit Claude Code (/exit)</span>
         </div>
+        
+        <!-- Git Status Display -->
+        <% if @session.active? && @git_statuses&.any? %>
+          <div class="h-10 w-px bg-gray-300 dark:bg-gray-600"></div>
+          <div class="flex items-center" data-controller="git-status">
+            <div class="relative group" data-controller="dropdown-hover" data-dropdown-hover-has-items-value="true">
+              <!-- Compact summary button -->
+              <button class="flex items-center space-x-2 px-3 py-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                      data-dropdown-hover-target="trigger"
+                      data-action="mouseenter->dropdown-hover#show mouseleave->dropdown-hover#hide">
+                <%= heroicon "folder-open", variant: :mini, options: { class: "h-4 w-4 text-gray-500 dark:text-gray-400" } %>
+                
+                <!-- Summary of all repos -->
+                <div class="flex items-center space-x-2 text-xs">
+                  <% 
+                    all_statuses = @git_statuses.values.flatten
+                    clean_count = all_statuses.count { |s| !s[:has_changes] }
+                    dirty_count = all_statuses.count { |s| s[:has_changes] }
+                    total_staged = all_statuses.sum { |s| s[:staged] }
+                    total_modified = all_statuses.sum { |s| s[:modified] }
+                    total_untracked = all_statuses.sum { |s| s[:untracked] }
+                  %>
+                  
+                  <% if dirty_count > 0 %>
+                    <span class="flex items-center space-x-1">
+                      <span class="w-2 h-2 bg-orange-500 dark:bg-orange-400 rounded-full animate-pulse"></span>
+                      <span class="font-medium text-gray-700 dark:text-gray-300"><%= dirty_count %> changed</span>
+                    </span>
+                  <% else %>
+                    <span class="flex items-center space-x-1">
+                      <span class="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full"></span>
+                      <span class="font-medium text-gray-700 dark:text-gray-300">All clean</span>
+                    </span>
+                  <% end %>
+                </div>
+                
+                <%= heroicon "chevron-down", variant: :mini, options: { class: "h-3 w-3 text-gray-400 dark:text-gray-500 ml-1" } %>
+              </button>
+              
+              <!-- Detailed dropdown -->
+              <div class="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 hidden z-50 min-w-[400px] max-w-[600px]"
+                   data-dropdown-hover-target="menu"
+                   data-action="mouseenter->dropdown-hover#menuEnter mouseleave->dropdown-hover#menuLeave">
+                <div class="p-4 space-y-3">
+                  <% @git_statuses.each do |instance_name, statuses| %>
+                    <div class="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-3 last:pb-0">
+                      <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          <%= instance_name.humanize.titleize %>
+                        </h4>
+                        <% if @session.use_worktree? && statuses.any? { |s| s[:is_worktree] } %>
+                          <span class="text-[10px] px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full font-medium">
+                            Worktree
+                          </span>
+                        <% end %>
+                      </div>
+                      
+                      <% statuses.each do |status| %>
+                        <div class="flex items-start justify-between py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 -mx-2 px-2 rounded transition-colors duration-150">
+                          <div class="flex-1">
+                            <!-- Directory path -->
+                            <div class="flex items-center space-x-2 mb-1">
+                              <%= heroicon "folder", variant: :mini, options: { class: "h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" } %>
+                              <code class="text-[11px] text-gray-600 dark:text-gray-400 break-all">
+                                <%= status[:directory].gsub(ENV['HOME'], '~') %>
+                              </code>
+                            </div>
+                            
+                            <!-- Branch and status -->
+                            <div class="flex items-center space-x-3 ml-5">
+                              <!-- Branch -->
+                              <div class="flex items-center space-x-1">
+                                <%= heroicon "code-bracket", variant: :mini, options: { 
+                                  class: "h-3.5 w-3.5 #{status[:has_changes] ? 'text-orange-500 dark:text-orange-400' : 'text-green-500 dark:text-green-400'}" 
+                                } %>
+                                <span class="font-mono text-sm font-medium text-gray-800 dark:text-gray-200">
+                                  <%= status[:branch] %>
+                                </span>
+                              </div>
+                              
+                              <!-- Changes -->
+                              <% if status[:has_changes] %>
+                                <div class="flex items-center space-x-2 text-xs">
+                                  <% if status[:staged] > 0 %>
+                                    <span class="flex items-center space-x-0.5">
+                                      <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                      <span class="text-green-600 dark:text-green-400 font-medium"><%= status[:staged] %> staged</span>
+                                    </span>
+                                  <% end %>
+                                  <% if status[:modified] > 0 %>
+                                    <span class="flex items-center space-x-0.5">
+                                      <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
+                                      <span class="text-orange-600 dark:text-orange-400 font-medium"><%= status[:modified] %> modified</span>
+                                    </span>
+                                  <% end %>
+                                  <% if status[:untracked] > 0 %>
+                                    <span class="flex items-center space-x-0.5">
+                                      <span class="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                                      <span class="text-gray-600 dark:text-gray-400"><%= status[:untracked] %> untracked</span>
+                                    </span>
+                                  <% end %>
+                                </div>
+                              <% else %>
+                                <span class="text-xs text-green-600 dark:text-green-400 font-medium">Clean</span>
+                              <% end %>
+                              
+                              <!-- Sync status -->
+                              <% if status[:ahead] > 0 || status[:behind] > 0 %>
+                                <div class="flex items-center space-x-1 text-xs">
+                                  <% if status[:ahead] > 0 %>
+                                    <span class="flex items-center text-blue-600 dark:text-blue-400">
+                                      <%= heroicon "arrow-up", variant: :mini, options: { class: "h-3 w-3" } %>
+                                      <span class="font-medium"><%= status[:ahead] %></span>
+                                    </span>
+                                  <% end %>
+                                  <% if status[:behind] > 0 %>
+                                    <span class="flex items-center text-red-600 dark:text-red-400">
+                                      <%= heroicon "arrow-down", variant: :mini, options: { class: "h-3 w-3" } %>
+                                      <span class="font-medium"><%= status[:behind] %></span>
+                                    </span>
+                                  <% end %>
+                                </div>
+                              <% end %>
+                            </div>
+                          </div>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% end %>
+                  
+                  <!-- Summary footer -->
+                  <% if dirty_count > 0 %>
+                    <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span>Total changes across all repositories:</span>
+                        <div class="flex items-center space-x-3">
+                          <% if total_staged > 0 %>
+                            <span><%= total_staged %> staged</span>
+                          <% end %>
+                          <% if total_modified > 0 %>
+                            <span><%= total_modified %> modified</span>
+                          <% end %>
+                          <% if total_untracked > 0 %>
+                            <span><%= total_untracked %> untracked</span>
+                          <% end %>
+                        </div>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
       <% end %>
     </div>
     <div class="flex items-center space-x-4">

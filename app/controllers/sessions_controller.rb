@@ -80,6 +80,12 @@ class SessionsController < ApplicationController
     if @session.active? || (@session.stopped? && params[:view_only] != "true")
       @terminal_url = @session.terminal_url(new_session: params[:new_session])
     end
+    
+    # Fetch git status for active sessions
+    if @session.active?
+      git_service = GitStatusService.new(@session)
+      @git_statuses = git_service.fetch_all_statuses
+    end
   end
 
   def kill

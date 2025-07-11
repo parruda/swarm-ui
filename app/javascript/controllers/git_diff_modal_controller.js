@@ -82,12 +82,12 @@ export default class extends Controller {
         } else if (data.html && data.html.trim()) {
           // Wrap the diff2html output with some padding and overflow control
           this.contentTarget.innerHTML = `
-            <div class="p-6 overflow-x-auto" data-controller="diff-file-toggle">
+            <div class="p-6 overflow-x-auto">
               <div class="flex justify-end mb-4 space-x-2">
-                <button data-action="click->diff-file-toggle#expandAll" class="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md transition-colors duration-200">
+                <button id="expandAllBtn" class="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md transition-colors duration-200">
                   Expand All
                 </button>
-                <button data-action="click->diff-file-toggle#collapseAll" class="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md transition-colors duration-200">
+                <button id="collapseAllBtn" class="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md transition-colors duration-200">
                   Collapse All
                 </button>
               </div>
@@ -96,6 +96,9 @@ export default class extends Controller {
               </div>
             </div>
           `
+          
+          // Initialize file toggle functionality after content is loaded
+          this.initializeFileToggles()
         } else {
           this.contentTarget.innerHTML = `
             <div class="p-8 text-center">
@@ -176,5 +179,113 @@ export default class extends Controller {
     if (event.target.classList.contains("backdrop-blur-md")) {
       this.close()
     }
+  }
+
+  initializeFileToggles() {
+    const container = this.contentTarget
+    
+    // Setup expand/collapse all buttons
+    const expandAllBtn = container.querySelector('#expandAllBtn')
+    const collapseAllBtn = container.querySelector('#collapseAllBtn')
+    
+    if (expandAllBtn) {
+      expandAllBtn.addEventListener('click', () => this.expandAllFiles())
+    }
+    
+    if (collapseAllBtn) {
+      collapseAllBtn.addEventListener('click', () => this.collapseAllFiles())
+    }
+    
+    // Find all file wrappers and make their headers clickable
+    container.querySelectorAll('.d2h-file-wrapper').forEach(fileWrapper => {
+      const header = fileWrapper.querySelector('.d2h-file-header')
+      if (!header) return
+      
+      // Check if there's already a Viewed checkbox
+      const existingCheckbox = header.querySelector('.d2h-file-collapse')
+      
+      // Add chevron icon before the checkbox
+      const chevron = document.createElement('span')
+      chevron.className = 'diff-toggle-chevron'
+      chevron.style.cssText = 'margin-right: 10px; cursor: pointer; display: inline-flex; align-items: center;'
+      chevron.innerHTML = `
+        <svg class="diff-toggle-icon inline-block w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      `
+      
+      // Insert chevron before the checkbox or at the end
+      if (existingCheckbox) {
+        header.insertBefore(chevron, existingCheckbox)
+      } else {
+        header.appendChild(chevron)
+      }
+      
+      // Get the content (files diff)
+      const contentWrapper = fileWrapper.querySelector('.d2h-files-diff')
+      if (contentWrapper) {
+        // Add click handler to chevron only
+        chevron.addEventListener('click', (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          this.toggleFile(chevron, contentWrapper)
+        })
+        
+        // Also make the file name clickable
+        const fileName = header.querySelector('.d2h-file-name')
+        if (fileName) {
+          fileName.style.cursor = 'pointer'
+          fileName.addEventListener('click', (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            this.toggleFile(chevron, contentWrapper)
+          })
+        }
+        
+        // Start expanded
+        contentWrapper.dataset.expanded = 'true'
+      }
+    })
+  }
+
+  toggleFile(chevron, contentWrapper) {
+    const icon = chevron.querySelector('.diff-toggle-icon')
+    const isExpanded = contentWrapper.dataset.expanded === 'true'
+    
+    if (isExpanded) {
+      // Collapse
+      contentWrapper.style.display = 'none'
+      contentWrapper.dataset.expanded = 'false'
+      if (icon) icon.style.transform = 'rotate(-90deg)'
+    } else {
+      // Expand
+      contentWrapper.style.display = ''
+      contentWrapper.dataset.expanded = 'true'
+      if (icon) icon.style.transform = 'rotate(0deg)'
+    }
+  }
+
+  expandAllFiles() {
+    this.contentTarget.querySelectorAll('.d2h-file-wrapper').forEach(fileWrapper => {
+      const contentWrapper = fileWrapper.querySelector('.d2h-files-diff')
+      const icon = fileWrapper.querySelector('.diff-toggle-icon')
+      if (contentWrapper) {
+        contentWrapper.style.display = ''
+        contentWrapper.dataset.expanded = 'true'
+        if (icon) icon.style.transform = 'rotate(0deg)'
+      }
+    })
+  }
+
+  collapseAllFiles() {
+    this.contentTarget.querySelectorAll('.d2h-file-wrapper').forEach(fileWrapper => {
+      const contentWrapper = fileWrapper.querySelector('.d2h-files-diff')
+      const icon = fileWrapper.querySelector('.diff-toggle-icon')
+      if (contentWrapper) {
+        contentWrapper.style.display = 'none'
+        contentWrapper.dataset.expanded = 'false'
+        if (icon) icon.style.transform = 'rotate(-90deg)'
+      }
+    })
   }
 }

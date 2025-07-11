@@ -16,12 +16,12 @@ class ApplicationController < ActionController::Base
   end
 
   def dark_mode?
-    # Check cookie first, then fall back to system preference detection via Accept header
+    # Check cookie first
     return cookies[:theme] == "dark" if cookies[:theme].present?
+    return false if cookies[:theme] == "light"
 
-    # Check if the request indicates a preference for dark mode
-    # This is a simplified check - in production you might want more sophisticated detection
-    request.headers["Sec-CH-Prefers-Color-Scheme"] == "dark"
+    # Default to dark mode if no preference is set
+    true
   end
 
   def check_version_update

@@ -63,7 +63,13 @@ class Project < ApplicationRecord
   end
 
   def archive!
-    update!(archived: true)
+    transaction do
+      # Archive all associated sessions that aren't already archived
+      sessions.where.not(status: "archived").update_all(status: "archived", ended_at: Time.current)
+      
+      # Archive the project itself
+      update!(archived: true)
+    end
   end
 
   def unarchive!

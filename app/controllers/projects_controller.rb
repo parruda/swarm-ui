@@ -4,8 +4,18 @@ class ProjectsController < ApplicationController
   before_action :set_project, only: [:show, :edit, :update, :destroy, :archive, :unarchive, :sync, :toggle_webhook, :webhook_status]
 
   def index
-    @active_projects = Project.active.ordered
-    @archived_projects = Project.archived.ordered
+    @filter = params[:filter] || "active"
+    
+    @projects = case @filter
+    when "archived"
+      Project.archived.ordered
+    else
+      Project.active.ordered
+    end
+    
+    # For tab counts
+    @active_count = Project.active.count
+    @archived_count = Project.archived.count
   end
 
   def show
@@ -57,12 +67,12 @@ class ProjectsController < ApplicationController
 
   def destroy
     @project.archive!
-    redirect_to(projects_url, notice: "Project was successfully archived.")
+    redirect_to(projects_url(filter: 'archived'), notice: "Project was successfully archived.")
   end
 
   def archive
     @project.archive!
-    redirect_to(projects_url, notice: "Project was successfully archived.")
+    redirect_to(projects_url(filter: 'archived'), notice: "Project was successfully archived.")
   end
 
   def unarchive

@@ -61,7 +61,7 @@
         <!-- Left divider -->
         <div class="h-10 w-px bg-gray-300 dark:bg-gray-600"></div>
         <div class="flex flex-col">
-          <span class="text-lg font-medium text-gray-800 dark:text-gray-200"><%= @session.swarm_name %></span>
+          <span class="text-lg font-medium text-gray-800 dark:text-gray-200"><%= @session.swarm_name.capitalize %></span>
           <span class="text-xs text-gray-500 dark:text-gray-400">To terminate the session, exit Claude Code (/exit)</span>
         </div>
       <% end %>

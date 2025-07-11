@@ -38,8 +38,9 @@ IMAGE_NAME="pgvector/pgvector:0.8.0-pg17"
 
 # Check if the container is already running
 if $CONTAINER_ENGINE ps --filter "name=^/${CONTAINER_NAME}$" --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-  echo "Container '${CONTAINER_NAME}' is already running."
-  exit 0
+  echo "Container '${CONTAINER_NAME}' is already running. Stopping it..."
+  $CONTAINER_ENGINE stop "${CONTAINER_NAME}"
+  echo "Container stopped. Restarting in foreground..."
 fi
 
 # Check if a stopped container with the same name exists and remove it

@@ -5,11 +5,12 @@ if ! gem list foreman -i --silent; then
   gem install foreman
 fi
 
+echo "Starting SwarmUI on PORT: $PORT"
 
 # Set ports for all services
-export PORT="${PORT:-4269}"  # Rails app
-export TTYD_PORT="${TTYD_PORT:-4268}"  # ttyd terminal
-export POSTGRES_PORT="${POSTGRES_PORT:-4267}"  # PostgreSQL
+export PORT="${PORT:-4169}"  # Rails app
+export TTYD_PORT="${TTYD_PORT:-4368}"  # ttyd terminal
+export POSTGRES_PORT="${POSTGRES_PORT:-4367}"  # PostgreSQL
 
 
 # Let the debug gem allow remote connections,
@@ -17,4 +18,7 @@ export POSTGRES_PORT="${POSTGRES_PORT:-4267}"  # PostgreSQL
 export RUBY_DEBUG_OPEN="true"
 export RUBY_DEBUG_LAZY="true"
 
-exec foreman start -f Procfile.start "$@"
+foreman start -f Procfile.start "$@"
+if [ -f tmp/pids/server.pid ]; then
+  kill -9 $(cat tmp/pids/server.pid)
+fi

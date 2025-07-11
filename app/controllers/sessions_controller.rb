@@ -176,29 +176,15 @@ class SessionsController < ApplicationController
       return
     end
 
-    # Generate the diff using git
+    # Generate HTML using diff2html directly
     Dir.chdir(directory) do
-      diff_output = `git diff --no-ext-diff 2>&1`
-      
-      if diff_output.empty?
-        # Try to get staged changes if no unstaged changes
-        diff_output = `git diff --cached --no-ext-diff 2>&1`
-      end
+      cmd = %Q{diff2html -t "Changes in #{instance_name}" -s side --cs dark -d word --su open --output stdout | xmllint --html --xpath '//div[@id="diff"]' - 2>/dev/null}
+      html_output = `#{cmd}`
 
-      # Generate HTML using diff2html
-      html_output = if diff_output.present?
-        # Create a temporary file with the diff
-        require "tempfile"
-        Tempfile.create(["diff", ".diff"]) do |file|
-          file.write(diff_output)
-          file.flush
-          
-          # Run diff2html command
-          cmd = %Q{diff2html -i file -F "#{file.path}" -t "Changes in #{instance_name}" -s side --cs dark -d word --su open --output stdout | xmllint --html --xpath '//div[@id="diff"]' - 2>/dev/null}
-          `#{cmd}`
-        end
-      else
-        "<div class='p-4 text-gray-500 dark:text-gray-400'>No changes to display</div>"
+      # Get the raw diff for the JS controller
+      diff_output = `git diff --no-ext-diff 2>&1`
+      if diff_output.empty?
+        diff_output = `git diff --cached --no-ext-diff 2>&1`
       end
 
       render(json: { 

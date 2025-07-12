@@ -62,14 +62,8 @@ This will install all required system dependencies (ttyd, tmux, gh CLI, and cont
 bundle install
 ```
 
-4. Setup the database:
-```bash
-bin/rails db:prepare
-```
+4. Start the application:
 
-5. Start the application:
-
-**Option A: Full stack with PostgreSQL** (recommended for first-time setup)
 ```bash
 bin/start
 ```
@@ -78,22 +72,24 @@ This starts all services including PostgreSQL in a container.
 - ttyd terminal runs on port 4268
 - PostgreSQL runs on port 4267
 
+The application will be available in `http://localhost:4269`
+
 By default, this uses Podman as the container engine. If you prefer to use Docker instead:
 ```bash
 CONTAINER_ENGINE=docker bin/start
 ```
 
-**Option B: Development mode** (if you have PostgreSQL already running)
+## Development
+**Development mode**
 ```bash
-bin/dev
+bin/dev # in one terminal
+bin/pg-dev # in another terminal
 ```
 This starts only the Rails server, Tailwind CSS watcher, and ttyd on the default ports.
 
 The application will be available at:
-- `http://localhost:4269` when using `bin/start`
 - `http://localhost:3000` when using `bin/dev`
 
-## Development
 
 ### Running Tests
 

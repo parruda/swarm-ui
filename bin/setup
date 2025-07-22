@@ -23,6 +23,13 @@ FileUtils.chdir(APP_ROOT) do
   # end
 
   puts "\n== Preparing database =="
+
+  # Check if PostgreSQL user exists and create if needed
+  puts "Checking PostgreSQL user..."
+
+  # Ensure PostgreSQL user exists using rake task
+  system! "bin/rails db:ensure_user"
+
   system! "bin/rails db:prepare"
 
   puts "\n== Removing old logs and tempfiles =="

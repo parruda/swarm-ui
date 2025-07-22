@@ -80,7 +80,24 @@ CONTAINER_ENGINE=docker bin/start
 ```
 
 ## Development
-**Development mode**
+
+### Initial Setup
+```bash
+bin/setup
+```
+This will:
+- Install Ruby dependencies
+- Create the PostgreSQL user if needed (swarm_ui/swarm_ui)
+- Create and migrate the database
+- Start the development server
+
+**Note**: If PostgreSQL user creation fails, you may need to create it manually:
+```bash
+sudo -u postgres createuser -s swarm_ui
+psql -c "ALTER USER swarm_ui WITH PASSWORD 'swarm_ui';"
+```
+
+### Running Development Mode
 ```bash
 bin/dev # in one terminal
 bin/pg-dev # in another terminal

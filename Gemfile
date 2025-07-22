@@ -55,9 +55,9 @@ group :development, :test do
   gem "rubocop-minitest", require: false
   gem "rubocop-rake", require: false
   if ENV["DEV_SWARM"]
-    gem "claude_swarm", "~> 0.3.0", require: false, path: "~/src/github.com/parruda/claude-swarm"
+    gem "claude_swarm", "~> 0.3.5", require: false, path: "~/src/github.com/parruda/claude-swarm"
   else
-    gem "claude_swarm", "~> 0.3.0", require: false
+    gem "claude_swarm", "~> 0.3.5", require: false
   end
   gem "headless_browser_tool", require: false
 end

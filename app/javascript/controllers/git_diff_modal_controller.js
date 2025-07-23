@@ -174,6 +174,20 @@ export default class extends Controller {
       }
       
       this.monaco = await import("monaco-editor")
+      
+      // Override window.onerror to catch Monaco tokenizer errors
+      const originalOnError = window.onerror
+      window.onerror = function(message, source, lineno, colno, error) {
+        if (message && message.includes('trying to pop an empty stack')) {
+          console.warn('Monaco Ruby tokenizer error caught and suppressed:', message)
+          return true // Prevent error from bubbling up
+        }
+        // Call original handler for other errors
+        if (originalOnError) {
+          return originalOnError.apply(this, arguments)
+        }
+        return false
+      }
     }
   }
 
@@ -212,16 +226,40 @@ export default class extends Controller {
         originalEditable: false
       })
       
-      // Create models
-      const originalModel = this.monaco.editor.createModel(
-        fileData.original_content || '',
-        fileData.language === 'ruby' ? 'text' : fileData.language
-      )
+      // Create models - try Ruby syntax, fall back to text if it fails
+      let language = fileData.language
+      let originalModel, modifiedModel
       
-      const modifiedModel = this.monaco.editor.createModel(
-        fileData.modified_content || '',
-        fileData.language === 'ruby' ? 'text' : fileData.language
-      )
+      try {
+        // Try with the actual language first
+        originalModel = this.monaco.editor.createModel(
+          fileData.original_content || '',
+          language
+        )
+        
+        modifiedModel = this.monaco.editor.createModel(
+          fileData.modified_content || '',
+          language
+        )
+      } catch (error) {
+        // If Ruby syntax fails, fall back to plain text
+        console.warn(`Language '${language}' failed, falling back to text mode:`, error)
+        
+        // Dispose any partially created models
+        if (originalModel) originalModel.dispose()
+        if (modifiedModel) modifiedModel.dispose()
+        
+        // Create with plain text
+        originalModel = this.monaco.editor.createModel(
+          fileData.original_content || '',
+          'text'
+        )
+        
+        modifiedModel = this.monaco.editor.createModel(
+          fileData.modified_content || '',
+          'text'
+        )
+      }
       
       // Set the diff
       this.currentEditor.setModel({

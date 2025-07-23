@@ -1,23 +1,41 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["modal", "content", "loading", "subtitle", "fileList", "diffContainer"]
-
   connect() {
     this.boundCloseOnEscape = this.closeOnEscape.bind(this)
     this.boundCloseOnClickOutside = this.closeOnClickOutside.bind(this)
     this.currentSessionId = null
     this.currentDirectory = null
   }
+  
+  findModalElements() {
+    if (!this.modal) {
+      this.modal = document.querySelector('[data-git-diff-modal-target="modal"]')
+      if (this.modal) {
+        this.loadingEl = this.modal.querySelector('[data-git-diff-modal-target="loading"]')
+        this.contentEl = this.modal.querySelector('[data-git-diff-modal-target="content"]')
+        this.subtitleEl = this.modal.querySelector('[data-git-diff-modal-target="subtitle"]')
+      }
+    }
+    return this.modal
+  }
 
   disconnect() {
     document.removeEventListener("keydown", this.boundCloseOnEscape)
-    this.modalTarget.removeEventListener("click", this.boundCloseOnClickOutside)
+    if (this.modal) {
+      this.modal.removeEventListener("click", this.boundCloseOnClickOutside)
+    }
     this.disposeMonacoInstances()
   }
 
   async open(event) {
     event.preventDefault()
+    
+    // Find modal elements if not already found
+    if (!this.findModalElements()) {
+      console.error("Git diff modal not found in DOM")
+      return
+    }
     
     const directory = event.currentTarget.dataset.directory
     const instanceName = event.currentTarget.dataset.instanceName
@@ -27,15 +45,15 @@ export default class extends Controller {
     this.currentDirectory = directory
     
     // Update subtitle
-    if (this.hasSubtitleTarget) {
-      this.subtitleTarget.textContent = `${instanceName} - ${directory.replace(/^.*\//, '')}`
+    if (this.subtitleEl) {
+      this.subtitleEl.textContent = `${instanceName} - ${directory.replace(/^.*\//, '')}`
     }
 
     // Show modal with animation
-    this.modalTarget.classList.remove("hidden")
+    this.modal.classList.remove("hidden")
     requestAnimationFrame(() => {
-      const backdrop = this.modalTarget.querySelector("div:first-child")
-      const modalContent = this.modalTarget.querySelector(".rounded-2xl")
+      const backdrop = this.modal.querySelector("div:first-child")
+      const modalContent = this.modal.querySelector(".rounded-2xl")
       
       backdrop.style.opacity = "0"
       modalContent.style.transform = "scale(0.95)"
@@ -51,12 +69,12 @@ export default class extends Controller {
       })
     })
 
-    this.loadingTarget.classList.remove("hidden")
-    this.contentTarget.innerHTML = ""
+    this.loadingEl.classList.remove("hidden")
+    this.contentEl.innerHTML = ""
     
     document.addEventListener("keydown", this.boundCloseOnEscape)
     setTimeout(() => {
-      this.modalTarget.addEventListener("click", this.boundCloseOnClickOutside)
+      this.modal.addEventListener("click", this.boundCloseOnClickOutside)
     }, 100)
     
     try {
@@ -71,7 +89,7 @@ export default class extends Controller {
       
       if (response.ok) {
         const data = await response.json()
-        this.loadingTarget.classList.add("hidden")
+        this.loadingEl.classList.add("hidden")
         
         if (data.error) {
           this.showError(data.error)
@@ -81,18 +99,18 @@ export default class extends Controller {
           this.showNoChanges()
         }
       } else {
-        this.loadingTarget.classList.add("hidden")
+        this.loadingEl.classList.add("hidden")
         this.showError("Failed to load diff from server")
       }
     } catch (error) {
-      this.loadingTarget.classList.add("hidden")
+      this.loadingEl.classList.add("hidden")
       this.showError(error.message)
     }
   }
 
   async showDiffContent(data) {
     // Create the main content structure with full height
-    this.contentTarget.innerHTML = `
+    this.contentEl.innerHTML = `
       <div class="flex" style="height: 100%;">
         <!-- File list sidebar -->
         <div class="w-64 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-y-auto flex-shrink-0" data-git-diff-modal-target="fileList">
@@ -143,7 +161,7 @@ export default class extends Controller {
     }
     
     // Add click handlers to file items
-    const fileList = this.contentTarget.querySelector('[data-git-diff-modal-target="fileList"]')
+    const fileList = this.contentEl.querySelector('[data-git-diff-modal-target="fileList"]')
     if (fileList) {
       fileList.querySelectorAll('.file-item').forEach((item) => {
         item.addEventListener('click', async (e) => {
@@ -273,7 +291,7 @@ export default class extends Controller {
   }
 
   showError(message) {
-    this.contentTarget.innerHTML = `
+    this.contentEl.innerHTML = `
       <div class="flex items-center justify-center h-full">
         <div class="text-center">
           <div class="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full mb-4">
@@ -289,7 +307,7 @@ export default class extends Controller {
   }
 
   showNoChanges() {
-    this.contentTarget.innerHTML = `
+    this.contentEl.innerHTML = `
       <div class="flex items-center justify-center h-full">
         <div class="text-center">
           <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full mb-4">
@@ -307,8 +325,8 @@ export default class extends Controller {
   close(event) {
     if (event) event.preventDefault()
     
-    const backdrop = this.modalTarget.querySelector("div:first-child")
-    const modalContent = this.modalTarget.querySelector(".rounded-2xl")
+    const backdrop = this.modal.querySelector("div:first-child")
+    const modalContent = this.modal.querySelector(".rounded-2xl")
     
     // Animate out
     backdrop.style.transition = "opacity 200ms ease-in"
@@ -319,7 +337,7 @@ export default class extends Controller {
     modalContent.style.opacity = "0"
     
     setTimeout(() => {
-      this.modalTarget.classList.add("hidden")
+      this.modal.classList.add("hidden")
       backdrop.style = ""
       modalContent.style = ""
       
@@ -342,7 +360,7 @@ export default class extends Controller {
     }, 200)
     
     document.removeEventListener("keydown", this.boundCloseOnEscape)
-    this.modalTarget.removeEventListener("click", this.boundCloseOnClickOutside)
+    this.modal.removeEventListener("click", this.boundCloseOnClickOutside)
   }
 
   closeOnEscape(event) {
@@ -352,7 +370,7 @@ export default class extends Controller {
   }
 
   closeOnClickOutside(event) {
-    const modalContent = this.modalTarget.querySelector('.rounded-2xl')
+    const modalContent = this.modal.querySelector('.rounded-2xl')
     if (!modalContent.contains(event.target)) {
       this.close()
     }

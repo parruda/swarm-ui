@@ -29,6 +29,9 @@ export default class extends Controller {
     
     this.isHovering = true
     this.menuTarget.classList.remove("hidden")
+    
+    // Set a flag on the body to indicate dropdown is open
+    document.body.dataset.gitDropdownOpen = "true"
   }
   
   hide() {
@@ -38,6 +41,9 @@ export default class extends Controller {
     this.hideTimeout = setTimeout(() => {
       if (!this.isHovering && this.hasMenuTarget) {
         this.menuTarget.classList.add("hidden")
+        
+        // Remove the flag from body
+        delete document.body.dataset.gitDropdownOpen
       }
     }, 100)
   }

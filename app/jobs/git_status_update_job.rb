@@ -24,10 +24,10 @@ class GitStatusUpdateJob < ApplicationJob
     git_statuses = git_service.fetch_all_statuses
 
     # Broadcast the update to the session's Turbo Stream channel
-    Turbo::StreamsChannel.broadcast_replace_to(
+    Turbo::StreamsChannel.broadcast_update_to(
       "session_#{session.id}",
       target: "git-status-display",
-      partial: "shared/git_status",
+      partial: "shared/git_status_content",
       locals: { session: session, git_statuses: git_statuses },
     )
 

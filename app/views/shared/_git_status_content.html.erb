@@ -1,4 +1,16 @@
-<% if session.active? && git_statuses&.any? %>
+<% if session&.active? %>
+  <% if git_statuses.nil? %>
+    <!-- Loading state -->
+    <div class="flex items-center">
+      <div class="h-10 w-px bg-gray-300 dark:bg-gray-600"></div>
+      <div class="flex items-center px-3">
+        <div class="animate-pulse flex items-center space-x-2">
+          <%= heroicon "arrow-path", variant: :mini, options: { class: "h-4 w-4 text-gray-400 animate-spin" } %>
+          <span class="text-xs text-gray-500 dark:text-gray-400">Loading git status...</span>
+        </div>
+      </div>
+    </div>
+  <% elsif git_statuses.any? %>
   <div class="flex items-center">
     <div class="h-10 w-px bg-gray-300 dark:bg-gray-600"></div>
     <div class="flex items-center">
@@ -56,7 +68,7 @@
                 
                 <% statuses.each do |status| %>
                   <div class="flex items-start justify-between py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 -mx-2 px-2 rounded transition-colors duration-150 <%= status[:has_changes] ? 'cursor-pointer' : '' %>"
-                       <% if status[:has_changes] %>
+                       <% if status[:has_changes] && session.persisted? %>
                          data-action="click->git-diff-modal#open"
                          data-directory="<%= status[:directory] %>"
                          data-instance-name="<%= instance_name %>"
@@ -157,4 +169,5 @@
       </div>
     </div>
   </div>
+  <% end %>
 <% end %>

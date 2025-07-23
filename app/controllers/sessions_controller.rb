@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
 require "yaml"
+require "shellwords"
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents]
 
   def index
     @filter = params[:filter] || "active"
@@ -85,7 +86,7 @@ class SessionsController < ApplicationController
     if @session.active?
       git_service = GitStatusService.new(@session)
       @git_statuses = git_service.fetch_all_statuses
-      
+
       # Start the background job for real-time updates
       GitStatusUpdateJob.perform_later(@session.id)
     end
@@ -185,14 +186,14 @@ class SessionsController < ApplicationController
       render(json: { error: "Directory not found or not readable" }, status: :not_found)
       return
     end
-    
+
     safe_dir = directory
     safe_file = File.join(directory, file_path)
 
     Dir.chdir(safe_dir) do
       # Check if file exists
       file_exists = File.exist?(file_path)
-      
+
       # Get current content (modified version)
       modified_content = if file_exists
         File.read(file_path)
@@ -200,38 +201,43 @@ class SessionsController < ApplicationController
         ""
       end
 
+      # Escape file path for shell
+      escaped_path = Shellwords.escape(file_path)
+
       # Get git status for this specific file
-      git_status = %x(git status --porcelain "#{file_path}" 2>/dev/null).strip
-      
+      git_status = %x(git status --porcelain #{escaped_path} 2>/dev/null).strip
+
       # Determine file status and get appropriate content
       original_content = ""
-      
+
       if git_status.start_with?("??")
-        # Untracked file - no original content
+        # Untracked file - show empty vs working directory
         original_content = ""
-      else
-        # Try to get content from HEAD first
-        original_content = %x(git show HEAD:"#{file_path}" 2>/dev/null)
-        
+        # modified_content already has the working directory content
+      elsif git_status.match?(/^[AM]M/)
+        # File has both staged and unstaged changes
+        # Show HEAD vs working directory (to see all changes)
+        original_content = %x(git show HEAD:#{escaped_path} 2>/dev/null)
+        # modified_content already has the working directory content
+      elsif git_status.match?(/^[AM]\s/)
+        # File is only staged (not modified in working directory)
+        # This means working directory matches staged version
+        # Show HEAD vs working directory (which equals staged)
+        original_content = %x(git show HEAD:#{escaped_path} 2>/dev/null)
         if $?.exitstatus != 0
-          # File might be new (staged but not in HEAD)
-          staged_content = %x(git show :"#{file_path}" 2>/dev/null)
-          
-          if $?.exitstatus == 0
-            # File is staged but new
-            original_content = ""
-            # For staged new files, show staged content vs working directory
-            if git_status.match?(/^[AM]/)
-              original_content = staged_content
-            end
-          else
-            original_content = ""
-          end
-        elsif git_status.match?(/^[AM]/) && !git_status.match?(/^.M/)
-          # File is only staged (not modified in working directory)
-          # Show HEAD vs staged version
-          modified_content = %x(git show :"#{file_path}" 2>/dev/null)
+          # New file, show empty vs working directory
+          original_content = ""
         end
+        # modified_content already has the working directory content
+      elsif git_status.match?(/^\sM/)
+        # File is only modified (not staged)
+        # Show HEAD vs working directory
+        original_content = %x(git show HEAD:#{escaped_path} 2>/dev/null)
+        # modified_content already has the working directory content
+      else
+        # Default: show HEAD vs working directory
+        original_content = %x(git show HEAD:#{escaped_path} 2>/dev/null)
+        # modified_content already has the working directory content
       end
 
       # Detect language from file extension
@@ -265,7 +271,7 @@ class SessionsController < ApplicationController
       render(json: { error: "Directory not found or not readable" }, status: :not_found)
       return
     end
-    
+
     safe_dir = directory
 
     # Get git diff and file changes
@@ -273,11 +279,11 @@ class SessionsController < ApplicationController
       # Get unstaged changes
       unstaged_diff = %x(git diff --no-ext-diff 2>&1)
       unstaged_files = parse_diff_files(unstaged_diff)
-      
+
       # Get staged changes
       staged_diff = %x(git diff --cached --no-ext-diff 2>&1)
       staged_files = parse_diff_files(staged_diff)
-      
+
       # Get untracked files
       untracked_list = %x(git ls-files --others --exclude-standard 2>&1).strip.split("\n")
       untracked_files = untracked_list.reject(&:empty?).map do |path|
@@ -286,30 +292,30 @@ class SessionsController < ApplicationController
           old_path: path,
           additions: File.readable?(path) ? File.readlines(path).count : 0,
           deletions: 0,
-          status: 'untracked'
+          status: "untracked",
         }
       end
-      
+
       # Merge all files with status indicators
       all_files = []
-      
+
       # Add unstaged files
       unstaged_files.each do |file|
-        file[:status] = 'modified'
+        file[:status] = "modified"
         all_files << file
       end
-      
+
       # Add staged files (avoiding duplicates)
       staged_files.each do |file|
         existing = all_files.find { |f| f[:path] == file[:path] }
         if existing
-          existing[:status] = 'modified+staged'
+          existing[:status] = "modified+staged"
         else
-          file[:status] = 'staged'
+          file[:status] = "staged"
           all_files << file
         end
       end
-      
+
       # Add untracked files
       all_files.concat(untracked_files)
 
@@ -332,7 +338,10 @@ class SessionsController < ApplicationController
   def set_session
     @session = Session.find(params[:id])
   rescue ActiveRecord::RecordNotFound
-    redirect_to(sessions_path, alert: "Session not found.")
+    respond_to do |format|
+      format.html { redirect_to(sessions_path, alert: "Session not found.") }
+      format.json { render(json: { error: "Session not found" }, status: :not_found) }
+    end
   end
 
   def session_params
@@ -514,7 +523,7 @@ class SessionsController < ApplicationController
     diff_output.lines.each do |line|
       if line.start_with?("diff --git")
         # Extract file paths from diff header
-        match = line.match(/diff --git a\/(.*?) b\/(.*?)$/)
+        match = line.match(%r{diff --git a/(.*?) b/(.*?)$})
         if match
           current_file = {
             path: match[2],

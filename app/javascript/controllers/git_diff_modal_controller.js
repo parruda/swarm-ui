@@ -41,6 +41,13 @@ export default class extends Controller {
     const instanceName = event.currentTarget.dataset.instanceName
     const sessionId = event.currentTarget.dataset.sessionId
     
+    // Validate required data
+    if (!sessionId || !directory) {
+      console.error("Missing required data for git diff modal", { sessionId, directory, instanceName })
+      this.showError("Unable to load diff: Missing session or directory information")
+      return
+    }
+    
     this.currentSessionId = sessionId
     this.currentDirectory = directory
     
@@ -100,7 +107,20 @@ export default class extends Controller {
         }
       } else {
         this.loadingEl.classList.add("hidden")
-        this.showError("Failed to load diff from server")
+        let errorMessage = "Failed to load diff from server"
+        
+        // Try to get more specific error message
+        try {
+          const errorData = await response.json()
+          if (errorData.error) {
+            errorMessage = errorData.error
+          }
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = `Server error: ${response.status} ${response.statusText}`
+        }
+        
+        this.showError(errorMessage)
       }
     } catch (error) {
       this.loadingEl.classList.add("hidden")

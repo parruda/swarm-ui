@@ -1,9 +1,8 @@
 <% content_for :title, "Session" %>
 
 <% content_for :head do %>
-  <%# diff2html CSS dependencies - only loaded on sessions#show %>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html@3.4.47/bundles/css/diff2html.min.css">
+  <%# Monaco Editor CSS - only loaded on sessions#show %>
+  <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/editor/editor.main.css">
 <% end %>
 
 <%= turbo_stream_from "session_#{@session.id}" %>

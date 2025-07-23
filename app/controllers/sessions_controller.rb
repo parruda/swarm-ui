@@ -167,6 +167,86 @@ class SessionsController < ApplicationController
     render(partial: "instance_info")
   end
 
+  def diff_file_contents
+    directory = params[:directory]
+    file_path = params[:file_path]
+
+    unless directory.present? && file_path.present?
+      render(json: { error: "Directory and file path are required" }, status: :bad_request)
+      return
+    end
+
+    # For SwarmUI, directories are absolute paths managed by the system
+    # Just ensure the directory exists and is readable
+    unless File.directory?(directory) && File.readable?(directory)
+      render(json: { error: "Directory not found or not readable" }, status: :not_found)
+      return
+    end
+    
+    safe_dir = directory
+    safe_file = File.join(directory, file_path)
+
+    Dir.chdir(safe_dir) do
+      # Check if file exists
+      file_exists = File.exist?(file_path)
+      
+      # Get current content (modified version)
+      modified_content = if file_exists
+        File.read(file_path)
+      else
+        ""
+      end
+
+      # Get git status for this specific file
+      git_status = %x(git status --porcelain "#{file_path}" 2>/dev/null).strip
+      
+      # Determine file status and get appropriate content
+      original_content = ""
+      
+      if git_status.start_with?("??")
+        # Untracked file - no original content
+        original_content = ""
+      else
+        # Try to get content from HEAD first
+        original_content = %x(git show HEAD:"#{file_path}" 2>/dev/null)
+        
+        if $?.exitstatus != 0
+          # File might be new (staged but not in HEAD)
+          staged_content = %x(git show :"#{file_path}" 2>/dev/null)
+          
+          if $?.exitstatus == 0
+            # File is staged but new
+            original_content = ""
+            # For staged new files, show staged content vs working directory
+            if git_status.match?(/^[AM]/)
+              original_content = staged_content
+            end
+          else
+            original_content = ""
+          end
+        elsif git_status.match?(/^[AM]/) && !git_status.match?(/^.M/)
+          # File is only staged (not modified in working directory)
+          # Show HEAD vs staged version
+          modified_content = %x(git show :"#{file_path}" 2>/dev/null)
+        end
+      end
+
+      # Detect language from file extension
+      language = detect_language(file_path)
+
+      render(json: {
+        file_path: file_path,
+        original_content: original_content,
+        modified_content: modified_content,
+        language: language,
+        status: git_status,
+      })
+    end
+  rescue => e
+    Rails.logger.error("Diff file contents error: #{e.message}")
+    render(json: { error: "Failed to load file contents: #{e.message}" }, status: :internal_server_error)
+  end
+
   def git_diff
     directory = params[:directory]
     instance_name = params[:instance_name]
@@ -176,20 +256,67 @@ class SessionsController < ApplicationController
       return
     end
 
-    # Generate HTML using diff2html directly
-    Dir.chdir(directory) do
-      cmd = %{diff2html -t "Changes in #{instance_name}" -s side --cs dark -d word --su open --output stdout | xmllint --html --xpath '//div[@id="diff"]' - 2>/dev/null}
-      html_output = %x(#{cmd})
+    # For SwarmUI, directories are absolute paths managed by the system
+    # Just ensure the directory exists and is readable
+    unless File.directory?(directory) && File.readable?(directory)
+      render(json: { error: "Directory not found or not readable" }, status: :not_found)
+      return
+    end
+    
+    safe_dir = directory
 
-      # Get the raw diff for the JS controller
-      diff_output = %x(git diff --no-ext-diff 2>&1)
-      if diff_output.empty?
-        diff_output = %x(git diff --cached --no-ext-diff 2>&1)
+    # Get git diff and file changes
+    Dir.chdir(safe_dir) do
+      # Get unstaged changes
+      unstaged_diff = %x(git diff --no-ext-diff 2>&1)
+      unstaged_files = parse_diff_files(unstaged_diff)
+      
+      # Get staged changes
+      staged_diff = %x(git diff --cached --no-ext-diff 2>&1)
+      staged_files = parse_diff_files(staged_diff)
+      
+      # Get untracked files
+      untracked_list = %x(git ls-files --others --exclude-standard 2>&1).strip.split("\n")
+      untracked_files = untracked_list.reject(&:empty?).map do |path|
+        {
+          path: path,
+          old_path: path,
+          additions: File.readable?(path) ? File.readlines(path).count : 0,
+          deletions: 0,
+          status: 'untracked'
+        }
       end
+      
+      # Merge all files with status indicators
+      all_files = []
+      
+      # Add unstaged files
+      unstaged_files.each do |file|
+        file[:status] = 'modified'
+        all_files << file
+      end
+      
+      # Add staged files (avoiding duplicates)
+      staged_files.each do |file|
+        existing = all_files.find { |f| f[:path] == file[:path] }
+        if existing
+          existing[:status] = 'modified+staged'
+        else
+          file[:status] = 'staged'
+          all_files << file
+        end
+      end
+      
+      # Add untracked files
+      all_files.concat(untracked_files)
 
       render(json: {
-        html: html_output.presence || "<div class='p-4 text-gray-500 dark:text-gray-400'>No changes to display</div>",
-        diff: diff_output,
+        instance_name: instance_name,
+        directory: directory,
+        unstaged_diff: unstaged_diff,
+        staged_diff: staged_diff,
+        files: all_files,
+        has_changes: all_files.any?,
       })
     end
   rescue => e
@@ -338,5 +465,69 @@ class SessionsController < ApplicationController
       File.join(@session.project.path, dir)
     end
     directories
+  end
+
+  def detect_language(file_path)
+    extension = File.extname(file_path).downcase.delete(".")
+
+    language_map = {
+      "rb" => "ruby",
+      "py" => "python",
+      "js" => "javascript",
+      "ts" => "typescript",
+      "jsx" => "javascript",
+      "tsx" => "typescript",
+      "json" => "json",
+      "yml" => "yaml",
+      "yaml" => "yaml",
+      "erb" => "erb",
+      "html" => "html",
+      "css" => "css",
+      "scss" => "scss",
+      "sass" => "sass",
+      "sql" => "sql",
+      "sh" => "shell",
+      "bash" => "shell",
+      "md" => "markdown",
+      "txt" => "plaintext",
+      "go" => "go",
+      "rs" => "rust",
+      "java" => "java",
+      "c" => "c",
+      "cpp" => "cpp",
+      "h" => "c",
+      "hpp" => "cpp",
+    }
+
+    language_map[extension] || "plaintext"
+  end
+
+  def parse_diff_files(diff_output)
+    files = []
+    return files if diff_output.empty?
+
+    # Parse unified diff format to extract file information
+    current_file = nil
+    diff_output.lines.each do |line|
+      if line.start_with?("diff --git")
+        # Extract file paths from diff header
+        match = line.match(/diff --git a\/(.*?) b\/(.*?)$/)
+        if match
+          current_file = {
+            path: match[2],
+            old_path: match[1],
+            additions: 0,
+            deletions: 0,
+          }
+          files << current_file
+        end
+      elsif current_file && line.start_with?("+") && !line.start_with?("+++")
+        current_file[:additions] += 1
+      elsif current_file && line.start_with?("-") && !line.start_with?("---")
+        current_file[:deletions] += 1
+      end
+    end
+
+    files
   end
 end

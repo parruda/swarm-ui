@@ -13,6 +13,7 @@ Rails.application.routes.draw do
       get :instances
       get :clone
       post :git_diff
+      post :diff_file_contents
     end
   end
 

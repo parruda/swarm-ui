@@ -229,7 +229,7 @@
               
               <div class="fixed inset-0 z-50 overflow-hidden">
                 <div class="flex h-full items-center justify-center p-6">
-                  <div class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-900 shadow-2xl transition-all w-full max-w-[95vw] h-[90vh] flex flex-col ring-1 ring-black/10 dark:ring-white/10">
+                  <div class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-900 shadow-2xl transition-all w-full max-w-[95vw] h-[85vh] flex flex-col ring-1 ring-black/10 dark:ring-white/10">
                     <!-- Modal header with gradient -->
                     <div class="bg-gradient-to-r from-orange-50 via-white to-orange-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50">
                       <div class="flex items-center justify-between">
@@ -258,10 +258,10 @@
                       </div>
                     </div>
                     
-                    <!-- Modal content with better styling -->
-                    <div class="relative flex-1 overflow-y-auto bg-gradient-to-b from-gray-50/50 to-white dark:from-gray-900 dark:to-gray-900">
+                    <!-- Modal content wrapper - fills remaining space -->
+                    <div class="relative flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-gray-50/50 to-white dark:from-gray-900 dark:to-gray-900">
                       <!-- Loading indicator with better animation -->
-                      <div class="p-16 text-center" data-git-diff-modal-target="loading">
+                      <div class="absolute inset-0 flex items-center justify-center z-10" data-git-diff-modal-target="loading">
                         <div class="inline-flex flex-col items-center space-y-4">
                           <!-- Custom loading animation -->
                           <div class="relative">
@@ -278,23 +278,9 @@
                         </div>
                       </div>
                       
-                      <!-- Diff content wrapper with padding and styling -->
-                      <div class="relative" data-git-diff-modal-target="content">
+                      <!-- Diff content wrapper - fills entire remaining space -->
+                      <div class="flex-1 relative" data-git-diff-modal-target="content">
                         <!-- Content will be injected here -->
-                      </div>
-                    </div>
-                    
-                    <!-- Optional footer with actions -->
-                    <div class="flex-shrink-0 bg-gray-50 dark:bg-gray-800 px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-                      <div class="flex items-center justify-between text-sm">
-                        <div class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
-                          <%= heroicon "information-circle", variant: :mini, options: { class: "h-4 w-4" } %>
-                          <span>Click on files with changes to view details</span>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                          <kbd class="px-2 py-1 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md">ESC</kbd>
-                          <span class="text-gray-500 dark:text-gray-400">to close</span>
-                        </div>
                       </div>
                     </div>
                   </div>

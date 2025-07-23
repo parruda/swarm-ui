@@ -1,4 +1,4 @@
-<div id="git-status-display">
+<div id="git-status-display" class="flex items-center">
   <% if session.active? && git_statuses&.any? %>
     <div class="h-10 w-px bg-gray-300 dark:bg-gray-600"></div>
     <div class="flex items-center" data-controller="git-diff-modal">

@@ -85,6 +85,9 @@ class SessionsController < ApplicationController
     if @session.active?
       git_service = GitStatusService.new(@session)
       @git_statuses = git_service.fetch_all_statuses
+      
+      # Start the background job for real-time updates
+      GitStatusUpdateJob.perform_later(@session.id)
     end
   end
 

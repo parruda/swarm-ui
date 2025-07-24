@@ -336,6 +336,7 @@ class SessionsController < ApplicationController
   def git_pull
     directory = params[:directory]
     instance_name = params[:instance_name]
+    operation_success = false
 
     unless directory.present? && File.directory?(directory)
       render(json: { error: "Invalid directory" }, status: :bad_request)
@@ -385,9 +386,7 @@ class SessionsController < ApplicationController
       pull_result = %x(git pull --no-rebase 2>&1)
       
       if $?.exitstatus == 0
-        # Trigger immediate git status update
-        GitStatusUpdateJob.perform_later(@session.id)
-        
+        operation_success = true
         render(json: { 
           success: true, 
           commits_pulled: behind_count,
@@ -413,6 +412,9 @@ class SessionsController < ApplicationController
         end
       end
     end
+    
+    # Trigger git status update after chdir block completes
+    GitStatusUpdateJob.perform_later(@session.id) if operation_success
   rescue => e
     Rails.logger.error("Git pull error: #{e.message}")
     render(json: { error: "Failed to pull: #{e.message}" }, status: :internal_server_error)
@@ -421,6 +423,7 @@ class SessionsController < ApplicationController
   def git_push
     directory = params[:directory]
     instance_name = params[:instance_name]
+    operation_success = false
 
     unless directory.present? && File.directory?(directory)
       render(json: { error: "Invalid directory" }, status: :bad_request)
@@ -449,9 +452,7 @@ class SessionsController < ApplicationController
       push_result = %x(git push 2>&1)
       
       if $?.exitstatus == 0
-        # Trigger immediate git status update
-        GitStatusUpdateJob.perform_later(@session.id)
-        
+        operation_success = true
         render(json: { 
           success: true, 
           commits_pushed: ahead_count,
@@ -488,6 +489,9 @@ class SessionsController < ApplicationController
         end
       end
     end
+    
+    # Trigger git status update after chdir block completes
+    GitStatusUpdateJob.perform_later(@session.id) if operation_success
   rescue => e
     Rails.logger.error("Git push error: #{e.message}")
     render(json: { error: "Failed to push: #{e.message}" }, status: :internal_server_error)
@@ -496,6 +500,7 @@ class SessionsController < ApplicationController
   def git_commit
     directory = params[:directory]
     instance_name = params[:instance_name]
+    operation_success = false
 
     unless directory.present? && File.directory?(directory)
       render(json: { error: "Invalid directory" }, status: :bad_request)
@@ -560,9 +565,7 @@ class SessionsController < ApplicationController
       commit_result = %x(git commit -m #{escaped_message} 2>&1)
       
       if $?.exitstatus == 0
-        # Trigger immediate git status update
-        GitStatusUpdateJob.perform_later(@session.id)
-        
+        operation_success = true
         render(json: { 
           success: true, 
           commit_message: commit_message,
@@ -575,6 +578,9 @@ class SessionsController < ApplicationController
         }, status: :unprocessable_entity)
       end
     end
+    
+    # Trigger git status update after chdir block completes
+    GitStatusUpdateJob.perform_later(@session.id) if operation_success
   rescue => e
     Rails.logger.error("Git commit error: #{e.message}")
     render(json: { error: "Failed to commit: #{e.message}" }, status: :internal_server_error)

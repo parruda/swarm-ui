@@ -14,6 +14,8 @@ Rails.application.routes.draw do
       get :clone
       post :git_diff
       post :diff_file_contents
+      post :git_pull
+      post :git_push
     end
   end
 

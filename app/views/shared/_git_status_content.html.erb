@@ -140,6 +140,43 @@
                         <% end %>
                       </div>
                     </div>
+                    
+                    <!-- Pull/Push actions -->
+                    <div class="flex items-center space-x-2 ml-2">
+                      <% if status[:behind] > 0 && !status[:has_changes] %>
+                        <!-- Pull button - only show if clean and behind -->
+                        <button class="px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded transition-colors duration-150"
+                                data-action="click->git-actions#pull"
+                                data-git-actions-directory-param="<%= status[:directory] %>"
+                                data-git-actions-instance-param="<%= instance_name %>"
+                                data-git-actions-session-param="<%= session.id %>"
+                                title="Pull <%= status[:behind] %> commit<%= status[:behind] == 1 ? '' : 's' %> from remote">
+                          <%= heroicon "arrow-down-tray", variant: :mini, options: { class: "h-3 w-3" } %>
+                          Pull
+                        </button>
+                      <% elsif status[:behind] > 0 && status[:has_changes] %>
+                        <!-- Disabled pull button with tooltip -->
+                        <button class="px-2 py-1 text-xs bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 rounded cursor-not-allowed"
+                                disabled
+                                title="Cannot pull: repository has uncommitted changes">
+                          <%= heroicon "arrow-down-tray", variant: :mini, options: { class: "h-3 w-3" } %>
+                          Pull
+                        </button>
+                      <% end %>
+                      
+                      <% if status[:ahead] > 0 %>
+                        <!-- Push button - only show if ahead -->
+                        <button class="px-2 py-1 text-xs bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white rounded transition-colors duration-150"
+                                data-action="click->git-actions#push"
+                                data-git-actions-directory-param="<%= status[:directory] %>"
+                                data-git-actions-instance-param="<%= instance_name %>"
+                                data-git-actions-session-param="<%= session.id %>"
+                                title="Push <%= status[:ahead] %> commit<%= status[:ahead] == 1 ? '' : 's' %> to remote">
+                          <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-3 w-3" } %>
+                          Push
+                        </button>
+                      <% end %>
+                    </div>
                   </div>
                 <% end %>
               </div>

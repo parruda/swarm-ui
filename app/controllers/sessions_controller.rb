@@ -4,7 +4,7 @@ require "yaml"
 require "shellwords"
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push]
 
   def index
     @filter = params[:filter] || "active"
@@ -333,7 +333,175 @@ class SessionsController < ApplicationController
     render(json: { error: "Failed to generate diff: #{e.message}" }, status: :internal_server_error)
   end
 
+  def git_pull
+    directory = params[:directory]
+    instance_name = params[:instance_name]
+
+    unless directory.present? && File.directory?(directory)
+      render(json: { error: "Invalid directory" }, status: :bad_request)
+      return
+    end
+
+    # Security check - ensure directory belongs to this session
+    unless directory_belongs_to_session?(directory)
+      render(json: { error: "Unauthorized access to directory" }, status: :forbidden)
+      return
+    end
+
+    Dir.chdir(directory) do
+      # First, check if the repository is clean
+      status_output = %x(git status --porcelain 2>&1)
+      unless status_output.empty?
+        render(json: { 
+          success: false, 
+          error: "Cannot pull: repository has uncommitted changes", 
+          has_uncommitted_changes: true 
+        }, status: :unprocessable_entity)
+        return
+      end
+
+      # Check if there are actually commits to pull
+      fetch_result = %x(git fetch 2>&1)
+      if $?.exitstatus != 0
+        render(json: { 
+          success: false, 
+          error: "Failed to fetch from remote: #{fetch_result}" 
+        }, status: :unprocessable_entity)
+        return
+      end
+
+      # Get the number of commits behind
+      behind_count = %x(git rev-list --count HEAD..@{upstream} 2>/dev/null).strip.to_i
+      
+      if behind_count == 0
+        render(json: { 
+          success: false, 
+          error: "Already up to date with remote" 
+        })
+        return
+      end
+
+      # Attempt to pull
+      pull_result = %x(git pull --no-rebase 2>&1)
+      
+      if $?.exitstatus == 0
+        render(json: { 
+          success: true, 
+          commits_pulled: behind_count,
+          message: "Successfully pulled #{behind_count} commit#{behind_count == 1 ? '' : 's'}" 
+        })
+      else
+        # Check if it's a merge conflict
+        if pull_result.include?("CONFLICT") || pull_result.include?("Automatic merge failed")
+          # Abort the merge
+          %x(git merge --abort 2>&1)
+          
+          render(json: { 
+            success: false, 
+            error: "Pull failed due to merge conflicts. Please use a git tool to resolve conflicts.",
+            has_conflicts: true,
+            details: pull_result
+          }, status: :unprocessable_entity)
+        else
+          render(json: { 
+            success: false, 
+            error: "Pull failed: #{pull_result}" 
+          }, status: :unprocessable_entity)
+        end
+      end
+    end
+  rescue => e
+    Rails.logger.error("Git pull error: #{e.message}")
+    render(json: { error: "Failed to pull: #{e.message}" }, status: :internal_server_error)
+  end
+
+  def git_push
+    directory = params[:directory]
+    instance_name = params[:instance_name]
+
+    unless directory.present? && File.directory?(directory)
+      render(json: { error: "Invalid directory" }, status: :bad_request)
+      return
+    end
+
+    # Security check - ensure directory belongs to this session
+    unless directory_belongs_to_session?(directory)
+      render(json: { error: "Unauthorized access to directory" }, status: :forbidden)
+      return
+    end
+
+    Dir.chdir(directory) do
+      # Check if there are actually commits to push
+      ahead_count = %x(git rev-list --count @{upstream}..HEAD 2>/dev/null).strip.to_i
+      
+      if ahead_count == 0
+        render(json: { 
+          success: false, 
+          error: "No commits to push" 
+        })
+        return
+      end
+
+      # Attempt to push
+      push_result = %x(git push 2>&1)
+      
+      if $?.exitstatus == 0
+        render(json: { 
+          success: true, 
+          commits_pushed: ahead_count,
+          message: "Successfully pushed #{ahead_count} commit#{ahead_count == 1 ? '' : 's'}" 
+        })
+      else
+        # Check common push failure reasons
+        if push_result.include?("rejected")
+          if push_result.include?("non-fast-forward")
+            render(json: { 
+              success: false, 
+              error: "Push rejected: Remote has changes that you don't have locally. Pull first.",
+              needs_pull: true,
+              details: push_result
+            }, status: :unprocessable_entity)
+          else
+            render(json: { 
+              success: false, 
+              error: "Push rejected by remote",
+              details: push_result
+            }, status: :unprocessable_entity)
+          end
+        elsif push_result.include?("Could not read from remote repository")
+          render(json: { 
+            success: false, 
+            error: "Authentication failed or no access to remote repository",
+            details: push_result
+          }, status: :unprocessable_entity)
+        else
+          render(json: { 
+            success: false, 
+            error: "Push failed: #{push_result}" 
+          }, status: :unprocessable_entity)
+        end
+      end
+    end
+  rescue => e
+    Rails.logger.error("Git push error: #{e.message}")
+    render(json: { error: "Failed to push: #{e.message}" }, status: :internal_server_error)
+  end
+
   private
+
+  def directory_belongs_to_session?(directory)
+    # Get all directories associated with this session
+    git_service = GitStatusService.new(@session)
+    instance_directories = git_service.send(:instance_directories)
+    
+    # Normalize the directory path
+    normalized_dir = File.expand_path(directory)
+    
+    # Check if the directory is in the list of session directories
+    instance_directories.any? do |_instance_name, directories|
+      directories.any? { |dir| File.expand_path(dir) == normalized_dir }
+    end
+  end
 
   def set_session
     @session = Session.find(params[:id])

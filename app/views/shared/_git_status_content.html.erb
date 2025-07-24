@@ -1,19 +1,13 @@
 <% if session&.active? %>
-  <% if git_statuses.nil? %>
-    <!-- Loading state -->
-    <div class="flex items-center">
-      <div class="h-10 w-px bg-gray-300 dark:bg-gray-600"></div>
-      <div class="flex items-center px-3">
-        <div class="animate-pulse flex items-center space-x-2">
-          <%= heroicon "arrow-path", variant: :mini, options: { class: "h-4 w-4 text-gray-400 animate-spin" } %>
-          <span class="text-xs text-gray-500 dark:text-gray-400">Loading git status...</span>
-        </div>
-      </div>
-    </div>
-  <% elsif git_statuses.any? %>
   <div class="flex items-center">
-    <div class="h-10 w-px bg-gray-300 dark:bg-gray-600"></div>
-    <div class="flex items-center">
+    <div class="h-10 w-px bg-gray-300 dark:bg-gray-600 mr-3"></div>
+    <% if git_statuses.nil? %>
+      <!-- Loading state -->
+      <div class="animate-pulse flex items-center space-x-2">
+        <%= heroicon "arrow-path", variant: :mini, options: { class: "h-4 w-4 text-gray-400 animate-spin" } %>
+        <span class="text-xs text-gray-500 dark:text-gray-400">Loading git status...</span>
+      </div>
+    <% elsif git_statuses.any? %>
       <div class="relative group" data-controller="dropdown-hover" data-dropdown-hover-has-items-value="true">
         <!-- Compact summary button -->
         <button class="flex items-center space-x-2 px-3 py-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
@@ -49,10 +43,10 @@
         </button>
         
         <!-- Detailed dropdown -->
-        <div class="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 hidden z-50 w-[700px] max-h-[600px] overflow-y-auto"
+        <div class="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 hidden z-50 w-[650px] max-h-[500px] overflow-y-auto"
              data-dropdown-hover-target="menu"
              data-action="mouseenter->dropdown-hover#menuEnter mouseleave->dropdown-hover#menuLeave">
-          <div class="p-5 space-y-4">
+          <div class="p-4 space-y-3">
             <% git_statuses.each do |instance_name, statuses| %>
               <div class="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-3 last:pb-0">
                 <div class="flex items-center justify-between mb-2">
@@ -67,27 +61,27 @@
                 </div>
                 
                 <% statuses.each do |status| %>
-                  <div class="py-2 hover:bg-gray-50 dark:hover:bg-gray-700 -mx-2 px-3 rounded transition-colors duration-150"
+                  <div class="border border-transparent hover:border-gray-200 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 p-3 rounded-md transition-all duration-150 mb-2"
                        id="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>">
-                    <!-- Directory path with click action for diffs -->
-                    <div class="flex items-start justify-between gap-4 <%= status[:has_changes] ? 'cursor-pointer' : '' %>"
+                    <!-- Directory and branch info -->
+                    <div class="<%= status[:has_changes] ? 'cursor-pointer' : '' %>"
                          <% if status[:has_changes] && session.persisted? %>
                            data-action="click->git-diff-modal#open"
                            data-directory="<%= status[:directory] %>"
                            data-instance-name="<%= instance_name %>"
                            data-session-id="<%= session.id %>"
                          <% end %>>
-                      <div class="flex-1 min-w-0">
-                        <!-- Directory path -->
-                        <div class="flex items-center space-x-2 mb-1">
-                          <%= heroicon "folder", variant: :mini, options: { class: "h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" } %>
-                          <code class="text-xs text-gray-600 dark:text-gray-400 truncate" title="<%= status[:directory] %>">
-                            <%= status[:directory].gsub(ENV['HOME'], '~') %>
-                          </code>
-                        </div>
+                      <!-- Directory path -->
+                      <div class="flex items-center space-x-2 mb-2">
+                        <%= heroicon "folder", variant: :mini, options: { class: "h-4 w-4 text-gray-400 dark:text-gray-500" } %>
+                        <code class="text-sm text-gray-600 dark:text-gray-400" title="<%= status[:directory] %>">
+                          <%= status[:directory].gsub(ENV['HOME'], '~') %>
+                        </code>
+                      </div>
                       
-                        <!-- Branch and status -->
-                        <div class="flex items-center flex-wrap gap-2 ml-5">
+                      <!-- Branch and status on same line -->
+                      <div class="flex items-center justify-between ml-6">
+                        <div class="flex items-center flex-wrap gap-3">
                         <!-- Branch -->
                         <div class="flex items-center space-x-1">
                           <%= heroicon "code-bracket", variant: :mini, options: { 
@@ -141,12 +135,12 @@
                             <% end %>
                           </div>
                         <% end %>
-                        </div>
                       </div>
                     </div>
+                  </div>
                     
-                    <!-- Pull/Push actions on separate line -->
-                    <div class="flex items-center gap-1.5 ml-5 mt-2" data-git-actions-target="buttonContainer">
+                  <!-- Pull/Push actions -->
+                  <div class="flex items-center gap-2 ml-6 mt-3" data-git-actions-target="buttonContainer">
                       <!-- Pull button - always show, disable when not applicable -->
                       <% can_pull = status[:behind] > 0 && !status[:has_changes] %>
                       <% pull_disabled_reason = if status[:has_changes]
@@ -280,7 +274,6 @@
           </div>
         </div>
       </div>
-    </div>
+    <% end %>
   </div>
-  <% end %>
 <% end %>

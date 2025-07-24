@@ -43,126 +43,118 @@
         </button>
         
         <!-- Detailed dropdown -->
-        <div class="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 hidden z-50 w-[650px] max-h-[500px] overflow-y-auto"
+        <div class="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 hidden z-50 w-[750px] max-h-[600px] overflow-y-auto"
              data-dropdown-hover-target="menu"
              data-action="mouseenter->dropdown-hover#menuEnter mouseleave->dropdown-hover#menuLeave">
-          <div class="p-4 space-y-3">
+          <div class="p-4">
             <% git_statuses.each do |instance_name, statuses| %>
-              <div class="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-3 last:pb-0">
-                <div class="flex items-center justify-between mb-2">
-                  <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <div class="mb-6 last:mb-0">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="text-sm font-semibold text-gray-600 dark:text-gray-400">
                     <%= instance_name.humanize.titleize %>
                   </h4>
                   <% if session.use_worktree? && statuses.any? { |s| s[:is_worktree] } %>
-                    <span class="text-[10px] px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full font-medium">
+                    <span class="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded">
                       Worktree
                     </span>
                   <% end %>
                 </div>
                 
-                <% statuses.each do |status| %>
-                  <div class="border border-transparent hover:border-gray-200 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 p-3 rounded-md transition-all duration-150 mb-2"
-                       id="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>">
-                    <!-- Directory and branch info -->
-                    <div class="<%= status[:has_changes] ? 'cursor-pointer' : '' %>"
-                         <% if status[:has_changes] && session.persisted? %>
-                           data-action="click->git-diff-modal#open"
-                           data-directory="<%= status[:directory] %>"
-                           data-instance-name="<%= instance_name %>"
-                           data-session-id="<%= session.id %>"
-                         <% end %>>
-                      <!-- Directory path -->
-                      <div class="flex items-center space-x-2 mb-2">
-                        <%= heroicon "folder", variant: :mini, options: { class: "h-4 w-4 text-gray-400 dark:text-gray-500" } %>
-                        <code class="text-sm text-gray-600 dark:text-gray-400" title="<%= status[:directory] %>">
-                          <%= status[:directory].gsub(ENV['HOME'], '~') %>
-                        </code>
-                      </div>
+                <div class="space-y-4">
+                  <% statuses.each do |status| %>
+                    <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4"
+                         id="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>">
                       
-                      <!-- Branch info -->
-                      <div class="ml-6 space-y-2">
-                        <!-- Branch name and sync status -->
-                        <div class="flex items-center gap-3">
-                          <div class="flex items-center space-x-1">
-                            <%= heroicon "code-bracket", variant: :mini, options: { 
-                              class: "h-3.5 w-3.5 #{status[:has_changes] ? 'text-orange-500 dark:text-orange-400' : 'text-green-500 dark:text-green-400'}" 
-                            } %>
-                            <span class="font-mono text-sm font-medium text-gray-800 dark:text-gray-200">
-                              <%= status[:branch] %>
-                            </span>
+                      <!-- Repository Info Section -->
+                      <div class="<%= status[:has_changes] ? 'cursor-pointer' : '' %> mb-3"
+                           <% if status[:has_changes] && session.persisted? %>
+                             data-action="click->git-diff-modal#open"
+                             data-directory="<%= status[:directory] %>"
+                             data-instance-name="<%= instance_name %>"
+                             data-session-id="<%= session.id %>"
+                           <% end %>>
+                        
+                        <!-- Directory path -->
+                        <div class="flex items-center space-x-2 mb-2">
+                          <%= heroicon "folder", variant: :mini, options: { class: "h-4 w-4 text-gray-500" } %>
+                          <code class="text-sm text-gray-700 dark:text-gray-300">
+                            <%= status[:directory].gsub(ENV['HOME'], '~') %>
+                          </code>
+                        </div>
+                        
+                        <!-- Branch and status info -->
+                        <div class="flex items-center justify-between">
+                          <!-- Left side: branch and changes -->
+                          <div class="flex items-center space-x-4">
+                            <!-- Branch -->
+                            <div class="flex items-center space-x-1">
+                              <%= heroicon "code-bracket", variant: :mini, options: { 
+                                class: "h-4 w-4 #{status[:has_changes] ? 'text-orange-500' : 'text-green-500'}" 
+                              } %>
+                              <span class="font-mono text-sm text-gray-700 dark:text-gray-300">
+                                <%= status[:branch] %>
+                              </span>
+                            </div>
+                            
+                            <!-- Changes summary -->
+                            <% if status[:has_changes] %>
+                              <div class="flex items-center space-x-3 text-xs">
+                                <% if status[:staged] > 0 %>
+                                  <span class="text-green-600 dark:text-green-400">
+                                    <%= status[:staged] %> staged
+                                  </span>
+                                <% end %>
+                                <% if status[:modified] > 0 %>
+                                  <span class="text-orange-600 dark:text-orange-400">
+                                    <%= status[:modified] %> modified
+                                  </span>
+                                <% end %>
+                                <% if status[:untracked] > 0 %>
+                                  <span class="text-gray-600 dark:text-gray-400">
+                                    <%= status[:untracked] %> untracked
+                                  </span>
+                                <% end %>
+                              </div>
+                            <% else %>
+                              <span class="text-xs text-green-600 dark:text-green-400">
+                                Clean
+                              </span>
+                            <% end %>
                           </div>
                           
-                          <!-- Sync status badges -->
+                          <!-- Right side: sync status -->
                           <% if status[:ahead] > 0 || status[:behind] > 0 %>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center space-x-2 text-xs">
                               <% if status[:ahead] > 0 %>
-                                <span class="inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
-                                  <%= heroicon "arrow-up", variant: :mini, options: { class: "h-3 w-3" } %>
-                                  <%= status[:ahead] %>
+                                <span class="flex items-center text-blue-600 dark:text-blue-400">
+                                  <%= heroicon "arrow-up", variant: :mini, options: { class: "h-3.5 w-3.5" } %>
+                                  <span class="ml-0.5"><%= status[:ahead] %></span>
                                 </span>
                               <% end %>
                               <% if status[:behind] > 0 %>
-                                <span class="inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded">
-                                  <%= heroicon "arrow-down", variant: :mini, options: { class: "h-3 w-3" } %>
-                                  <%= status[:behind] %>
+                                <span class="flex items-center text-red-600 dark:text-red-400">
+                                  <%= heroicon "arrow-down", variant: :mini, options: { class: "h-3.5 w-3.5" } %>
+                                  <span class="ml-0.5"><%= status[:behind] %></span>
                                 </span>
                               <% end %>
                             </div>
                           <% end %>
                         </div>
-                        
-                        <!-- File changes status -->
-                        <div class="flex items-center gap-2">
-                          <% if status[:has_changes] %>
-                            <% if status[:staged] > 0 %>
-                              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
-                                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                                <%= status[:staged] %> staged
-                              </span>
-                            <% end %>
-                            <% if status[:modified] > 0 %>
-                              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded">
-                                <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
-                                <%= status[:modified] %> modified
-                              </span>
-                            <% end %>
-                            <% if status[:untracked] > 0 %>
-                              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded">
-                                <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
-                                <%= status[:untracked] %> untracked
-                              </span>
-                            <% end %>
-                          <% else %>
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
-                              <%= heroicon "check-circle", variant: :mini, options: { class: "h-3.5 w-3.5" } %>
-                              Clean
-                            </span>
-                          <% end %>
-                        </div>
                       </div>
-                    </div>
-                    
-                    <!-- Pull/Push actions -->
-                    <div class="flex items-center gap-2 ml-6 mt-2" data-git-actions-target="buttonContainer">
-                      <!-- Pull button - always show, disable when not applicable -->
-                      <% can_pull = status[:behind] > 0 && !status[:has_changes] %>
-                      <% pull_disabled_reason = if status[:has_changes]
-                           "Commit or stash changes first"
-                         elsif status[:behind] == 0
-                           "Already up to date"
-                         end %>
                       
-                      <div class="group relative">
+                      <!-- Actions Section -->
+                      <div class="flex items-center space-x-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <!-- Pull button -->
+                        <% can_pull = status[:behind] > 0 && !status[:has_changes] %>
+                        <% pull_disabled_reason = if status[:has_changes]
+                             "Commit or stash changes first"
+                           elsif status[:behind] == 0
+                             "Already up to date"
+                           end %>
+                        
                         <button class="<%= can_pull ? 
-                                      'group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
-                                       bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700
-                                       dark:from-blue-600 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-800
-                                       text-white shadow-sm hover:shadow-md transform transition-all duration-200 hover:scale-105
-                                       ring-1 ring-blue-500/10 hover:ring-blue-600/20' :
-                                      'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
-                                       bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700
-                                       text-gray-500 dark:text-gray-300 cursor-not-allowed opacity-60
-                                       ring-1 ring-gray-300/10 dark:ring-gray-600/10' %>"
+                                      'px-3 py-1.5 text-xs font-medium rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors' :
+                                      'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
                                 <%= can_pull ? 'data-action="click->git-actions#pull"' : 'disabled' %>
                                 <%= can_pull ? "data-git-actions-directory-param=\"#{status[:directory]}\"" : '' %>
                                 <%= can_pull ? "data-git-actions-instance-param=\"#{instance_name}\"" : '' %>
@@ -170,52 +162,22 @@
                                 <%= can_pull ? "data-git-actions-status-id-param=\"status-#{instance_name.parameterize}-#{status[:directory].parameterize}\"" : '' %>
                                 data-git-actions-pull-button="true"
                                 title="<%= can_pull ? "Pull #{status[:behind]} commit#{status[:behind] == 1 ? '' : 's'} from remote" : pull_disabled_reason %>">
-                          <% if can_pull %>
-                            <span class="absolute inset-0 rounded-md bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></span>
-                          <% end %>
-                          <%= heroicon "arrow-down-tray", variant: :mini, options: { class: "h-3.5 w-3.5 #{can_pull ? 'relative' : ''}" } %>
-                          <span class="<%= can_pull ? 'relative' : '' %>">Pull</span>
+                          <%= heroicon "arrow-down-tray", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
+                          Pull
                           <% if status[:behind] > 0 %>
-                            <span class="<%= can_pull ? 'relative' : '' %> inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold <%= can_pull ? 'bg-white/20' : 'bg-black/10 dark:bg-white/10' %> rounded">
+                            <span class="ml-1 px-1 py-0.5 text-[10px] font-bold bg-white/20 rounded">
                               <%= status[:behind] %>
                             </span>
                           <% end %>
                         </button>
                         
-                        <% if !can_pull && pull_disabled_reason %>
-                          <!-- Tooltip for disabled state -->
-                          <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded-md
-                                      opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
-                            <div class="flex items-center gap-1.5">
-                              <% if status[:has_changes] %>
-                                <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3.5 w-3.5 text-yellow-400" } %>
-                              <% else %>
-                                <%= heroicon "check-circle", variant: :mini, options: { class: "h-3.5 w-3.5 text-green-400" } %>
-                              <% end %>
-                              <span><%= pull_disabled_reason %></span>
-                            </div>
-                            <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                              <div class="border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
-                            </div>
-                          </div>
-                        <% end %>
-                      </div>
-                      
-                      <!-- Push button - always show, disable when not applicable -->
-                      <% can_push = status[:ahead] > 0 %>
-                      <% push_disabled_reason = "Nothing to push" unless can_push %>
-                      
-                      <div class="group relative">
+                        <!-- Push button -->
+                        <% can_push = status[:ahead] > 0 %>
+                        <% push_disabled_reason = "Nothing to push" unless can_push %>
+                        
                         <button class="<%= can_push ? 
-                                      'group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
-                                       bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700
-                                       dark:from-emerald-600 dark:to-green-700 dark:hover:from-emerald-700 dark:hover:to-green-800
-                                       text-white shadow-sm hover:shadow-md transform transition-all duration-200 hover:scale-105
-                                       ring-1 ring-emerald-500/10 hover:ring-emerald-600/20' :
-                                      'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
-                                       bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700
-                                       text-gray-500 dark:text-gray-300 cursor-not-allowed opacity-60
-                                       ring-1 ring-gray-300/10 dark:ring-gray-600/10' %>"
+                                      'px-3 py-1.5 text-xs font-medium rounded bg-green-500 hover:bg-green-600 text-white transition-colors' :
+                                      'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
                                 <%= can_push ? 'data-action="click->git-actions#push"' : 'disabled' %>
                                 <%= can_push ? "data-git-actions-directory-param=\"#{status[:directory]}\"" : '' %>
                                 <%= can_push ? "data-git-actions-instance-param=\"#{instance_name}\"" : '' %>
@@ -223,43 +185,46 @@
                                 <%= can_push ? "data-git-actions-status-id-param=\"status-#{instance_name.parameterize}-#{status[:directory].parameterize}\"" : '' %>
                                 data-git-actions-push-button="true"
                                 title="<%= can_push ? "Push #{status[:ahead]} commit#{status[:ahead] == 1 ? '' : 's'} to remote" : push_disabled_reason %>">
-                          <% if can_push %>
-                            <span class="absolute inset-0 rounded-md bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></span>
-                          <% end %>
-                          <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-3.5 w-3.5 #{can_push ? 'relative' : ''}" } %>
-                          <span class="<%= can_push ? 'relative' : '' %>">Push</span>
+                          <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
+                          Push
                           <% if status[:ahead] > 0 %>
-                            <span class="<%= can_push ? 'relative' : '' %> inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold <%= can_push ? 'bg-white/20' : 'bg-black/10 dark:bg-white/10' %> rounded">
+                            <span class="ml-1 px-1 py-0.5 text-[10px] font-bold bg-white/20 rounded">
                               <%= status[:ahead] %>
                             </span>
                           <% end %>
                         </button>
                         
+                        <!-- Status messages for disabled buttons -->
+                        <% if !can_pull && pull_disabled_reason && status[:has_changes] %>
+                          <span class="text-xs text-yellow-600 dark:text-yellow-400 flex items-center">
+                            <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3.5 w-3.5 mr-1" } %>
+                            <%= pull_disabled_reason %>
+                          </span>
+                        <% elsif !can_pull && pull_disabled_reason && !status[:has_changes] %>
+                          <span class="text-xs text-green-600 dark:text-green-400 flex items-center">
+                            <%= heroicon "check-circle", variant: :mini, options: { class: "h-3.5 w-3.5 mr-1" } %>
+                            <%= pull_disabled_reason %>
+                          </span>
+                        <% end %>
+                        
                         <% if !can_push && push_disabled_reason %>
-                          <!-- Tooltip for disabled state -->
-                          <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded-md
-                                      opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
-                            <div class="flex items-center gap-1.5">
-                              <%= heroicon "check-circle", variant: :mini, options: { class: "h-3.5 w-3.5 text-green-400" } %>
-                              <span><%= push_disabled_reason %></span>
-                            </div>
-                            <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                              <div class="border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
-                            </div>
-                          </div>
+                          <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                            <%= heroicon "check-circle", variant: :mini, options: { class: "h-3.5 w-3.5 mr-1" } %>
+                            <%= push_disabled_reason %>
+                          </span>
                         <% end %>
                       </div>
                     </div>
-                  </div>
-                <% end %>
+                  <% end %>
+                </div>
               </div>
             <% end %>
             
             <!-- Summary footer -->
             <% if dirty_count > 0 %>
-              <div class="pt-3 mt-2 border-t border-gray-200 dark:border-gray-700">
+              <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                  <span class="font-medium">Total changes across all repositories:</span>
+                  <span>Total changes across all repositories:</span>
                   <div class="flex items-center space-x-3">
                     <% if total_staged > 0 %>
                       <span><%= total_staged %> staged</span>

@@ -4,7 +4,7 @@ require "yaml"
 require "shellwords"
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_commit]
 
   def index
     @filter = params[:filter] || "active"
@@ -485,6 +485,90 @@ class SessionsController < ApplicationController
   rescue => e
     Rails.logger.error("Git push error: #{e.message}")
     render(json: { error: "Failed to push: #{e.message}" }, status: :internal_server_error)
+  end
+
+  def git_commit
+    directory = params[:directory]
+    instance_name = params[:instance_name]
+
+    unless directory.present? && File.directory?(directory)
+      render(json: { error: "Invalid directory" }, status: :bad_request)
+      return
+    end
+
+    # Security check - ensure directory belongs to this session
+    unless directory_belongs_to_session?(directory)
+      render(json: { error: "Unauthorized access to directory" }, status: :forbidden)
+      return
+    end
+
+    Dir.chdir(directory) do
+      # Check if there are changes to commit
+      status_output = %x(git status --porcelain 2>&1)
+      if status_output.empty?
+        render(json: { 
+          success: false, 
+          error: "No changes to commit" 
+        })
+        return
+      end
+
+      # Get the diff for Claude
+      diff_output = %x(git diff 2>&1)
+      staged_diff = %x(git diff --cached 2>&1)
+      untracked_files = %x(git ls-files --others --exclude-standard 2>&1).strip
+      
+      # Combine all changes for Claude
+      all_changes = "## Unstaged changes:\n#{diff_output}\n\n## Staged changes:\n#{staged_diff}\n\n## Untracked files:\n#{untracked_files}"
+      
+      # Use Claude to generate commit message
+      claude_prompt = "Generate a concise git commit message for the following changes:\n\n#{all_changes}"
+      escaped_prompt = Shellwords.escape(claude_prompt)
+      
+      # Call Claude CLI to generate commit message
+      commit_message = %x(claude -p #{escaped_prompt} 2>&1)
+      
+      if $?.exitstatus != 0
+        render(json: { 
+          success: false, 
+          error: "Failed to generate commit message with Claude: #{commit_message}" 
+        }, status: :unprocessable_entity)
+        return
+      end
+
+      # Clean up the commit message (remove any extra whitespace)
+      commit_message = commit_message.strip
+      
+      # Stage all changes
+      stage_result = %x(git add . 2>&1)
+      if $?.exitstatus != 0
+        render(json: { 
+          success: false, 
+          error: "Failed to stage changes: #{stage_result}" 
+        }, status: :unprocessable_entity)
+        return
+      end
+
+      # Commit with the generated message
+      escaped_message = Shellwords.escape(commit_message)
+      commit_result = %x(git commit -m #{escaped_message} 2>&1)
+      
+      if $?.exitstatus == 0
+        render(json: { 
+          success: true, 
+          commit_message: commit_message,
+          message: "Successfully committed changes" 
+        })
+      else
+        render(json: { 
+          success: false, 
+          error: "Failed to commit: #{commit_result}" 
+        }, status: :unprocessable_entity)
+      end
+    end
+  rescue => e
+    Rails.logger.error("Git commit error: #{e.message}")
+    render(json: { error: "Failed to commit: #{e.message}" }, status: :internal_server_error)
   end
 
   private

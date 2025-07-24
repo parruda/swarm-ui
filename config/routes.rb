@@ -16,6 +16,7 @@ Rails.application.routes.draw do
       post :diff_file_contents
       post :git_pull
       post :git_push
+      post :git_commit
     end
   end
 

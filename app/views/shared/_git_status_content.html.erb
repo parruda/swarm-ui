@@ -145,6 +145,28 @@
                       
                       <!-- Actions Section -->
                       <div class="flex items-center space-x-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <!-- Commit button -->
+                        <% can_commit = status[:has_changes] %>
+                        <% commit_disabled_reason = "No changes to commit" unless can_commit %>
+                        
+                        <button type="button" class="<%= can_commit ? 
+                                      'px-3 py-1.5 text-xs font-medium rounded bg-green-600 hover:bg-green-700 text-white transition-colors cursor-pointer' :
+                                      'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
+                                <% if can_commit %>
+                                  data-action="click->git-actions#commit"
+                                  data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
+                                  data-git-actions-instance-param="<%= html_escape(instance_name) %>"
+                                  data-git-actions-session-param="<%= session.id %>"
+                                  data-git-actions-status-id-param="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
+                                <% else %>
+                                  disabled
+                                <% end %>
+                                data-git-actions-commit-button="true"
+                                title="<%= can_commit ? "Generate commit message with Claude and commit changes" : commit_disabled_reason %>">
+                          <%= heroicon "check", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
+                          Commit
+                        </button>
+                        
                         <!-- Pull button -->
                         <% can_pull = status[:behind] > 0 && !status[:has_changes] %>
                         <% pull_disabled_reason = if status[:has_changes]

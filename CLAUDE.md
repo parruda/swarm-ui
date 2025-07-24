@@ -4,7 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SwarmUi is a Ruby on Rails 8.0.2 application using modern Rails conventions and the Hotwire stack (Turbo + Stimulus) for frontend interactivity.
+SwarmUI is a ViCE (Vibe Coding Environment) - a modern alternative to traditional IDEs that enables natural, conversational coding through AI integration. It's a Ruby on Rails 8.0.2 application using modern Rails conventions and the Hotwire stack (Turbo + Stimulus) for frontend interactivity.
+
+### The ViCE Philosophy
+
+SwarmUI is purpose-built for vibe coding mastery. Unlike traditional IDEs that bolt on AI features, SwarmUI provides the perfect environment for developers who:
+
+- Have transcended traditional tool-based workflows
+- Want to master the art of conversational development
+- Need precisely the right tools without unnecessary complexity
+- Seek a pure vibe coding experience
+
+Key principles:
+- **Minimal, essential tooling** - Just what you need for vibe coding, nothing more
+- **Natural language first** - Express intent, not commands
+- **Flow state optimization** - No interruptions, no friction
+- **AI-native workflows** - Built for Claude collaboration from day one
+
+This isn't an IDE with AI features added - it's a precision instrument for vibe coding practitioners.
 
 ## Key Technologies
 

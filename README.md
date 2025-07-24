@@ -1,6 +1,14 @@
 # SwarmUI
 
-A modern web interface for managing Claude Swarm sessions. SwarmUI provides an intuitive browser-based interface to create, view, and manage AI-assisted development sessions powered by Claude.
+A ViCE (Vibe Coding Environment) for AI-assisted development. SwarmUI is a modern alternative to traditional IDEs that embraces natural, conversational coding through Claude integration.
+
+## What is a ViCE?
+
+A Vibe Coding Environment is purpose-built for developers who have embraced AI-powered, conversational development. While traditional IDEs may add AI features as an afterthought, SwarmUI is designed from the ground up for vibe coding mastery. It provides just the right tools - nothing more, nothing less - allowing you to express creative intent through natural language without the bloat of traditional development environments.
+
+Perfect for developers who want to master vibe coding or have already transcended tool-based workflows, SwarmUI offers a distraction-free environment where you can truly flow with your AI pair programmer.
+
+SwarmUI provides an intuitive browser-based interface to create, view, and manage AI-assisted development sessions powered by Claude.
 
 ## Features
 

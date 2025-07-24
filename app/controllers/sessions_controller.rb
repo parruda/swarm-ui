@@ -589,17 +589,47 @@ class SessionsController < ApplicationController
   private
 
   def directory_belongs_to_session?(directory)
-    # Get all directories associated with this session
-    git_service = GitStatusService.new(@session)
-    instance_directories = git_service.send(:instance_directories)
+    # Collect all directories associated with this session
+    all_directories = []
+    
+    # Get session metadata
+    metadata = fetch_session_metadata
+    
+    # Get instances from metadata's worktree instance_configs
+    instances = metadata.dig("worktree", "instance_configs") || {}
+    
+    # If no worktree instances, load from the session's config.yml
+    if instances.empty? && @session.session_path
+      config_path = File.join(@session.session_path, "config.yml")
+      if File.exist?(config_path)
+        begin
+          session_config = YAML.load_file(config_path)
+          if session_config && session_config["swarm"] && session_config["swarm"]["instances"]
+            session_config["swarm"]["instances"].each do |name, config|
+              directories = build_instance_directories(config)
+              all_directories.concat(directories)
+            end
+          end
+        rescue => e
+          Rails.logger.error("Failed to load session config.yml: #{e.message}")
+        end
+      end
+    else
+      # Process worktree instances
+      instances.each do |name, config|
+        if config["worktree_paths"]&.any?
+          all_directories.concat(config["worktree_paths"])
+        elsif config["directories"]&.any?
+          all_directories.concat(config["directories"])
+        end
+      end
+    end
     
     # Normalize the directory path
     normalized_dir = File.expand_path(directory)
     
     # Check if the directory is in the list of session directories
-    instance_directories.any? do |_instance_name, directories|
-      directories.any? { |dir| File.expand_path(dir) == normalized_dir }
-    end
+    all_directories.any? { |dir| File.expand_path(dir) == normalized_dir }
   end
 
   def set_session

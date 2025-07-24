@@ -43,9 +43,8 @@ export default class extends Controller {
         this.showNotification(`Successfully pulled ${data.commits_pulled} commit${data.commits_pulled === 1 ? '' : 's'} for ${instanceName}`, 'success')
         
         // Animate button success
-        button.classList.remove('from-blue-500', 'to-blue-600', 'hover:from-blue-600', 'hover:to-blue-700', 
-                                'dark:from-blue-600', 'dark:to-blue-700', 'dark:hover:from-blue-700', 'dark:hover:to-blue-800')
-        button.classList.add('from-green-500', 'to-green-600', 'ring-green-500/20')
+        button.classList.remove('bg-blue-500', 'hover:bg-blue-600')
+        button.classList.add('bg-green-500')
         button.innerHTML = `
           <span class="absolute inset-0 rounded-md bg-white opacity-10"></span>
           <svg class="h-3.5 w-3.5 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,11 +56,8 @@ export default class extends Controller {
         // After animation, disable the button with appropriate styling
         setTimeout(() => {
           // Transition to disabled state
-          button.classList.remove('from-green-500', 'to-green-600', 'ring-green-500/20', 
-                                  'hover:scale-105', 'hover:shadow-md', 'transform', 
-                                  'shadow-sm', 'ring-1')
-          button.classList.add('from-gray-300', 'to-gray-400', 'dark:from-gray-600', 'dark:to-gray-700',
-                               'cursor-not-allowed', 'opacity-60', 'ring-gray-300/10', 'dark:ring-gray-600/10')
+          button.classList.remove('bg-green-500')
+          button.classList.add('bg-gray-300', 'dark:bg-gray-600', 'cursor-not-allowed')
           button.disabled = true
           button.removeAttribute('data-action')
           button.innerHTML = `
@@ -139,9 +135,8 @@ export default class extends Controller {
         this.showNotification(`Successfully pushed ${data.commits_pushed} commit${data.commits_pushed === 1 ? '' : 's'} for ${instanceName}`, 'success')
         
         // Animate button success
-        button.classList.remove('from-emerald-500', 'to-green-600', 'hover:from-emerald-600', 'hover:to-green-700',
-                                'dark:from-emerald-600', 'dark:to-green-700', 'dark:hover:from-emerald-700', 'dark:hover:to-green-800')
-        button.classList.add('from-green-500', 'to-green-600', 'ring-green-500/20')
+        button.classList.remove('bg-orange-900', 'hover:bg-orange-800')
+        button.classList.add('bg-green-500')
         button.innerHTML = `
           <span class="absolute inset-0 rounded-md bg-white opacity-10"></span>
           <svg class="h-3.5 w-3.5 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,11 +148,8 @@ export default class extends Controller {
         // After animation, disable the button with appropriate styling
         setTimeout(() => {
           // Transition to disabled state
-          button.classList.remove('from-green-500', 'to-green-600', 'ring-green-500/20', 
-                                  'hover:scale-105', 'hover:shadow-md', 'transform', 
-                                  'shadow-sm', 'ring-1')
-          button.classList.add('from-gray-300', 'to-gray-400', 'dark:from-gray-600', 'dark:to-gray-700',
-                               'cursor-not-allowed', 'opacity-60', 'ring-gray-300/10', 'dark:ring-gray-600/10')
+          button.classList.remove('bg-green-500')
+          button.classList.add('bg-gray-300', 'dark:bg-gray-600', 'cursor-not-allowed')
           button.disabled = true
           button.removeAttribute('data-action')
           button.innerHTML = `

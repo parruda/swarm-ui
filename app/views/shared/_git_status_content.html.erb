@@ -79,68 +79,71 @@
                         </code>
                       </div>
                       
-                      <!-- Branch and status on same line -->
-                      <div class="flex items-center justify-between ml-6">
-                        <div class="flex items-center flex-wrap gap-3">
-                        <!-- Branch -->
-                        <div class="flex items-center space-x-1">
-                          <%= heroicon "code-bracket", variant: :mini, options: { 
-                            class: "h-3.5 w-3.5 #{status[:has_changes] ? 'text-orange-500 dark:text-orange-400' : 'text-green-500 dark:text-green-400'}" 
-                          } %>
-                          <span class="font-mono text-sm font-medium text-gray-800 dark:text-gray-200">
-                            <%= status[:branch] %>
-                          </span>
+                      <!-- Branch info -->
+                      <div class="ml-6 space-y-2">
+                        <!-- Branch name and sync status -->
+                        <div class="flex items-center gap-3">
+                          <div class="flex items-center space-x-1">
+                            <%= heroicon "code-bracket", variant: :mini, options: { 
+                              class: "h-3.5 w-3.5 #{status[:has_changes] ? 'text-orange-500 dark:text-orange-400' : 'text-green-500 dark:text-green-400'}" 
+                            } %>
+                            <span class="font-mono text-sm font-medium text-gray-800 dark:text-gray-200">
+                              <%= status[:branch] %>
+                            </span>
+                          </div>
+                          
+                          <!-- Sync status badges -->
+                          <% if status[:ahead] > 0 || status[:behind] > 0 %>
+                            <div class="flex items-center gap-2">
+                              <% if status[:ahead] > 0 %>
+                                <span class="inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
+                                  <%= heroicon "arrow-up", variant: :mini, options: { class: "h-3 w-3" } %>
+                                  <%= status[:ahead] %>
+                                </span>
+                              <% end %>
+                              <% if status[:behind] > 0 %>
+                                <span class="inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded">
+                                  <%= heroicon "arrow-down", variant: :mini, options: { class: "h-3 w-3" } %>
+                                  <%= status[:behind] %>
+                                </span>
+                              <% end %>
+                            </div>
+                          <% end %>
                         </div>
                         
-                        <!-- Changes -->
-                        <% if status[:has_changes] %>
-                          <div class="flex items-center space-x-2 text-xs">
+                        <!-- File changes status -->
+                        <div class="flex items-center gap-2">
+                          <% if status[:has_changes] %>
                             <% if status[:staged] > 0 %>
-                              <span class="flex items-center space-x-0.5">
-                                <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                                <span class="text-green-600 dark:text-green-400 font-medium"><%= status[:staged] %> staged</span>
+                              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
+                                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                                <%= status[:staged] %> staged
                               </span>
                             <% end %>
                             <% if status[:modified] > 0 %>
-                              <span class="flex items-center space-x-0.5">
-                                <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
-                                <span class="text-orange-600 dark:text-orange-400 font-medium"><%= status[:modified] %> modified</span>
+                              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded">
+                                <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
+                                <%= status[:modified] %> modified
                               </span>
                             <% end %>
                             <% if status[:untracked] > 0 %>
-                              <span class="flex items-center space-x-0.5">
-                                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
-                                <span class="text-gray-600 dark:text-gray-400"><%= status[:untracked] %> untracked</span>
+                              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded">
+                                <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                                <%= status[:untracked] %> untracked
                               </span>
                             <% end %>
-                          </div>
-                        <% else %>
-                          <span class="text-xs text-green-600 dark:text-green-400 font-medium">Clean</span>
-                        <% end %>
-                        
-                        <!-- Sync status -->
-                        <% if status[:ahead] > 0 || status[:behind] > 0 %>
-                          <div class="flex items-center space-x-1 text-xs">
-                            <% if status[:ahead] > 0 %>
-                              <span class="flex items-center text-blue-600 dark:text-blue-400">
-                                <%= heroicon "arrow-up", variant: :mini, options: { class: "h-3 w-3" } %>
-                                <span class="font-medium"><%= status[:ahead] %></span>
-                              </span>
-                            <% end %>
-                            <% if status[:behind] > 0 %>
-                              <span class="flex items-center text-red-600 dark:text-red-400">
-                                <%= heroicon "arrow-down", variant: :mini, options: { class: "h-3 w-3" } %>
-                                <span class="font-medium"><%= status[:behind] %></span>
-                              </span>
-                            <% end %>
-                          </div>
-                        <% end %>
+                          <% else %>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
+                              <%= heroicon "check-circle", variant: :mini, options: { class: "h-3.5 w-3.5" } %>
+                              Clean
+                            </span>
+                          <% end %>
+                        </div>
                       </div>
                     </div>
-                  </div>
                     
-                  <!-- Pull/Push actions -->
-                  <div class="flex items-center gap-2 ml-6 mt-3" data-git-actions-target="buttonContainer">
+                    <!-- Pull/Push actions -->
+                    <div class="flex items-center gap-2 ml-6 mt-2" data-git-actions-target="buttonContainer">
                       <!-- Pull button - always show, disable when not applicable -->
                       <% can_pull = status[:behind] > 0 && !status[:has_changes] %>
                       <% pull_disabled_reason = if status[:has_changes]

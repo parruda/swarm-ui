@@ -401,7 +401,26 @@ export default class extends Controller {
 
   closeOnClickOutside(event) {
     const modalContent = this.modal.querySelector('.rounded-2xl')
-    if (!modalContent.contains(event.target)) {
+    
+    // Check if clicking on Monaco-related elements
+    // Monaco creates various UI elements that might be outside the main container
+    const isMonacoElement = event.target.closest('.monaco-editor') ||
+                          event.target.closest('.monaco-diff-editor') ||
+                          event.target.closest('.monaco-editor-overlaymessage') ||
+                          event.target.closest('.monaco-hover') ||
+                          event.target.closest('.monaco-menu-container') ||
+                          event.target.closest('.context-view-container') ||
+                          event.target.closest('.monaco-action-bar') ||
+                          event.target.closest('.diff-hidden-lines') ||
+                          event.target.closest('.view-overlays') ||
+                          event.target.closest('.margin-view-overlays') ||
+                          event.target.classList.contains('lines-content') ||
+                          event.target.classList.contains('view-line') ||
+                          event.target.classList.contains('diff-hidden-lines-action') ||
+                          event.target.textContent?.includes('Show unchanged region')
+    
+    // Only close if clicking outside modal content AND not a Monaco element
+    if (!modalContent.contains(event.target) && !isMonacoElement) {
       this.close()
     }
   }

@@ -256,12 +256,22 @@ export default class extends Controller {
       
       const fileData = await response.json()
       
-      // Create diff editor - minimal config like the working example
+      // Create diff editor with vibe coding optimized settings
       this.currentEditor = this.monaco.editor.createDiffEditor(container, {
         theme: document.documentElement.classList.contains('dark') ? 'vs-dark' : 'vs',
         automaticLayout: true,
         renderSideBySide: true,
-        originalEditable: false
+        originalEditable: false,
+        renderIndicators: true,  // Show +/- indicators for quick visual understanding
+        diffAlgorithm: 'advanced',  // Better detection of moved/refactored code
+        renderOverviewRuler: true,  // See all changes at once in scrollbar
+        enableSplitViewResizing: false,  // Keep it simple for vibe coding flow
+        hideUnchangedRegions: {
+          enabled: true,
+          revealLineCount: 3,
+          minLineCount: 5,
+          contextLineCount: 3
+        }
       })
       
       // Create models - try Ruby syntax, fall back to text if it fails
@@ -411,5 +421,181 @@ export default class extends Controller {
       this.currentEditor.dispose()
       this.currentEditor = null
     }
+  }
+
+  async approve(event) {
+    event.preventDefault()
+    
+    const approveButton = event.currentTarget
+    const rejectButton = this.modal.querySelector('[data-git-diff-modal-target="rejectButton"]')
+    
+    // Disable both buttons and show loading state
+    const originalContent = approveButton.innerHTML
+    approveButton.disabled = true
+    rejectButton.disabled = true
+    approveButton.classList.add('animate-pulse')
+    approveButton.innerHTML = `
+      <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span>Committing...</span>
+    `
+    
+    try {
+      // Call the same commit endpoint used by the commit button
+      const response = await fetch(`/sessions/${this.currentSessionId}/git_commit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": document.querySelector('[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+          directory: this.currentDirectory,
+          instance_name: "diff-viewer"
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        // Show success message
+        this.showNotification(`Changes approved and committed: ${data.commit_message}`, 'success')
+        
+        // Close modal after a short delay
+        setTimeout(() => {
+          this.close()
+        }, 1500)
+      } else {
+        // Show error
+        this.showNotification(data.error || "Failed to commit changes", 'error')
+        
+        // Restore button state
+        approveButton.disabled = false
+        rejectButton.disabled = false
+        approveButton.classList.remove('animate-pulse')
+        approveButton.innerHTML = originalContent
+      }
+    } catch (error) {
+      this.showNotification(`Error: ${error.message}`, 'error')
+      
+      // Restore button state
+      approveButton.disabled = false
+      rejectButton.disabled = false
+      approveButton.classList.remove('animate-pulse')
+      approveButton.innerHTML = originalContent
+    }
+  }
+
+  async reject(event) {
+    event.preventDefault()
+    
+    const rejectButton = event.currentTarget
+    const approveButton = this.modal.querySelector('[data-git-diff-modal-target="approveButton"]')
+    
+    // Confirm the action
+    if (!confirm("Are you sure you want to discard ALL changes? This cannot be undone.")) {
+      return
+    }
+    
+    // Disable both buttons and show loading state
+    const originalContent = rejectButton.innerHTML
+    rejectButton.disabled = true
+    approveButton.disabled = true
+    rejectButton.classList.add('animate-pulse')
+    rejectButton.innerHTML = `
+      <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span>Discarding...</span>
+    `
+    
+    try {
+      // Call a new git_reset endpoint
+      const response = await fetch(`/sessions/${this.currentSessionId}/git_reset`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": document.querySelector('[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+          directory: this.currentDirectory,
+          instance_name: "diff-viewer"
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        // Show success message
+        this.showNotification("All changes have been discarded", 'success')
+        
+        // Close modal after a short delay
+        setTimeout(() => {
+          this.close()
+        }, 1500)
+      } else {
+        // Show error
+        this.showNotification(data.error || "Failed to discard changes", 'error')
+        
+        // Restore button state
+        rejectButton.disabled = false
+        approveButton.disabled = false
+        rejectButton.classList.remove('animate-pulse')
+        rejectButton.innerHTML = originalContent
+      }
+    } catch (error) {
+      this.showNotification(`Error: ${error.message}`, 'error')
+      
+      // Restore button state
+      rejectButton.disabled = false
+      approveButton.disabled = false
+      rejectButton.classList.remove('animate-pulse')
+      rejectButton.innerHTML = originalContent
+    }
+  }
+
+  showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div')
+    notification.className = `fixed top-4 right-4 z-[60] rounded-xl shadow-2xl transform transition-all duration-500 translate-x-full overflow-hidden`
+    
+    // Set color based on type
+    const colors = {
+      success: 'bg-green-600',
+      error: 'bg-red-600',
+      info: 'bg-blue-600'
+    }
+    
+    const bgColor = colors[type] || colors.info
+    
+    notification.innerHTML = `
+      <div class="${bgColor} text-white p-4">
+        <div class="flex items-center space-x-3">
+          <div class="flex-1">
+            <p class="text-sm font-medium">${message}</p>
+          </div>
+        </div>
+      </div>
+    `
+    
+    // Add to DOM
+    document.body.appendChild(notification)
+    
+    // Animate in
+    requestAnimationFrame(() => {
+      notification.classList.remove('translate-x-full')
+      notification.classList.add('translate-x-0')
+    })
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      notification.classList.add('translate-x-full', 'opacity-0')
+      notification.classList.remove('translate-x-0')
+      setTimeout(() => {
+        notification.remove()
+      }, 500)
+    }, 5000)
   }
 }

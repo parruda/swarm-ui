@@ -212,14 +212,37 @@
                 </div>
               </div>
               
-              <!-- Close button with hover effect -->
-              <button type="button" 
-                      class="group relative rounded-xl bg-gray-100 dark:bg-gray-800 p-2.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105"
-                      data-action="click->git-diff-modal#close">
-                <span class="sr-only">Close</span>
-                <%= heroicon "x-mark", variant: :outline, options: { class: "h-5 w-5" } %>
-                <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-200 -z-10"></div>
-              </button>
+              <!-- Action buttons for vibe coding -->
+              <div class="flex items-center space-x-3">
+                <!-- Reject button -->
+                <button type="button" 
+                        class="group px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 flex items-center space-x-2"
+                        data-action="click->git-diff-modal#reject"
+                        data-git-diff-modal-target="rejectButton"
+                        title="Discard all changes">
+                  <%= heroicon "x-circle", variant: :solid, options: { class: "h-4 w-4" } %>
+                  <span>Reject</span>
+                </button>
+                
+                <!-- Approve button -->
+                <button type="button" 
+                        class="group px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 flex items-center space-x-2"
+                        data-action="click->git-diff-modal#approve"
+                        data-git-diff-modal-target="approveButton"
+                        title="Commit all changes">
+                  <%= heroicon "check-circle", variant: :solid, options: { class: "h-4 w-4" } %>
+                  <span>Approve</span>
+                </button>
+                
+                <!-- Close button with hover effect -->
+                <button type="button" 
+                        class="group relative rounded-xl bg-gray-100 dark:bg-gray-800 p-2.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105"
+                        data-action="click->git-diff-modal#close">
+                  <span class="sr-only">Close</span>
+                  <%= heroicon "x-mark", variant: :outline, options: { class: "h-5 w-5" } %>
+                  <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-200 -z-10"></div>
+                </button>
+              </div>
             </div>
           </div>
           

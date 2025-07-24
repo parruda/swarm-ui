@@ -5,7 +5,7 @@ require "shellwords"
 require "open3"
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_commit]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_commit, :git_reset]
 
   def index
     @filter = params[:filter] || "active"
@@ -646,6 +646,59 @@ class SessionsController < ApplicationController
       Rails.logger.error("Git commit error: #{e.message}")
       render(json: { error: "Failed to commit: #{e.message}" }, status: :internal_server_error)
     end
+  end
+
+  def git_reset
+    directory = params[:directory]
+    instance_name = params[:instance_name]
+    operation_success = false
+
+    unless directory.present? && File.directory?(directory)
+      render(json: { error: "Invalid directory" }, status: :bad_request)
+      return
+    end
+
+    # Security check - ensure directory belongs to this session
+    unless directory_belongs_to_session?(directory)
+      render(json: { error: "Unauthorized access to directory" }, status: :forbidden)
+      return
+    end
+
+    Dir.chdir(directory) do
+      # Reset all tracked files to HEAD
+      reset_result = %x(git reset --hard HEAD 2>&1)
+      
+      if $?.exitstatus != 0
+        render(json: { 
+          success: false, 
+          error: "Failed to reset tracked files: #{reset_result}" 
+        }, status: :unprocessable_entity)
+        return
+      end
+
+      # Clean up untracked files and directories
+      clean_result = %x(git clean -fd 2>&1)
+      
+      if $?.exitstatus != 0
+        render(json: { 
+          success: false, 
+          error: "Failed to clean untracked files: #{clean_result}" 
+        }, status: :unprocessable_entity)
+        return
+      end
+
+      operation_success = true
+      render(json: { 
+        success: true, 
+        message: "Successfully discarded all changes" 
+      })
+    end
+    
+    # Trigger git status update after chdir block completes
+    GitStatusUpdateJob.perform_later(@session.id) if operation_success
+  rescue => e
+    Rails.logger.error("Git reset error: #{e.message}")
+    render(json: { error: "Failed to reset: #{e.message}" }, status: :internal_server_error)
   end
 
   private

@@ -17,6 +17,7 @@ Rails.application.routes.draw do
       post :git_pull
       post :git_push
       post :git_commit
+      post :git_reset
     end
   end
 

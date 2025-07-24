@@ -68,6 +68,7 @@
                 
                 <% statuses.each do |status| %>
                   <div class="flex items-start justify-between py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 -mx-2 px-2 rounded transition-colors duration-150 <%= status[:has_changes] ? 'cursor-pointer' : '' %>"
+                       id="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
                        <% if status[:has_changes] && session.persisted? %>
                          data-action="click->git-diff-modal#open"
                          data-directory="<%= status[:directory] %>"
@@ -142,40 +143,112 @@
                     </div>
                     
                     <!-- Pull/Push actions -->
-                    <div class="flex items-center space-x-2 ml-2">
-                      <% if status[:behind] > 0 && !status[:has_changes] %>
-                        <!-- Pull button - only show if clean and behind -->
-                        <button class="px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded transition-colors duration-150"
-                                data-action="click->git-actions#pull"
-                                data-git-actions-directory-param="<%= status[:directory] %>"
-                                data-git-actions-instance-param="<%= instance_name %>"
-                                data-git-actions-session-param="<%= session.id %>"
-                                title="Pull <%= status[:behind] %> commit<%= status[:behind] == 1 ? '' : 's' %> from remote">
-                          <%= heroicon "arrow-down-tray", variant: :mini, options: { class: "h-3 w-3" } %>
-                          Pull
-                        </button>
-                      <% elsif status[:behind] > 0 && status[:has_changes] %>
-                        <!-- Disabled pull button with tooltip -->
-                        <button class="px-2 py-1 text-xs bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 rounded cursor-not-allowed"
-                                disabled
-                                title="Cannot pull: repository has uncommitted changes">
-                          <%= heroicon "arrow-down-tray", variant: :mini, options: { class: "h-3 w-3" } %>
-                          Pull
-                        </button>
-                      <% end %>
+                    <div class="flex items-center gap-1.5 ml-2" data-git-actions-target="buttonContainer">
+                      <!-- Pull button - always show, disable when not applicable -->
+                      <% can_pull = status[:behind] > 0 && !status[:has_changes] %>
+                      <% pull_disabled_reason = if status[:has_changes]
+                           "Commit or stash changes first"
+                         elsif status[:behind] == 0
+                           "Already up to date"
+                         end %>
                       
-                      <% if status[:ahead] > 0 %>
-                        <!-- Push button - only show if ahead -->
-                        <button class="px-2 py-1 text-xs bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white rounded transition-colors duration-150"
-                                data-action="click->git-actions#push"
-                                data-git-actions-directory-param="<%= status[:directory] %>"
-                                data-git-actions-instance-param="<%= instance_name %>"
-                                data-git-actions-session-param="<%= session.id %>"
-                                title="Push <%= status[:ahead] %> commit<%= status[:ahead] == 1 ? '' : 's' %> to remote">
-                          <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-3 w-3" } %>
-                          Push
+                      <div class="group relative">
+                        <button class="<%= can_pull ? 
+                                      'group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
+                                       bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700
+                                       dark:from-blue-600 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-800
+                                       text-white shadow-sm hover:shadow-md transform transition-all duration-200 hover:scale-105
+                                       ring-1 ring-blue-500/10 hover:ring-blue-600/20' :
+                                      'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
+                                       bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700
+                                       text-gray-500 dark:text-gray-300 cursor-not-allowed opacity-60
+                                       ring-1 ring-gray-300/10 dark:ring-gray-600/10' %>"
+                                <%= can_pull ? 'data-action="click->git-actions#pull"' : 'disabled' %>
+                                <%= can_pull ? "data-git-actions-directory-param=\"#{status[:directory]}\"" : '' %>
+                                <%= can_pull ? "data-git-actions-instance-param=\"#{instance_name}\"" : '' %>
+                                <%= can_pull ? "data-git-actions-session-param=\"#{session.id}\"" : '' %>
+                                <%= can_pull ? "data-git-actions-status-id-param=\"status-#{instance_name.parameterize}-#{status[:directory].parameterize}\"" : '' %>
+                                data-git-actions-pull-button="true"
+                                title="<%= can_pull ? "Pull #{status[:behind]} commit#{status[:behind] == 1 ? '' : 's'} from remote" : pull_disabled_reason %>">
+                          <% if can_pull %>
+                            <span class="absolute inset-0 rounded-md bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></span>
+                          <% end %>
+                          <%= heroicon "arrow-down-tray", variant: :mini, options: { class: "h-3.5 w-3.5 #{can_pull ? 'relative' : ''}" } %>
+                          <span class="<%= can_pull ? 'relative' : '' %>">Pull</span>
+                          <% if status[:behind] > 0 %>
+                            <span class="<%= can_pull ? 'relative' : '' %> inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold <%= can_pull ? 'bg-white/20' : 'bg-black/10 dark:bg-white/10' %> rounded">
+                              <%= status[:behind] %>
+                            </span>
+                          <% end %>
                         </button>
-                      <% end %>
+                        
+                        <% if !can_pull && pull_disabled_reason %>
+                          <!-- Tooltip for disabled state -->
+                          <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded-md
+                                      opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                            <div class="flex items-center gap-1.5">
+                              <% if status[:has_changes] %>
+                                <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3.5 w-3.5 text-yellow-400" } %>
+                              <% else %>
+                                <%= heroicon "check-circle", variant: :mini, options: { class: "h-3.5 w-3.5 text-green-400" } %>
+                              <% end %>
+                              <span><%= pull_disabled_reason %></span>
+                            </div>
+                            <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                              <div class="border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
+                            </div>
+                          </div>
+                        <% end %>
+                      </div>
+                      
+                      <!-- Push button - always show, disable when not applicable -->
+                      <% can_push = status[:ahead] > 0 %>
+                      <% push_disabled_reason = "Nothing to push" unless can_push %>
+                      
+                      <div class="group relative">
+                        <button class="<%= can_push ? 
+                                      'group relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
+                                       bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700
+                                       dark:from-emerald-600 dark:to-green-700 dark:hover:from-emerald-700 dark:hover:to-green-800
+                                       text-white shadow-sm hover:shadow-md transform transition-all duration-200 hover:scale-105
+                                       ring-1 ring-emerald-500/10 hover:ring-emerald-600/20' :
+                                      'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md
+                                       bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700
+                                       text-gray-500 dark:text-gray-300 cursor-not-allowed opacity-60
+                                       ring-1 ring-gray-300/10 dark:ring-gray-600/10' %>"
+                                <%= can_push ? 'data-action="click->git-actions#push"' : 'disabled' %>
+                                <%= can_push ? "data-git-actions-directory-param=\"#{status[:directory]}\"" : '' %>
+                                <%= can_push ? "data-git-actions-instance-param=\"#{instance_name}\"" : '' %>
+                                <%= can_push ? "data-git-actions-session-param=\"#{session.id}\"" : '' %>
+                                <%= can_push ? "data-git-actions-status-id-param=\"status-#{instance_name.parameterize}-#{status[:directory].parameterize}\"" : '' %>
+                                data-git-actions-push-button="true"
+                                title="<%= can_push ? "Push #{status[:ahead]} commit#{status[:ahead] == 1 ? '' : 's'} to remote" : push_disabled_reason %>">
+                          <% if can_push %>
+                            <span class="absolute inset-0 rounded-md bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></span>
+                          <% end %>
+                          <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-3.5 w-3.5 #{can_push ? 'relative' : ''}" } %>
+                          <span class="<%= can_push ? 'relative' : '' %>">Push</span>
+                          <% if status[:ahead] > 0 %>
+                            <span class="<%= can_push ? 'relative' : '' %> inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold <%= can_push ? 'bg-white/20' : 'bg-black/10 dark:bg-white/10' %> rounded">
+                              <%= status[:ahead] %>
+                            </span>
+                          <% end %>
+                        </button>
+                        
+                        <% if !can_push && push_disabled_reason %>
+                          <!-- Tooltip for disabled state -->
+                          <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded-md
+                                      opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                            <div class="flex items-center gap-1.5">
+                              <%= heroicon "check-circle", variant: :mini, options: { class: "h-3.5 w-3.5 text-green-400" } %>
+                              <span><%= push_disabled_reason %></span>
+                            </div>
+                            <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                              <div class="border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
+                            </div>
+                          </div>
+                        <% end %>
+                      </div>
                     </div>
                   </div>
                 <% end %>

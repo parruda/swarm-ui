@@ -26,11 +26,11 @@ export default class extends Controller {
     button.classList.add('animate-pulse')
     button.innerHTML = `
       <span class="absolute inset-0 rounded-md bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></span>
-      <svg class="h-3.5 w-3.5 animate-spin relative" fill="none" viewBox="0 0 24 24">
+      <svg class="h-3.5 w-3.5 animate-spin relative inline-block" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
-      <span class="relative">Pulling...</span>
+      <span class="relative whitespace-nowrap">Pulling...</span>
     `
     
     try {
@@ -49,21 +49,19 @@ export default class extends Controller {
         // Show success message with animation
         this.showNotification(`Successfully pulled ${data.commits_pulled} commit${data.commits_pulled === 1 ? '' : 's'} for ${instanceName}`, 'success')
         
-        // Animate button success
-        button.classList.remove('bg-blue-500', 'hover:bg-blue-600')
-        button.classList.add('bg-green-500')
+        // Animate button success - keep blue color
         button.innerHTML = `
           <span class="absolute inset-0 rounded-md bg-white opacity-10"></span>
-          <svg class="h-3.5 w-3.5 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-3.5 w-3.5 relative inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
           </svg>
-          <span class="relative">Pulled!</span>
+          <span class="relative whitespace-nowrap">Pulled!</span>
         `
         
         // After animation, disable the button with appropriate styling
         setTimeout(() => {
           // Transition to disabled state
-          button.classList.remove('bg-green-500')
+          button.classList.remove('bg-blue-500', 'hover:bg-blue-600')
           button.classList.add('bg-gray-300', 'dark:bg-gray-600', 'cursor-not-allowed')
           button.disabled = true
           button.removeAttribute('data-action')
@@ -118,11 +116,11 @@ export default class extends Controller {
     button.classList.add('animate-pulse')
     button.innerHTML = `
       <span class="absolute inset-0 rounded-md bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></span>
-      <svg class="h-3.5 w-3.5 animate-spin relative" fill="none" viewBox="0 0 24 24">
+      <svg class="h-3.5 w-3.5 animate-spin relative inline-block" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
-      <span class="relative">Pushing...</span>
+      <span class="relative whitespace-nowrap">Pushing...</span>
     `
     
     try {
@@ -141,21 +139,19 @@ export default class extends Controller {
         // Show success message with animation
         this.showNotification(`Successfully pushed ${data.commits_pushed} commit${data.commits_pushed === 1 ? '' : 's'} for ${instanceName}`, 'success')
         
-        // Animate button success
-        button.classList.remove('bg-orange-900', 'hover:bg-orange-800')
-        button.classList.add('bg-green-500')
+        // Animate button success - keep orange color
         button.innerHTML = `
           <span class="absolute inset-0 rounded-md bg-white opacity-10"></span>
-          <svg class="h-3.5 w-3.5 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-3.5 w-3.5 relative inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
           </svg>
-          <span class="relative">Pushed!</span>
+          <span class="relative whitespace-nowrap">Pushed!</span>
         `
         
         // After animation, disable the button with appropriate styling
         setTimeout(() => {
           // Transition to disabled state
-          button.classList.remove('bg-green-500')
+          button.classList.remove('bg-orange-900', 'hover:bg-orange-800')
           button.classList.add('bg-gray-300', 'dark:bg-gray-600', 'cursor-not-allowed')
           button.disabled = true
           button.removeAttribute('data-action')

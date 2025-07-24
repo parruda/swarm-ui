@@ -376,7 +376,7 @@ class SessionsController < ApplicationController
       if behind_count == 0
         render(json: { 
           success: false, 
-          error: "Already up to date with remote" 
+          error: "Nothing to pull from remote" 
         })
         return
       end

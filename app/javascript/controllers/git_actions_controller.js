@@ -64,12 +64,12 @@ export default class extends Controller {
             ${this.heroicon('arrow-down-tray', 'h-3.5 w-3.5')}
             <span>Pull</span>
           `
-          button.title = "Already up to date"
+          button.title = "Nothing to pull"
           
           // Update the tooltip if it exists
           const tooltip = button.parentElement.querySelector('.absolute.bottom-full')
           if (tooltip) {
-            tooltip.querySelector('span:last-child').textContent = "Already up to date"
+            tooltip.querySelector('span:last-child').textContent = "Nothing to pull"
             const icon = tooltip.querySelector('svg').parentElement
             icon.innerHTML = this.heroicon('check-circle', 'h-3.5 w-3.5 text-green-400')
           }

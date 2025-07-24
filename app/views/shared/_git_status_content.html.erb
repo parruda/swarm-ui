@@ -149,7 +149,7 @@
                         <% pull_disabled_reason = if status[:has_changes]
                              "Commit or stash changes first"
                            elsif status[:behind] == 0
-                             "Already up to date"
+                             "Nothing to pull"
                            end %>
                         
                         <button class="<%= can_pull ? 

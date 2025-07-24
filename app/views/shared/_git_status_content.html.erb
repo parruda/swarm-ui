@@ -49,10 +49,10 @@
         </button>
         
         <!-- Detailed dropdown -->
-        <div class="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 hidden z-50 min-w-[400px] max-w-[600px]"
+        <div class="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 hidden z-50 w-[700px] max-h-[600px] overflow-y-auto"
              data-dropdown-hover-target="menu"
              data-action="mouseenter->dropdown-hover#menuEnter mouseleave->dropdown-hover#menuLeave">
-          <div class="p-4 space-y-3">
+          <div class="p-5 space-y-4">
             <% git_statuses.each do |instance_name, statuses| %>
               <div class="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-3 last:pb-0">
                 <div class="flex items-center justify-between mb-2">
@@ -67,25 +67,27 @@
                 </div>
                 
                 <% statuses.each do |status| %>
-                  <div class="flex items-start justify-between py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 -mx-2 px-2 rounded transition-colors duration-150 <%= status[:has_changes] ? 'cursor-pointer' : '' %>"
-                       id="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
-                       <% if status[:has_changes] && session.persisted? %>
-                         data-action="click->git-diff-modal#open"
-                         data-directory="<%= status[:directory] %>"
-                         data-instance-name="<%= instance_name %>"
-                         data-session-id="<%= session.id %>"
-                       <% end %>>
-                    <div class="flex-1">
-                      <!-- Directory path -->
-                      <div class="flex items-center space-x-2 mb-1">
-                        <%= heroicon "folder", variant: :mini, options: { class: "h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" } %>
-                        <code class="text-[11px] text-gray-600 dark:text-gray-400 break-all">
-                          <%= status[:directory].gsub(ENV['HOME'], '~') %>
-                        </code>
-                      </div>
+                  <div class="py-2 hover:bg-gray-50 dark:hover:bg-gray-700 -mx-2 px-3 rounded transition-colors duration-150"
+                       id="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>">
+                    <!-- Directory path with click action for diffs -->
+                    <div class="flex items-start justify-between gap-4 <%= status[:has_changes] ? 'cursor-pointer' : '' %>"
+                         <% if status[:has_changes] && session.persisted? %>
+                           data-action="click->git-diff-modal#open"
+                           data-directory="<%= status[:directory] %>"
+                           data-instance-name="<%= instance_name %>"
+                           data-session-id="<%= session.id %>"
+                         <% end %>>
+                      <div class="flex-1 min-w-0">
+                        <!-- Directory path -->
+                        <div class="flex items-center space-x-2 mb-1">
+                          <%= heroicon "folder", variant: :mini, options: { class: "h-3.5 w-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" } %>
+                          <code class="text-xs text-gray-600 dark:text-gray-400 truncate" title="<%= status[:directory] %>">
+                            <%= status[:directory].gsub(ENV['HOME'], '~') %>
+                          </code>
+                        </div>
                       
-                      <!-- Branch and status -->
-                      <div class="flex items-center space-x-3 ml-5">
+                        <!-- Branch and status -->
+                        <div class="flex items-center flex-wrap gap-2 ml-5">
                         <!-- Branch -->
                         <div class="flex items-center space-x-1">
                           <%= heroicon "code-bracket", variant: :mini, options: { 
@@ -139,11 +141,12 @@
                             <% end %>
                           </div>
                         <% end %>
+                        </div>
                       </div>
                     </div>
                     
-                    <!-- Pull/Push actions -->
-                    <div class="flex items-center gap-1.5 ml-2" data-git-actions-target="buttonContainer">
+                    <!-- Pull/Push actions on separate line -->
+                    <div class="flex items-center gap-1.5 ml-5 mt-2" data-git-actions-target="buttonContainer">
                       <!-- Pull button - always show, disable when not applicable -->
                       <% can_pull = status[:behind] > 0 && !status[:has_changes] %>
                       <% pull_disabled_reason = if status[:has_changes]
@@ -257,9 +260,9 @@
             
             <!-- Summary footer -->
             <% if dirty_count > 0 %>
-              <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div class="pt-3 mt-2 border-t border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                  <span>Total changes across all repositories:</span>
+                  <span class="font-medium">Total changes across all repositories:</span>
                   <div class="flex items-center space-x-3">
                     <% if total_staged > 0 %>
                       <span><%= total_staged %> staged</span>

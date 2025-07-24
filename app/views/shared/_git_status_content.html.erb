@@ -63,14 +63,15 @@
                 <div class="space-y-4">
                   <% statuses.each do |status| %>
                     <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4"
-                         id="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>">
+                         id="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
+                         data-controller="git-actions">
                       
                       <!-- Repository Info Section -->
                       <div class="<%= status[:has_changes] ? 'cursor-pointer' : '' %> mb-3"
                            <% if status[:has_changes] && session.persisted? %>
                              data-action="click->git-diff-modal#open"
-                             data-directory="<%= status[:directory] %>"
-                             data-instance-name="<%= instance_name %>"
+                             data-directory="<%= html_escape(status[:directory]) %>"
+                             data-instance-name="<%= html_escape(instance_name) %>"
                              data-session-id="<%= session.id %>"
                            <% end %>>
                         
@@ -152,14 +153,19 @@
                              "Nothing to pull"
                            end %>
                         
-                        <button class="<%= can_pull ? 
-                                      'px-3 py-1.5 text-xs font-medium rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors' :
+                        <button type="button" 
+                                class="<%= can_pull ? 
+                                      'px-3 py-1.5 text-xs font-medium rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors cursor-pointer' :
                                       'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
-                                <%= can_pull ? 'data-action="click->git-actions#pull"' : 'disabled' %>
-                                <%= can_pull ? "data-git-actions-directory-param=\"#{status[:directory]}\"" : '' %>
-                                <%= can_pull ? "data-git-actions-instance-param=\"#{instance_name}\"" : '' %>
-                                <%= can_pull ? "data-git-actions-session-param=\"#{session.id}\"" : '' %>
-                                <%= can_pull ? "data-git-actions-status-id-param=\"status-#{instance_name.parameterize}-#{status[:directory].parameterize}\"" : '' %>
+                                <% if can_pull %>
+                                  data-action="click->git-actions#pull"
+                                  data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
+                                  data-git-actions-instance-param="<%= html_escape(instance_name) %>"
+                                  data-git-actions-session-param="<%= session.id %>"
+                                  data-git-actions-status-id-param="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
+                                <% else %>
+                                  disabled
+                                <% end %>
                                 data-git-actions-pull-button="true"
                                 title="<%= can_pull ? "Pull #{status[:behind]} commit#{status[:behind] == 1 ? '' : 's'} from remote" : pull_disabled_reason %>">
                           <%= heroicon "arrow-down-tray", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
@@ -175,14 +181,19 @@
                         <% can_push = status[:ahead] > 0 %>
                         <% push_disabled_reason = "Nothing to push" unless can_push %>
                         
-                        <button class="<%= can_push ? 
-                                      'px-3 py-1.5 text-xs font-medium rounded bg-orange-900 hover:bg-orange-800 text-white transition-colors' :
+                        <button type="button" 
+                                class="<%= can_push ? 
+                                      'px-3 py-1.5 text-xs font-medium rounded bg-orange-900 hover:bg-orange-800 text-white transition-colors cursor-pointer' :
                                       'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
-                                <%= can_push ? 'data-action="click->git-actions#push"' : 'disabled' %>
-                                <%= can_push ? "data-git-actions-directory-param=\"#{status[:directory]}\"" : '' %>
-                                <%= can_push ? "data-git-actions-instance-param=\"#{instance_name}\"" : '' %>
-                                <%= can_push ? "data-git-actions-session-param=\"#{session.id}\"" : '' %>
-                                <%= can_push ? "data-git-actions-status-id-param=\"status-#{instance_name.parameterize}-#{status[:directory].parameterize}\"" : '' %>
+                                <% if can_push %>
+                                  data-action="click->git-actions#push"
+                                  data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
+                                  data-git-actions-instance-param="<%= html_escape(instance_name) %>"
+                                  data-git-actions-session-param="<%= session.id %>"
+                                  data-git-actions-status-id-param="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
+                                <% else %>
+                                  disabled
+                                <% end %>
                                 data-git-actions-push-button="true"
                                 title="<%= can_push ? "Push #{status[:ahead]} commit#{status[:ahead] == 1 ? '' : 's'} to remote" : push_disabled_reason %>">
                           <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>

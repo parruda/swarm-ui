@@ -3,6 +3,13 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["buttonContainer"]
   
+  connect() {
+    // Find all buttons within this controller's element
+    const pushButtons = this.element.querySelectorAll('[data-action*="git-actions#push"]')
+    const pullButtons = this.element.querySelectorAll('[data-action*="git-actions#pull"]')
+    console.log(`GitActionsController connected with ${pushButtons.length} push buttons and ${pullButtons.length} pull buttons`)
+  }
+  
   async pull(event) {
     event.preventDefault()
     event.stopPropagation() // Prevent dropdown from closing

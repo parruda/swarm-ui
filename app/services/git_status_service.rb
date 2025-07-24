@@ -2,6 +2,7 @@
 
 require "yaml"
 require "set"
+require "open3"
 
 class GitStatusService
   def initialize(session)
@@ -68,58 +69,59 @@ class GitStatusService
   def fetch_git_status(directory)
     return unless File.directory?(File.join(directory, ".git")) || File.exist?(File.join(directory, ".git"))
 
-    Dir.chdir(directory) do
-      branch = %x(git rev-parse --abbrev-ref HEAD 2>/dev/null).strip
-      return if branch.empty?
+    # Use Open3 to run git commands without changing directories
+    branch, _ = Open3.capture2("git rev-parse --abbrev-ref HEAD", chdir: directory)
+    branch = branch.strip
+    return if branch.empty?
 
-      # Check if this directory is a worktree by examining .git file
-      is_worktree = false
-      git_path = File.join(directory, ".git")
+    # Check if this directory is a worktree by examining .git file
+    is_worktree = false
+    git_path = File.join(directory, ".git")
 
-      if File.file?(git_path)
-        # If .git is a file (not a directory), it's likely a worktree
-        git_content = File.read(git_path).strip
-        is_worktree = git_content.start_with?("gitdir:")
-      end
-
-      # Alternative check: see if this directory appears in worktree list from the main repo
-      unless is_worktree
-        worktree_list = %x(git worktree list 2>/dev/null)
-        is_worktree = worktree_list.lines.any? { |line| line.include?(directory) && !line.include?("(bare)") && !line.end_with?("(main)\n") && !line.end_with?("(master)\n") }
-      end
-
-      # Get status info
-      status_output = %x(git status --porcelain 2>/dev/null)
-      has_changes = !status_output.empty?
-
-      # Count different types of changes
-      staged = status_output.lines.count { |line| line =~ /^[MADRC]/ }
-      modified = status_output.lines.count { |line| line =~ /^.M/ }
-      untracked = status_output.lines.count { |line| line =~ /^\?\?/ }
-
-      # Get ahead/behind info
-      ahead_behind = %x(git rev-list --left-right --count HEAD...@{upstream} 2>/dev/null).strip
-      ahead = 0
-      behind = 0
-
-      unless ahead_behind.empty?
-        parts = ahead_behind.split("\t")
-        ahead = parts[0].to_i if parts[0]
-        behind = parts[1].to_i if parts[1]
-      end
-
-      {
-        directory: directory,
-        branch: branch,
-        is_worktree: is_worktree,
-        has_changes: has_changes,
-        staged: staged,
-        modified: modified,
-        untracked: untracked,
-        ahead: ahead,
-        behind: behind,
-      }
+    if File.file?(git_path)
+      # If .git is a file (not a directory), it's likely a worktree
+      git_content = File.read(git_path).strip
+      is_worktree = git_content.start_with?("gitdir:")
     end
+
+    # Alternative check: see if this directory appears in worktree list from the main repo
+    unless is_worktree
+      worktree_list, _ = Open3.capture2("git worktree list", chdir: directory)
+      is_worktree = worktree_list.lines.any? { |line| line.include?(directory) && !line.include?("(bare)") && !line.end_with?("(main)\n") && !line.end_with?("(master)\n") }
+    end
+
+    # Get status info
+    status_output, _ = Open3.capture2("git status --porcelain", chdir: directory)
+    has_changes = !status_output.empty?
+
+    # Count different types of changes
+    staged = status_output.lines.count { |line| line =~ /^[MADRC]/ }
+    modified = status_output.lines.count { |line| line =~ /^.M/ }
+    untracked = status_output.lines.count { |line| line =~ /^\?\?/ }
+
+    # Get ahead/behind info
+    ahead_behind, _ = Open3.capture2("git rev-list --left-right --count HEAD...@{upstream}", chdir: directory)
+    ahead_behind = ahead_behind.strip
+    ahead = 0
+    behind = 0
+
+    unless ahead_behind.empty?
+      parts = ahead_behind.split("\t")
+      ahead = parts[0].to_i if parts[0]
+      behind = parts[1].to_i if parts[1]
+    end
+
+    {
+      directory: directory,
+      branch: branch,
+      is_worktree: is_worktree,
+      has_changes: has_changes,
+      staged: staged,
+      modified: modified,
+      untracked: untracked,
+      ahead: ahead,
+      behind: behind,
+    }
   rescue => e
     Rails.logger.error("Error fetching git status for #{directory}: #{e.message}")
     nil

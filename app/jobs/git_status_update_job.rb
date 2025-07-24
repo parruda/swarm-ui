@@ -21,6 +21,8 @@ class GitStatusUpdateJob < ApplicationJob
     return unless Rails.cache.write(cache_key, true, expires_in: 10.seconds, unless_exist: true)
 
     git_service = GitStatusService.new(session)
+    # Log when we're fetching git status
+    Rails.logger.debug("[GitStatusUpdateJob] Fetching git status for session #{session_id}")
     git_statuses = git_service.fetch_all_statuses
 
     # Broadcast the update to the session's Turbo Stream channel

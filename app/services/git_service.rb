@@ -174,14 +174,15 @@ class GitService
   private
 
   def run_git_command(command)
-    Dir.chdir(project_path) do
-      %x(git #{command} 2>/dev/null)
-    end
+    # Use Open3 with chdir option to avoid nested chdir issues
+    cmd = "git #{command}"
+    stdout, _, _ = Open3.capture3(cmd, chdir: project_path)
+    # Return stdout for backward compatibility
+    stdout
   end
 
   def run_git_command_with_output(command)
-    Dir.chdir(project_path) do
-      Open3.capture3("git", *command.split)
-    end
+    # Use Open3 with chdir option to avoid nested chdir issues
+    Open3.capture3("git", *command.split, chdir: project_path)
   end
 end

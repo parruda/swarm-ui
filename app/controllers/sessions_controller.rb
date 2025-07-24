@@ -2,6 +2,7 @@
 
 require "yaml"
 require "shellwords"
+require "open3"
 
 class SessionsController < ApplicationController
   before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_commit]
@@ -188,69 +189,68 @@ class SessionsController < ApplicationController
     end
 
     safe_dir = directory
-    safe_file = File.join(directory, file_path)
+    File.join(directory, file_path)
 
-    Dir.chdir(safe_dir) do
-      # Check if file exists
-      file_exists = File.exist?(file_path)
+    # Check if file exists
+    file_exists = File.exist?(File.join(safe_dir, file_path))
 
-      # Get current content (modified version)
-      modified_content = if file_exists
-        File.read(file_path)
-      else
-        ""
-      end
-
-      # Escape file path for shell
-      escaped_path = Shellwords.escape(file_path)
-
-      # Get git status for this specific file
-      git_status = %x(git status --porcelain #{escaped_path} 2>/dev/null).strip
-
-      # Determine file status and get appropriate content
-      original_content = ""
-
-      if git_status.start_with?("??")
-        # Untracked file - show empty vs working directory
-        original_content = ""
-        # modified_content already has the working directory content
-      elsif git_status.match?(/^[AM]M/)
-        # File has both staged and unstaged changes
-        # Show HEAD vs working directory (to see all changes)
-        original_content = %x(git show HEAD:#{escaped_path} 2>/dev/null)
-        # modified_content already has the working directory content
-      elsif git_status.match?(/^[AM]\s/)
-        # File is only staged (not modified in working directory)
-        # This means working directory matches staged version
-        # Show HEAD vs working directory (which equals staged)
-        original_content = %x(git show HEAD:#{escaped_path} 2>/dev/null)
-        if $?.exitstatus != 0
-          # New file, show empty vs working directory
-          original_content = ""
-        end
-        # modified_content already has the working directory content
-      elsif git_status.match?(/^\sM/)
-        # File is only modified (not staged)
-        # Show HEAD vs working directory
-        original_content = %x(git show HEAD:#{escaped_path} 2>/dev/null)
-        # modified_content already has the working directory content
-      else
-        # Default: show HEAD vs working directory
-        original_content = %x(git show HEAD:#{escaped_path} 2>/dev/null)
-        # modified_content already has the working directory content
-      end
-
-      # Detect language from file extension
-      language = detect_language(file_path)
-
-      render(json: {
-        file_path: file_path,
-        original_content: original_content,
-        modified_content: modified_content,
-        language: language,
-        status: git_status,
-      })
+    # Get current content (modified version)
+    modified_content = if file_exists
+      File.read(File.join(safe_dir, file_path))
+    else
+      ""
     end
+
+    # Escape file path for shell
+    escaped_path = Shellwords.escape(file_path)
+
+    # Get git status for this specific file
+    git_status, _, _ = Open3.capture3("git status --porcelain #{escaped_path}", chdir: safe_dir)
+    git_status = git_status.strip
+
+    # Determine file status and get appropriate content
+    original_content = ""
+
+    if git_status.start_with?("??")
+      # Untracked file - show empty vs working directory
+      original_content = ""
+      # modified_content already has the working directory content
+    elsif git_status.match?(/^[AM]M/)
+      # File has both staged and unstaged changes
+      # Show HEAD vs working directory (to see all changes)
+      original_content, _, _ = Open3.capture3("git show HEAD:#{escaped_path}", chdir: safe_dir)
+      # modified_content already has the working directory content
+    elsif git_status.match?(/^[AM]\s/)
+      # File is only staged (not modified in working directory)
+      # This means working directory matches staged version
+      # Show HEAD vs working directory (which equals staged)
+      original_content, _, status = Open3.capture3("git show HEAD:#{escaped_path}", chdir: safe_dir)
+      unless status.success?
+        # New file, show empty vs working directory
+        original_content = ""
+      end
+      # modified_content already has the working directory content
+    elsif git_status.match?(/^\sM/)
+      # File is only modified (not staged)
+      # Show HEAD vs working directory
+      original_content, _, _ = Open3.capture3("git show HEAD:#{escaped_path}", chdir: safe_dir)
+      # modified_content already has the working directory content
+    else
+      # Default: show HEAD vs working directory
+      original_content, _, _ = Open3.capture3("git show HEAD:#{escaped_path}", chdir: safe_dir)
+      # modified_content already has the working directory content
+    end
+
+    # Detect language from file extension
+    language = detect_language(file_path)
+
+    render(json: {
+      file_path: file_path,
+      original_content: original_content,
+      modified_content: modified_content,
+      language: language,
+      status: git_status,
+    })
   rescue => e
     Rails.logger.error("Diff file contents error: #{e.message}")
     render(json: { error: "Failed to load file contents: #{e.message}" }, status: :internal_server_error)
@@ -275,59 +275,60 @@ class SessionsController < ApplicationController
     safe_dir = directory
 
     # Get git diff and file changes
-    Dir.chdir(safe_dir) do
-      # Get unstaged changes
-      unstaged_diff = %x(git diff --no-ext-diff 2>&1)
-      unstaged_files = parse_diff_files(unstaged_diff)
+    # Get unstaged changes
+    unstaged_diff, unstaged_err, _ = Open3.capture3("git diff --no-ext-diff", chdir: safe_dir)
+    unstaged_diff += unstaged_err unless unstaged_err.empty?
+    unstaged_files = parse_diff_files(unstaged_diff)
 
-      # Get staged changes
-      staged_diff = %x(git diff --cached --no-ext-diff 2>&1)
-      staged_files = parse_diff_files(staged_diff)
+    # Get staged changes
+    staged_diff, staged_err, _ = Open3.capture3("git diff --cached --no-ext-diff", chdir: safe_dir)
+    staged_diff += staged_err unless staged_err.empty?
+    staged_files = parse_diff_files(staged_diff)
 
-      # Get untracked files
-      untracked_list = %x(git ls-files --others --exclude-standard 2>&1).strip.split("\n")
-      untracked_files = untracked_list.reject(&:empty?).map do |path|
-        {
-          path: path,
-          old_path: path,
-          additions: File.readable?(path) ? File.readlines(path).count : 0,
-          deletions: 0,
-          status: "untracked",
-        }
-      end
+    # Get untracked files
+    untracked_list, _, _ = Open3.capture3("git ls-files --others --exclude-standard", chdir: safe_dir)
+    untracked_files = untracked_list.strip.split("\n").reject(&:empty?).map do |path|
+      full_path = File.join(safe_dir, path)
+      {
+        path: path,
+        old_path: path,
+        additions: File.readable?(full_path) ? File.readlines(full_path).count : 0,
+        deletions: 0,
+        status: "untracked",
+      }
+    end
 
-      # Merge all files with status indicators
-      all_files = []
+    # Merge all files with status indicators
+    all_files = []
 
-      # Add unstaged files
-      unstaged_files.each do |file|
-        file[:status] = "modified"
+    # Add unstaged files
+    unstaged_files.each do |file|
+      file[:status] = "modified"
+      all_files << file
+    end
+
+    # Add staged files (avoiding duplicates)
+    staged_files.each do |file|
+      existing = all_files.find { |f| f[:path] == file[:path] }
+      if existing
+        existing[:status] = "modified+staged"
+      else
+        file[:status] = "staged"
         all_files << file
       end
-
-      # Add staged files (avoiding duplicates)
-      staged_files.each do |file|
-        existing = all_files.find { |f| f[:path] == file[:path] }
-        if existing
-          existing[:status] = "modified+staged"
-        else
-          file[:status] = "staged"
-          all_files << file
-        end
-      end
-
-      # Add untracked files
-      all_files.concat(untracked_files)
-
-      render(json: {
-        instance_name: instance_name,
-        directory: directory,
-        unstaged_diff: unstaged_diff,
-        staged_diff: staged_diff,
-        files: all_files,
-        has_changes: all_files.any?,
-      })
     end
+
+    # Add untracked files
+    all_files.concat(untracked_files)
+
+    render(json: {
+      instance_name: instance_name,
+      directory: directory,
+      unstaged_diff: unstaged_diff,
+      staged_diff: staged_diff,
+      files: all_files,
+      has_changes: all_files.any?,
+    })
   rescue => e
     Rails.logger.error("Git diff error: #{e.message}")
     render(json: { error: "Failed to generate diff: #{e.message}" }, status: :internal_server_error)
@@ -335,7 +336,7 @@ class SessionsController < ApplicationController
 
   def git_pull
     directory = params[:directory]
-    instance_name = params[:instance_name]
+    params[:instance_name]
     operation_success = false
 
     unless directory.present? && File.directory?(directory)
@@ -344,85 +345,106 @@ class SessionsController < ApplicationController
     end
 
     # Security check - ensure directory belongs to this session
+    Rails.logger.debug("[GitPull] Checking directory authorization for: #{directory}")
     unless directory_belongs_to_session?(directory)
+      Rails.logger.error("[GitPull] Unauthorized access to directory: #{directory} for session: #{@session.id}")
       render(json: { error: "Unauthorized access to directory" }, status: :forbidden)
       return
     end
 
-    Dir.chdir(directory) do
+    # Use lock to prevent concurrent git operations
+    GitOperationLockService.with_lock(@session.id, directory) do
+      Rails.logger.debug("[GitPull] Starting git pull operation in: #{directory}")
+
       # First, check if the repository is clean
-      status_output = %x(git status --porcelain 2>&1)
+      status_output, _, _ = Open3.capture3("git status --porcelain", chdir: directory)
       unless status_output.empty?
-        render(json: { 
-          success: false, 
-          error: "Cannot pull: repository has uncommitted changes", 
-          has_uncommitted_changes: true 
-        }, status: :unprocessable_entity)
+        render(
+          json: {
+            success: false,
+            error: "Cannot pull: repository has uncommitted changes",
+            has_uncommitted_changes: true,
+          },
+          status: :unprocessable_entity,
+        )
         return
       end
 
       # Check if there are actually commits to pull
-      fetch_result = %x(git fetch 2>&1)
-      if $?.exitstatus != 0
-        render(json: { 
-          success: false, 
-          error: "Failed to fetch from remote: #{fetch_result}" 
-        }, status: :unprocessable_entity)
+      fetch_result, fetch_err, fetch_status = Open3.capture3("git fetch", chdir: directory)
+      unless fetch_status.success?
+        render(
+          json: {
+            success: false,
+            error: "Failed to fetch from remote: #{fetch_err.empty? ? fetch_result : fetch_err}",
+          },
+          status: :unprocessable_entity,
+        )
         return
       end
 
       # Get the number of commits behind
-      behind_count = %x(git rev-list --count HEAD..@{upstream} 2>/dev/null).strip.to_i
-      
+      behind_output, _, _ = Open3.capture3("git rev-list --count HEAD..@{upstream}", chdir: directory)
+      behind_count = behind_output.strip.to_i
+
       if behind_count == 0
-        render(json: { 
-          success: false, 
-          error: "Nothing to pull from remote" 
+        render(json: {
+          success: false,
+          error: "Nothing to pull from remote",
         })
         return
       end
 
       # Attempt to pull
-      pull_result = %x(git pull --no-rebase 2>&1)
-      
-      if $?.exitstatus == 0
+      pull_result, pull_err, pull_status = Open3.capture3("git pull --no-rebase", chdir: directory)
+      pull_output = pull_result + pull_err
+
+      if pull_status.success?
         operation_success = true
-        render(json: { 
-          success: true, 
+        render(json: {
+          success: true,
           commits_pulled: behind_count,
-          message: "Successfully pulled #{behind_count} commit#{behind_count == 1 ? '' : 's'}" 
+          message: "Successfully pulled #{behind_count} commit#{behind_count == 1 ? "" : "s"}",
         })
-      else
+      elsif pull_output.include?("CONFLICT") || pull_output.include?("Automatic merge failed")
         # Check if it's a merge conflict
-        if pull_result.include?("CONFLICT") || pull_result.include?("Automatic merge failed")
-          # Abort the merge
-          %x(git merge --abort 2>&1)
-          
-          render(json: { 
-            success: false, 
+        Open3.capture3("git merge --abort", chdir: directory)
+
+        render(
+          json: {
+            success: false,
             error: "Pull failed due to merge conflicts. Please use a git tool to resolve conflicts.",
             has_conflicts: true,
-            details: pull_result
-          }, status: :unprocessable_entity)
-        else
-          render(json: { 
-            success: false, 
-            error: "Pull failed: #{pull_result}" 
-          }, status: :unprocessable_entity)
-        end
+            details: pull_output,
+          },
+          status: :unprocessable_entity,
+        )
+      # Abort the merge
+      else
+        render(
+          json: {
+            success: false,
+            error: "Pull failed: #{pull_output}",
+          },
+          status: :unprocessable_entity,
+        )
       end
-    end
-    
+    end # end of lock block
+
     # Trigger git status update after chdir block completes
     GitStatusUpdateJob.perform_later(@session.id) if operation_success
   rescue => e
-    Rails.logger.error("Git pull error: #{e.message}")
-    render(json: { error: "Failed to pull: #{e.message}" }, status: :internal_server_error)
+    if e.message.include?("Another git operation is in progress")
+      render(json: { error: e.message }, status: :conflict)
+    else
+      Rails.logger.error("Git pull error: #{e.message}")
+      render(json: { error: "Failed to pull: #{e.message}" }, status: :internal_server_error)
+    end
   end
 
   def git_push
     directory = params[:directory]
-    instance_name = params[:instance_name]
+    params[:instance_name]
     operation_success = false
 
     unless directory.present? && File.directory?(directory)
@@ -431,75 +453,96 @@ class SessionsController < ApplicationController
     end
 
     # Security check - ensure directory belongs to this session
+    Rails.logger.debug("[GitPush] Checking directory authorization for: #{directory}")
     unless directory_belongs_to_session?(directory)
+      Rails.logger.error("[GitPush] Unauthorized access to directory: #{directory} for session: #{@session.id}")
       render(json: { error: "Unauthorized access to directory" }, status: :forbidden)
       return
     end
 
-    Dir.chdir(directory) do
+    # Use lock to prevent concurrent git operations
+    GitOperationLockService.with_lock(@session.id, directory) do
+      Rails.logger.debug("[GitPush] Starting git push operation in: #{directory}")
+
       # Check if there are actually commits to push
-      ahead_count = %x(git rev-list --count @{upstream}..HEAD 2>/dev/null).strip.to_i
-      
+      ahead_output, _, _ = Open3.capture3("git rev-list --count @{upstream}..HEAD", chdir: directory)
+      ahead_count = ahead_output.strip.to_i
+
       if ahead_count == 0
-        render(json: { 
-          success: false, 
-          error: "No commits to push" 
+        render(json: {
+          success: false,
+          error: "No commits to push",
         })
         return
       end
 
       # Attempt to push
-      push_result = %x(git push 2>&1)
-      
-      if $?.exitstatus == 0
+      push_result, push_err, push_status = Open3.capture3("git push", chdir: directory)
+      push_output = push_result + push_err
+
+      if push_status.success?
         operation_success = true
-        render(json: { 
-          success: true, 
+        render(json: {
+          success: true,
           commits_pushed: ahead_count,
-          message: "Successfully pushed #{ahead_count} commit#{ahead_count == 1 ? '' : 's'}" 
+          message: "Successfully pushed #{ahead_count} commit#{ahead_count == 1 ? "" : "s"}",
         })
-      else
+      elsif push_output.include?("rejected")
         # Check common push failure reasons
-        if push_result.include?("rejected")
-          if push_result.include?("non-fast-forward")
-            render(json: { 
-              success: false, 
+        if push_output.include?("non-fast-forward")
+          render(
+            json: {
+              success: false,
               error: "Push rejected: Remote has changes that you don't have locally. Pull first.",
               needs_pull: true,
-              details: push_result
-            }, status: :unprocessable_entity)
-          else
-            render(json: { 
-              success: false, 
-              error: "Push rejected by remote",
-              details: push_result
-            }, status: :unprocessable_entity)
-          end
-        elsif push_result.include?("Could not read from remote repository")
-          render(json: { 
-            success: false, 
-            error: "Authentication failed or no access to remote repository",
-            details: push_result
-          }, status: :unprocessable_entity)
+              details: push_output,
+            },
+            status: :unprocessable_entity,
+          )
         else
-          render(json: { 
-            success: false, 
-            error: "Push failed: #{push_result}" 
-          }, status: :unprocessable_entity)
+          render(
+            json: {
+              success: false,
+              error: "Push rejected by remote",
+              details: push_output,
+            },
+            status: :unprocessable_entity,
+          )
         end
+      elsif push_output.include?("Could not read from remote repository")
+        render(
+          json: {
+            success: false,
+            error: "Authentication failed or no access to remote repository",
+            details: push_output,
+          },
+          status: :unprocessable_entity,
+        )
+      else
+        render(
+          json: {
+            success: false,
+            error: "Push failed: #{push_output}",
+          },
+          status: :unprocessable_entity,
+        )
       end
-    end
-    
+    end # end of lock block
+
     # Trigger git status update after chdir block completes
     GitStatusUpdateJob.perform_later(@session.id) if operation_success
   rescue => e
-    Rails.logger.error("Git push error: #{e.message}")
-    render(json: { error: "Failed to push: #{e.message}" }, status: :internal_server_error)
+    if e.message.include?("Another git operation is in progress")
+      render(json: { error: e.message }, status: :conflict)
+    else
+      Rails.logger.error("Git push error: #{e.message}")
+      render(json: { error: "Failed to push: #{e.message}" }, status: :internal_server_error)
+    end
   end
 
   def git_commit
     directory = params[:directory]
-    instance_name = params[:instance_name]
+    params[:instance_name]
     operation_success = false
 
     unless directory.present? && File.directory?(directory)
@@ -508,82 +551,101 @@ class SessionsController < ApplicationController
     end
 
     # Security check - ensure directory belongs to this session
+    Rails.logger.debug("[GitCommit] Checking directory authorization for: #{directory}")
     unless directory_belongs_to_session?(directory)
+      Rails.logger.error("[GitCommit] Unauthorized access to directory: #{directory} for session: #{@session.id}")
       render(json: { error: "Unauthorized access to directory" }, status: :forbidden)
       return
     end
 
-    Dir.chdir(directory) do
+    # Use lock to prevent concurrent git operations
+    GitOperationLockService.with_lock(@session.id, directory) do
+      Rails.logger.debug("[GitCommit] Starting git commit operation in: #{directory}")
+
       # Check if there are changes to commit
-      status_output = %x(git status --porcelain 2>&1)
+      status_output, _, _ = Open3.capture3("git status --porcelain", chdir: directory)
       if status_output.empty?
-        render(json: { 
-          success: false, 
-          error: "No changes to commit" 
+        render(json: {
+          success: false,
+          error: "No changes to commit",
         })
         return
       end
 
       # Get the diff for Claude
-      diff_output = %x(git diff 2>&1)
-      staged_diff = %x(git diff --cached 2>&1)
-      untracked_files = %x(git ls-files --others --exclude-standard 2>&1).strip
-      
+      diff_output, _, _ = Open3.capture3("git diff", chdir: directory)
+      staged_diff, _, _ = Open3.capture3("git diff --cached", chdir: directory)
+      untracked_files, _, _ = Open3.capture3("git ls-files --others --exclude-standard", chdir: directory)
+      untracked_files = untracked_files.strip
+
       # Combine all changes for Claude
       all_changes = "## Unstaged changes:\n#{diff_output}\n\n## Staged changes:\n#{staged_diff}\n\n## Untracked files:\n#{untracked_files}"
-      
+
       # Use Claude to generate commit message
       claude_prompt = "Generate a concise git commit message for the following changes:\n\n#{all_changes}"
-      escaped_prompt = Shellwords.escape(claude_prompt)
-      
+      Shellwords.escape(claude_prompt)
+
       # Call Claude CLI to generate commit message
-      commit_message = %x(claude -p #{escaped_prompt} 2>&1)
-      
-      if $?.exitstatus != 0
-        render(json: { 
-          success: false, 
-          error: "Failed to generate commit message with Claude: #{commit_message}" 
-        }, status: :unprocessable_entity)
+      commit_message, commit_err, commit_status = Open3.capture3("claude", "-p", claude_prompt)
+
+      unless commit_status.success?
+        render(
+          json: {
+            success: false,
+            error: "Failed to generate commit message with Claude: #{commit_err.empty? ? commit_message : commit_err}",
+          },
+          status: :unprocessable_entity,
+        )
         return
       end
 
       # Clean up the commit message (remove any extra whitespace)
       commit_message = commit_message.strip
-      
+
       # Stage all changes
-      stage_result = %x(git add . 2>&1)
-      if $?.exitstatus != 0
-        render(json: { 
-          success: false, 
-          error: "Failed to stage changes: #{stage_result}" 
-        }, status: :unprocessable_entity)
+      stage_result, stage_err, stage_status = Open3.capture3("git add .", chdir: directory)
+      unless stage_status.success?
+        render(
+          json: {
+            success: false,
+            error: "Failed to stage changes: #{stage_err.empty? ? stage_result : stage_err}",
+          },
+          status: :unprocessable_entity,
+        )
         return
       end
 
       # Commit with the generated message
-      escaped_message = Shellwords.escape(commit_message)
-      commit_result = %x(git commit -m #{escaped_message} 2>&1)
-      
-      if $?.exitstatus == 0
+      Shellwords.escape(commit_message)
+      commit_result, commit_err, commit_status = Open3.capture3("git", "commit", "-m", commit_message, chdir: directory)
+
+      if commit_status.success?
         operation_success = true
-        render(json: { 
-          success: true, 
+        render(json: {
+          success: true,
           commit_message: commit_message,
-          message: "Successfully committed changes" 
+          message: "Successfully committed changes",
         })
       else
-        render(json: { 
-          success: false, 
-          error: "Failed to commit: #{commit_result}" 
-        }, status: :unprocessable_entity)
+        render(
+          json: {
+            success: false,
+            error: "Failed to commit: #{commit_err.empty? ? commit_result : commit_err}",
+          },
+          status: :unprocessable_entity,
+        )
       end
-    end
-    
+    end # end of lock block
+
     # Trigger git status update after chdir block completes
     GitStatusUpdateJob.perform_later(@session.id) if operation_success
   rescue => e
-    Rails.logger.error("Git commit error: #{e.message}")
-    render(json: { error: "Failed to commit: #{e.message}" }, status: :internal_server_error)
+    if e.message.include?("Another git operation is in progress")
+      render(json: { error: e.message }, status: :conflict)
+    else
+      Rails.logger.error("Git commit error: #{e.message}")
+      render(json: { error: "Failed to commit: #{e.message}" }, status: :internal_server_error)
+    end
   end
 
   private
@@ -591,45 +653,58 @@ class SessionsController < ApplicationController
   def directory_belongs_to_session?(directory)
     # Collect all directories associated with this session
     all_directories = []
-    
+
+    Rails.logger.debug("[DirectoryAuth] Checking directory: #{directory} for session: #{@session.id}")
+
     # Get session metadata
     metadata = fetch_session_metadata
-    
+    Rails.logger.debug("[DirectoryAuth] Session metadata: #{metadata.inspect}")
+
     # Get instances from metadata's worktree instance_configs
     instances = metadata.dig("worktree", "instance_configs") || {}
-    
+    Rails.logger.debug("[DirectoryAuth] Found #{instances.size} worktree instances")
+
     # If no worktree instances, load from the session's config.yml
     if instances.empty? && @session.session_path
       config_path = File.join(@session.session_path, "config.yml")
+      Rails.logger.debug("[DirectoryAuth] No worktree instances, checking config at: #{config_path}")
       if File.exist?(config_path)
         begin
           session_config = YAML.load_file(config_path)
           if session_config && session_config["swarm"] && session_config["swarm"]["instances"]
+            Rails.logger.debug("[DirectoryAuth] Found instances in config.yml")
             session_config["swarm"]["instances"].each do |name, config|
               directories = build_instance_directories(config)
+              Rails.logger.debug("[DirectoryAuth] Instance #{name} directories: #{directories.inspect}")
               all_directories.concat(directories)
             end
           end
         rescue => e
-          Rails.logger.error("Failed to load session config.yml: #{e.message}")
+          Rails.logger.error("[DirectoryAuth] Failed to load session config.yml: #{e.message}")
         end
       end
     else
       # Process worktree instances
       instances.each do |name, config|
         if config["worktree_paths"]&.any?
+          Rails.logger.debug("[DirectoryAuth] Instance #{name} worktree_paths: #{config["worktree_paths"].inspect}")
           all_directories.concat(config["worktree_paths"])
         elsif config["directories"]&.any?
+          Rails.logger.debug("[DirectoryAuth] Instance #{name} directories: #{config["directories"].inspect}")
           all_directories.concat(config["directories"])
         end
       end
     end
-    
+
     # Normalize the directory path
     normalized_dir = File.expand_path(directory)
-    
+    Rails.logger.debug("[DirectoryAuth] All session directories: #{all_directories.inspect}")
+    Rails.logger.debug("[DirectoryAuth] Normalized target directory: #{normalized_dir}")
+
     # Check if the directory is in the list of session directories
-    all_directories.any? { |dir| File.expand_path(dir) == normalized_dir }
+    result = all_directories.any? { |dir| File.expand_path(dir) == normalized_dir }
+    Rails.logger.debug("[DirectoryAuth] Authorization result: #{result}")
+    result
   end
 
   def set_session

@@ -27,7 +27,7 @@ class GitStatusUpdateJob < ApplicationJob
     Turbo::StreamsChannel.broadcast_update_to(
       "session_#{session.id}",
       target: "git-status-display",
-      partial: "shared/git_status_content",
+      partial: "shared/git_status",
       locals: { session: session, git_statuses: git_statuses },
     )
 

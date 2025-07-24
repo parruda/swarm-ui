@@ -385,6 +385,9 @@ class SessionsController < ApplicationController
       pull_result = %x(git pull --no-rebase 2>&1)
       
       if $?.exitstatus == 0
+        # Trigger immediate git status update
+        GitStatusUpdateJob.perform_later(@session.id)
+        
         render(json: { 
           success: true, 
           commits_pulled: behind_count,
@@ -446,6 +449,9 @@ class SessionsController < ApplicationController
       push_result = %x(git push 2>&1)
       
       if $?.exitstatus == 0
+        # Trigger immediate git status update
+        GitStatusUpdateJob.perform_later(@session.id)
+        
         render(json: { 
           success: true, 
           commits_pushed: ahead_count,
@@ -554,6 +560,9 @@ class SessionsController < ApplicationController
       commit_result = %x(git commit -m #{escaped_message} 2>&1)
       
       if $?.exitstatus == 0
+        # Trigger immediate git status update
+        GitStatusUpdateJob.perform_later(@session.id)
+        
         render(json: { 
           success: true, 
           commit_message: commit_message,

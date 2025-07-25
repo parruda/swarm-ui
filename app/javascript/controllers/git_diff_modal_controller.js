@@ -213,7 +213,7 @@ export default class extends Controller {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
               <p class="text-sm text-blue-800 dark:text-blue-200">
-                To request changes: Click on line numbers to add comments, then click "Request Changes" to send them to the session.
+                To request changes: Click on line numbers in the right panel (modified version) to add comments, then click "Request Changes" to send them to the session.
               </p>
             </div>
           </div>
@@ -945,12 +945,10 @@ export default class extends Controller {
     this.commentWidgets = []
     this.commentDecorations = []
     
-    // Get both editors (original and modified)
-    const originalEditor = this.currentEditor.getOriginalEditor()
+    // Get only the modified editor (right side) for comments
     const modifiedEditor = this.currentEditor.getModifiedEditor()
     
-    // Add gutter click handlers to both editors
-    this.setupCommentGutterClick(originalEditor, 'original', file)
+    // Add gutter click handler only to the modified editor
     this.setupCommentGutterClick(modifiedEditor, 'modified', file)
     
     // Display existing comments

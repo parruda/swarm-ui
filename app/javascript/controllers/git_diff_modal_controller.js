@@ -984,7 +984,6 @@ export default class extends Controller {
       background: ${document.documentElement.classList.contains('dark') ? '#1e293b' : '#f3f4f6'};
       border-left: 3px solid #3b82f6;
       padding: 8px 12px;
-      margin: 4px 0;
       border-radius: 4px;
       font-size: 13px;
       line-height: 1.5;
@@ -992,21 +991,19 @@ export default class extends Controller {
     `
     
     commentDisplay.innerHTML = `
-      <div class="flex items-start justify-between">
-        <div class="flex-1">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="font-medium text-gray-700 dark:text-gray-300">${comment.author}</span>
-            <span class="text-xs text-gray-500 dark:text-gray-400">
-              ${new Date(comment.timestamp).toLocaleString()}
-            </span>
-          </div>
-          <div class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">${comment.text}</div>
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="font-medium text-gray-700 dark:text-gray-300">${comment.author}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400">
+            ${new Date(comment.timestamp).toLocaleString()}
+          </span>
+          <button class="delete-comment-${comment.id}" style="margin-left: 8px; color: #9ca3af; background: none; border: none; padding: 2px; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#9ca3af'">
+            <svg style="width: 16px; height: 16px; pointer-events: none;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </button>
         </div>
-        <button class="delete-comment ml-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-          </svg>
-        </button>
+        <div class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">${comment.text}</div>
       </div>
     `
     
@@ -1017,21 +1014,54 @@ export default class extends Controller {
       domNode: commentDisplay
     }
     
+    // Add delete handler BEFORE adding to zones
+    const deleteBtn = commentDisplay.querySelector(`.delete-comment-${comment.id}`)
+    if (deleteBtn) {
+      console.log('Found delete button for comment:', comment.id)
+      
+      // Store reference to this controller for the click handler
+      const controller = this
+      
+      deleteBtn.onclick = function(e) {
+        e.preventDefault()
+        e.stopPropagation()
+        console.log('Delete clicked for comment:', comment)
+        controller.deleteComment(comment, file)
+        return false
+      }
+    } else {
+      console.error('Delete button not found for comment:', comment.id)
+    }
+    
     editor.changeViewZones(accessor => {
       const zoneId = accessor.addZone(viewZone)
       // Store the zone ID in the comment object
       comment.zoneId = zoneId
       
-      // Add delete handler after zone is created
-      const deleteBtn = commentDisplay.querySelector('.delete-comment')
-      if (deleteBtn) {
-        deleteBtn.addEventListener('click', (e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          console.log('Delete clicked for comment:', comment)
-          this.deleteComment(comment, file)
-        })
-      }
+      // Try to attach the handler after Monaco has fully rendered
+      setTimeout(() => {
+        const deleteBtn = document.querySelector(`.delete-comment-${comment.id}`)
+        if (deleteBtn) {
+          console.log('Re-attaching handler to delete button:', comment.id)
+          
+          // Remove any existing handlers
+          const newBtn = deleteBtn.cloneNode(true)
+          deleteBtn.parentNode.replaceChild(newBtn, deleteBtn)
+          
+          // Attach fresh handler
+          newBtn.addEventListener('click', (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            e.stopImmediatePropagation()
+            console.log('Delete clicked (from timeout) for comment:', comment)
+            this.deleteComment(comment, file)
+          }, true) // Use capture phase
+          
+          // Test if element is interactive
+          newBtn.style.pointerEvents = 'auto'
+          newBtn.style.zIndex = '1000'
+        }
+      }, 100)
     })
   }
   

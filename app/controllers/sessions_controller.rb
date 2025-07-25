@@ -6,7 +6,7 @@ require "shellwords"
 require "open3"
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_commit, :git_reset]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_commit, :git_reset, :send_to_tmux]
 
   def index
     @filter = params[:filter] || "active"
@@ -706,6 +706,57 @@ class SessionsController < ApplicationController
   rescue => e
     Rails.logger.error("Git reset error: #{e.message}")
     render(json: { error: "Failed to reset: #{e.message}" }, status: :internal_server_error)
+  end
+
+  def send_to_tmux
+    # This method injects text into a running tmux session associated with the current SwarmUI session.
+    # It's used by the diff modal's "Request Changes" feature to send code review comments directly
+    # to the terminal where the AI agent is running, enabling seamless vibe coding workflows.
+    # The method uses tmux's send-keys command with the -l flag to send literal text without 
+    # shell interpretation, then sends an Enter key to execute the command.
+    text = params[:text]
+
+    unless text.present?
+      render(json: { error: "Text is required" }, status: :bad_request)
+      return
+    end
+
+    # Ensure session is active
+    unless @session.active?
+      render(json: { error: "Session is not active" }, status: :unprocessable_entity)
+      return
+    end
+
+    # Get tmux session name
+    tmux_session_name = "swarm-ui-#{@session.session_id}"
+
+    # Send text to tmux session using -l flag for literal text
+    result, stderr, status = Open3.capture3("tmux", "send-keys", "-t", tmux_session_name, "-l", text)
+    
+    # Send Enter key separately
+    if status.success?
+      result2, stderr2, status2 = Open3.capture3("tmux", "send-keys", "-t", tmux_session_name, "Enter")
+      status = status2 unless status2.success?
+    end
+
+    if status.success?
+      render(json: {
+        success: true,
+        message: "Text sent to terminal",
+      })
+    else
+      Rails.logger.error("Failed to send to tmux: #{stderr}")
+      render(
+        json: {
+          success: false,
+          error: "Failed to send text to terminal: #{stderr}",
+        },
+        status: :unprocessable_entity,
+      )
+    end
+  rescue => e
+    Rails.logger.error("Send to tmux error: #{e.message}")
+    render(json: { error: "Failed to send text: #{e.message}" }, status: :internal_server_error)
   end
 
   private

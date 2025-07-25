@@ -8,7 +8,6 @@ export default class extends Controller {
     const commitButtons = this.element.querySelectorAll('[data-action*="git-actions#commit"]')
     const pullButtons = this.element.querySelectorAll('[data-action*="git-actions#pull"]')
     const pushButtons = this.element.querySelectorAll('[data-action*="git-actions#push"]')
-    console.log(`GitActionsController connected with ${commitButtons.length} commit, ${pullButtons.length} pull, and ${pushButtons.length} push buttons`)
   }
   
   async pull(event) {

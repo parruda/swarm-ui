@@ -18,6 +18,7 @@ Rails.application.routes.draw do
       post :git_push
       post :git_commit
       post :git_reset
+      post :send_to_tmux
     end
   end
 

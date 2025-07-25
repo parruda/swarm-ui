@@ -53,6 +53,13 @@ export default class extends Controller {
     // Reset buttons when opening modal
     this.resetActionButtons()
     
+    // Initialize comments storage for this modal session
+    this.comments = {}
+    // Also store in modal dataset for persistence
+    if (this.modal) {
+      this.modal.dataset.comments = JSON.stringify(this.comments)
+    }
+    
     // Get data from the clicked element (event.currentTarget)
     const clickedElement = event.currentTarget
     const directory = clickedElement.dataset.directory
@@ -270,8 +277,8 @@ export default class extends Controller {
       this.currentEditor.dispose()
     }
     
-    // Clear any existing comments
-    this.clearComments()
+    // Clear only the comment widgets, not the comment data
+    this.clearCommentWidgets()
     
     // Get container
     const container = document.getElementById('monaco-diff-container')
@@ -603,6 +610,127 @@ export default class extends Controller {
     }
   }
 
+  async requestChanges(event) {
+    event.preventDefault()
+    
+    // Ensure modal is found
+    if (!this.findModalElements()) {
+      console.error("Modal not found")
+      return
+    }
+    
+    // Try to restore comments from dataset if not available
+    if (!this.comments && this.modal && this.modal.dataset.comments) {
+      try {
+        this.comments = JSON.parse(this.modal.dataset.comments)
+      } catch (e) {
+        console.error('Failed to parse comments from dataset:', e)
+        this.comments = {}
+      }
+    }
+    
+    // Collect all comments from all files
+    const allComments = []
+    
+    // Iterate through all files that have comments
+    for (const [filePath, fileComments] of Object.entries(this.comments || {})) {
+      if (fileComments && fileComments.length > 0) {
+        fileComments.forEach(comment => {
+          allComments.push({
+            file: filePath,
+            line: comment.lineNumber,
+            text: comment.text,
+            side: comment.side
+          })
+        })
+      }
+    }
+    
+    // Check if there are any comments
+    if (allComments.length === 0) {
+      this.showNotification("No comments to send. Add comments to files first.", 'error')
+      return
+    }
+    
+    // Ensure we have session data
+    if (!this.currentSessionId && this.modal.dataset.sessionId) {
+      this.currentSessionId = this.modal.dataset.sessionId
+    }
+    
+    if (!this.currentSessionId) {
+      this.showNotification("Error: Session information is missing", 'error')
+      return
+    }
+    
+    // Format the message
+    let message = "Please address the comments below:\n\n"
+    allComments.forEach(comment => {
+      message += `- On file @${comment.file}, line ${comment.line}: ${comment.text}\n`
+    })
+    
+    const button = event.currentTarget
+    const originalContent = button.innerHTML
+    
+    // Show loading state
+    button.disabled = true
+    button.classList.add('animate-pulse')
+    button.innerHTML = `
+      <svg class="h-3.5 w-3.5 animate-spin inline mr-1" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Sending...
+    `
+    
+    try {
+      // Send to tmux endpoint
+      const response = await fetch(`/sessions/${this.currentSessionId}/send_to_tmux`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-CSRF-Token": document.querySelector('[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+          text: message
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        // Show success
+        button.innerHTML = `
+          <svg class="h-3.5 w-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+          </svg>
+          Sent!
+        `
+        
+        this.showNotification(`Sent ${allComments.length} comments to terminal`, 'success')
+        
+        // Close modal after delay
+        setTimeout(() => {
+          this.close()
+        }, 1500)
+      } else {
+        this.showNotification(data.error || "Failed to send comments", 'error')
+        
+        // Restore button
+        button.disabled = false
+        button.classList.remove('animate-pulse')
+        button.innerHTML = originalContent
+      }
+    } catch (error) {
+      this.showNotification(`Error: ${error.message}`, 'error')
+      
+      // Restore button
+      button.disabled = false
+      button.classList.remove('animate-pulse')
+      button.innerHTML = originalContent
+    }
+  }
+
   async reject(event) {
     event.preventDefault()
     
@@ -775,6 +903,19 @@ export default class extends Controller {
         Reject
       `
     }
+    
+    // Reset request changes button
+    const requestChangesButton = this.modal.querySelector('[data-git-diff-modal-target="requestChangesButton"]')
+    if (requestChangesButton) {
+      requestChangesButton.disabled = false
+      requestChangesButton.classList.remove('animate-pulse')
+      requestChangesButton.innerHTML = `
+        <svg class="h-3.5 w-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+        </svg>
+        Request Changes
+      `
+    }
   }
   
   // Comment system implementation
@@ -930,6 +1071,11 @@ export default class extends Controller {
     
     this.comments[file.path].push(comment)
     
+    // Also persist to modal dataset
+    if (this.modal) {
+      this.modal.dataset.comments = JSON.stringify(this.comments)
+    }
+    
     // Add decoration to show there's a comment
     this.addCommentDecoration(lineNumber, side)
     
@@ -1042,8 +1188,6 @@ export default class extends Controller {
       setTimeout(() => {
         const deleteBtn = document.querySelector(`.delete-comment-${comment.id}`)
         if (deleteBtn) {
-          console.log('Re-attaching handler to delete button:', comment.id)
-          
           // Remove any existing handlers
           const newBtn = deleteBtn.cloneNode(true)
           deleteBtn.parentNode.replaceChild(newBtn, deleteBtn)
@@ -1053,7 +1197,6 @@ export default class extends Controller {
             e.preventDefault()
             e.stopPropagation()
             e.stopImmediatePropagation()
-            console.log('Delete clicked (from timeout) for comment:', comment)
             this.deleteComment(comment, file)
           }, true) // Use capture phase
           
@@ -1079,6 +1222,11 @@ export default class extends Controller {
     const index = fileComments.findIndex(c => c.id === comment.id)
     if (index > -1) {
       fileComments.splice(index, 1)
+    }
+    
+    // Persist updated comments to modal dataset
+    if (this.modal) {
+      this.modal.dataset.comments = JSON.stringify(this.comments)
     }
     
     // Get the correct editor
@@ -1126,7 +1274,7 @@ export default class extends Controller {
     }
   }
   
-  clearComments() {
+  clearCommentWidgets() {
     // Clear all comment widgets
     this.commentWidgets?.forEach(widget => {
       if (!widget.isDisposed && widget.editor) {
@@ -1142,5 +1290,13 @@ export default class extends Controller {
       }
     })
     this.commentDecorations = []
+  }
+  
+  clearComments() {
+    // Clear widgets first
+    this.clearCommentWidgets()
+    
+    // Then clear all comment data
+    this.comments = {}
   }
 }

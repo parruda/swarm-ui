@@ -214,6 +214,16 @@
               
               <!-- Action buttons for vibe coding -->
               <div class="flex items-center space-x-3">
+                <!-- Request Changes button -->
+                <button type="button" 
+                        class="px-3 py-1.5 text-xs font-medium rounded bg-yellow-600 hover:bg-yellow-700 text-white transition-colors cursor-pointer"
+                        data-action="click->git-diff-modal#requestChanges"
+                        data-git-diff-modal-target="requestChangesButton"
+                        title="Send review comments to tmux session">
+                  <%= heroicon "chat-bubble-left-right", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
+                  Request Changes
+                </button>
+                
                 <!-- Reject button -->
                 <button type="button" 
                         class="px-3 py-1.5 text-xs font-medium rounded bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer"

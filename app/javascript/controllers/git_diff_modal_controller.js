@@ -1039,13 +1039,24 @@ export default class extends Controller {
       submitBtn.disabled = !textarea.value.trim()
     })
     
-    // Submit handler
-    submitBtn.addEventListener('click', () => {
+    // Submit function
+    const submitComment = () => {
       const comment = textarea.value.trim()
       if (comment) {
         this.addComment(file, lineNumber, side, comment)
         editor.removeContentWidget(widget)
         widget.isDisposed = true
+      }
+    }
+    
+    // Submit handler for button click
+    submitBtn.addEventListener('click', submitComment)
+    
+    // Submit handler for CMD/Ctrl + Enter
+    textarea.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        submitComment()
       }
     })
     

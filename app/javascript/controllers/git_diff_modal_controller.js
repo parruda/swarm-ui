@@ -1185,15 +1185,12 @@ export default class extends Controller {
     // Add delete handler BEFORE adding to zones
     const deleteBtn = commentDisplay.querySelector(`.delete-comment-${comment.id}`)
     if (deleteBtn) {
-      console.log('Found delete button for comment:', comment.id)
-      
       // Store reference to this controller for the click handler
       const controller = this
       
       deleteBtn.onclick = function(e) {
         e.preventDefault()
         e.stopPropagation()
-        console.log('Delete clicked for comment:', comment)
         controller.deleteComment(comment, file)
         return false
       }

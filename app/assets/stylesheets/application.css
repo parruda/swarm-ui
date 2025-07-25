@@ -76,6 +76,17 @@ iframe::-webkit-scrollbar {
   margin-left: 3px;
 }
 
+/* Make line numbers in modified editor (right side) clickable */
+.modified-in-monaco-diff-editor .line-numbers {
+  cursor: pointer !important;
+}
+
+/* Add hover effect to line numbers in modified editor */
+.modified-in-monaco-diff-editor .line-numbers:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  transition: background-color 0.2s ease;
+}
+
 .comment-line-decoration::before {
   content: '';
   position: absolute;

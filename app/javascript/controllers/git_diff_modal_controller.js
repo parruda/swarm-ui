@@ -4,14 +4,21 @@ export default class extends Controller {
   connect() {
     this.boundCloseOnEscape = this.closeOnEscape.bind(this)
     this.boundCloseOnClickOutside = this.closeOnClickOutside.bind(this)
-    // Don't reset if already set
-    if (!this.currentSessionId) {
-      this.currentSessionId = null
+    
+    // Initialize only if not already set
+    this.currentSessionId = this.currentSessionId || null
+    this.currentDirectory = this.currentDirectory || null
+    
+    // Try to restore from modal dataset if available
+    if (!this.currentSessionId || !this.currentDirectory) {
+      const modal = document.querySelector('[data-git-diff-modal-target="modal"]')
+      if (modal) {
+        this.currentSessionId = this.currentSessionId || modal.dataset.sessionId || null
+        this.currentDirectory = this.currentDirectory || modal.dataset.directory || null
+      }
     }
-    if (!this.currentDirectory) {
-      this.currentDirectory = null
-    }
-    console.log("GitDiffModalController connected, currentSessionId:", this.currentSessionId)
+    
+    // console.log("GitDiffModalController connected, currentSessionId:", this.currentSessionId)
   }
   
   findModalElements() {
@@ -49,7 +56,7 @@ export default class extends Controller {
     const instanceName = clickedElement.dataset.instanceName
     const sessionId = clickedElement.dataset.sessionId
     
-    console.log("Opening modal with data:", { directory, instanceName, sessionId })
+    // console.log("Opening modal with data:", { directory, instanceName, sessionId })
     
     // Validate required data
     if (!sessionId || !directory) {
@@ -60,7 +67,7 @@ export default class extends Controller {
     
     this.currentSessionId = sessionId
     this.currentDirectory = directory
-    console.log("Set currentSessionId:", this.currentSessionId, "currentDirectory:", this.currentDirectory)
+    // console.log("Set currentSessionId:", this.currentSessionId, "currentDirectory:", this.currentDirectory)
     
     // Store in data attributes as backup
     if (this.modal) {
@@ -467,7 +474,7 @@ export default class extends Controller {
 
   async approve(event) {
     event.preventDefault()
-    console.log('Approve clicked', this.currentSessionId, this.currentDirectory)
+    // console.log('Approve clicked', this.currentSessionId, this.currentDirectory)
     
     // Ensure modal is found
     if (!this.findModalElements()) {
@@ -478,11 +485,11 @@ export default class extends Controller {
     // Fallback to modal data attributes if values are null
     if (!this.currentSessionId && this.modal.dataset.sessionId) {
       this.currentSessionId = this.modal.dataset.sessionId
-      console.log("Using fallback sessionId from modal dataset:", this.currentSessionId)
+      // console.log("Using fallback sessionId from modal dataset:", this.currentSessionId)
     }
     if (!this.currentDirectory && this.modal.dataset.directory) {
       this.currentDirectory = this.modal.dataset.directory
-      console.log("Using fallback directory from modal dataset:", this.currentDirectory)
+      // console.log("Using fallback directory from modal dataset:", this.currentDirectory)
     }
     
     // Final check
@@ -513,7 +520,7 @@ export default class extends Controller {
     try {
       // Call the same commit endpoint used by the commit button
       const url = `/sessions/${this.currentSessionId}/git_commit`
-      console.log("Calling git_commit endpoint:", url)
+      // console.log("Calling git_commit endpoint:", url)
       
       const response = await fetch(url, {
         method: "POST",

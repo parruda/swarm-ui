@@ -69,3 +69,71 @@ iframe::-webkit-scrollbar {
   width: 100%;
 }
 
+/* Monaco Comment System Styles */
+.comment-line-decoration {
+  background: rgba(59, 130, 246, 0.15);
+  border-left: 3px solid #3b82f6;
+  margin-left: 3px;
+}
+
+.comment-line-decoration::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  width: 16px;
+  height: 16px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Comment widget styling */
+.comment-widget-container {
+  max-width: 400px;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Style the comment input */
+.comment-widget-container .comment-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Comment display styling */
+.comment-display {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Ensure delete button is clickable */
+.comment-display .delete-comment {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.comment-display .delete-comment:hover {
+  color: #dc2626;
+}
+

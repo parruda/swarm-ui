@@ -270,6 +270,9 @@ export default class extends Controller {
       this.currentEditor.dispose()
     }
     
+    // Clear any existing comments
+    this.clearComments()
+    
     // Get container
     const container = document.getElementById('monaco-diff-container')
     
@@ -347,6 +350,9 @@ export default class extends Controller {
         original: originalModel,
         modified: modifiedModel
       })
+      
+      // Initialize comment system for this file
+      this.initializeCommentSystem(file)
       
     } catch (error) {
       container.innerHTML = `<div class="p-4 text-red-600">Failed to load file: ${error.message}</div>`
@@ -455,8 +461,17 @@ export default class extends Controller {
                           event.target.classList.contains('diff-hidden-lines-action') ||
                           event.target.textContent?.includes('Show unchanged region')
     
-    // Only close if clicking outside modal content AND not a Monaco element
-    if (!modalContent.contains(event.target) && !isMonacoElement) {
+    // Check if clicking on comment-related elements
+    const isCommentElement = event.target.closest('.comment-widget-container') ||
+                           event.target.closest('.comment-display') ||
+                           event.target.closest('.comment-form') ||
+                           event.target.closest('.comment-input') ||
+                           event.target.closest('.submit-comment') ||
+                           event.target.closest('.cancel-comment') ||
+                           event.target.closest('.delete-comment')
+    
+    // Only close if clicking outside modal content AND not a Monaco or comment element
+    if (!modalContent.contains(event.target) && !isMonacoElement && !isCommentElement) {
       this.close()
     }
   }
@@ -760,5 +775,342 @@ export default class extends Controller {
         Reject
       `
     }
+  }
+  
+  // Comment system implementation
+  initializeCommentSystem(file) {
+    // Initialize comment storage for this file
+    this.comments = this.comments || {}
+    this.comments[file.path] = this.comments[file.path] || []
+    this.commentWidgets = []
+    this.commentDecorations = []
+    
+    // Get both editors (original and modified)
+    const originalEditor = this.currentEditor.getOriginalEditor()
+    const modifiedEditor = this.currentEditor.getModifiedEditor()
+    
+    // Add gutter click handlers to both editors
+    this.setupCommentGutterClick(originalEditor, 'original', file)
+    this.setupCommentGutterClick(modifiedEditor, 'modified', file)
+    
+    // Display existing comments
+    this.displayExistingComments(file)
+  }
+  
+  setupCommentGutterClick(editor, side, file) {
+    // Add mouse down listener for gutter clicks
+    editor.onMouseDown((e) => {
+      // Check if click is in the gutter area
+      if (e.target.type === this.monaco.editor.MouseTargetType.GUTTER_LINE_NUMBERS ||
+          e.target.type === this.monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) {
+        
+        const lineNumber = e.target.position.lineNumber
+        
+        // Check if there's already a comment widget open
+        const existingWidget = this.commentWidgets.find(w => 
+          w.lineNumber === lineNumber && w.side === side && !w.isDisposed
+        )
+        
+        if (!existingWidget) {
+          // Create a new comment widget
+          this.createCommentWidget(editor, lineNumber, side, file)
+        }
+      }
+    })
+  }
+  
+  createCommentWidget(editor, lineNumber, side, file) {
+    // Create comment widget container
+    const widgetContainer = document.createElement('div')
+    widgetContainer.className = 'comment-widget-container'
+    widgetContainer.style.cssText = `
+      background: ${document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff'};
+      border: 1px solid ${document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'};
+      border-radius: 6px;
+      padding: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      width: 400px;
+      z-index: 100;
+    `
+    
+    // Create comment form
+    widgetContainer.innerHTML = `
+      <div class="comment-form">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Add a comment on line ${lineNumber}
+          </span>
+          <button class="close-comment text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <textarea 
+          class="comment-input w-full p-2 border rounded-md text-sm resize-none dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+          rows="3"
+          placeholder="Leave a comment..."
+          style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"
+        ></textarea>
+        <div class="flex justify-end gap-2 mt-2">
+          <button class="cancel-comment px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+            Cancel
+          </button>
+          <button class="submit-comment px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+            Comment
+          </button>
+        </div>
+      </div>
+    `
+    
+    // Create the widget
+    const widget = {
+      getId: () => `comment-widget-${lineNumber}-${side}`,
+      getDomNode: () => widgetContainer,
+      getPosition: () => ({
+        preference: [this.monaco.editor.ContentWidgetPositionPreference.BELOW],
+        position: {
+          lineNumber: lineNumber,
+          column: 1
+        }
+      }),
+      lineNumber: lineNumber,
+      side: side,
+      isDisposed: false
+    }
+    
+    // Add event handlers
+    const textarea = widgetContainer.querySelector('.comment-input')
+    const submitBtn = widgetContainer.querySelector('.submit-comment')
+    const cancelBtn = widgetContainer.querySelector('.cancel-comment')
+    const closeBtn = widgetContainer.querySelector('.close-comment')
+    
+    // Enable/disable submit based on content
+    textarea.addEventListener('input', () => {
+      submitBtn.disabled = !textarea.value.trim()
+    })
+    
+    // Submit handler
+    submitBtn.addEventListener('click', () => {
+      const comment = textarea.value.trim()
+      if (comment) {
+        this.addComment(file, lineNumber, side, comment)
+        editor.removeContentWidget(widget)
+        widget.isDisposed = true
+      }
+    })
+    
+    // Cancel/close handlers
+    const closeWidget = () => {
+      editor.removeContentWidget(widget)
+      widget.isDisposed = true
+    }
+    
+    cancelBtn.addEventListener('click', closeWidget)
+    closeBtn.addEventListener('click', closeWidget)
+    
+    // Add widget to editor
+    editor.addContentWidget(widget)
+    this.commentWidgets.push(widget)
+    
+    // Focus the textarea
+    setTimeout(() => textarea.focus(), 100)
+  }
+  
+  addComment(file, lineNumber, side, text) {
+    // Add comment to storage
+    const comment = {
+      id: Date.now(),
+      lineNumber,
+      side,
+      text,
+      timestamp: new Date().toISOString(),
+      author: 'You' // In a real app, this would be the current user
+    }
+    
+    this.comments[file.path].push(comment)
+    
+    // Add decoration to show there's a comment
+    this.addCommentDecoration(lineNumber, side)
+    
+    // Show the comment
+    this.displayComment(comment, file)
+    
+    // TODO: Save to backend
+    // this.saveCommentsToBackend(file.path)
+    
+    // For now, show a notification that comment was added (in memory only)
+    this.showNotification('Comment added (session only - not persisted)', 'info')
+  }
+  
+  addCommentDecoration(lineNumber, side) {
+    const editor = side === 'original' ? 
+      this.currentEditor.getOriginalEditor() : 
+      this.currentEditor.getModifiedEditor()
+    
+    // Create decoration for the line
+    const decorationIds = editor.deltaDecorations([], [
+      {
+        range: new this.monaco.Range(lineNumber, 1, lineNumber, 1),
+        options: {
+          isWholeLine: true,
+          linesDecorationsClassName: 'comment-line-decoration',
+          overviewRuler: {
+            color: '#3b82f6',
+            position: this.monaco.editor.OverviewRulerLane.Right
+          }
+        }
+      }
+    ])
+    
+    // Store the decoration with its ID
+    this.commentDecorations.push({ 
+      decorationId: decorationIds[0], 
+      editor,
+      lineNumber,
+      side
+    })
+  }
+  
+  displayComment(comment, file) {
+    const editor = comment.side === 'original' ? 
+      this.currentEditor.getOriginalEditor() : 
+      this.currentEditor.getModifiedEditor()
+    
+    // Create comment display widget
+    const commentDisplay = document.createElement('div')
+    commentDisplay.className = 'comment-display'
+    commentDisplay.style.cssText = `
+      background: ${document.documentElement.classList.contains('dark') ? '#1e293b' : '#f3f4f6'};
+      border-left: 3px solid #3b82f6;
+      padding: 8px 12px;
+      margin: 4px 0;
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 1.5;
+      width: 400px;
+    `
+    
+    commentDisplay.innerHTML = `
+      <div class="flex items-start justify-between">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-medium text-gray-700 dark:text-gray-300">${comment.author}</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">
+              ${new Date(comment.timestamp).toLocaleString()}
+            </span>
+          </div>
+          <div class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">${comment.text}</div>
+        </div>
+        <button class="delete-comment ml-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </button>
+      </div>
+    `
+    
+    // Create zone widget to display the comment first
+    const viewZone = {
+      afterLineNumber: comment.lineNumber,
+      heightInLines: 3,
+      domNode: commentDisplay
+    }
+    
+    editor.changeViewZones(accessor => {
+      const zoneId = accessor.addZone(viewZone)
+      // Store the zone ID in the comment object
+      comment.zoneId = zoneId
+      
+      // Add delete handler after zone is created
+      const deleteBtn = commentDisplay.querySelector('.delete-comment')
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          console.log('Delete clicked for comment:', comment)
+          this.deleteComment(comment, file)
+        })
+      }
+    })
+  }
+  
+  displayExistingComments(file) {
+    const fileComments = this.comments[file.path] || []
+    fileComments.forEach(comment => {
+      this.addCommentDecoration(comment.lineNumber, comment.side)
+      this.displayComment(comment, file)
+    })
+  }
+  
+  deleteComment(comment, file) {
+    // Remove from storage
+    const fileComments = this.comments[file.path]
+    const index = fileComments.findIndex(c => c.id === comment.id)
+    if (index > -1) {
+      fileComments.splice(index, 1)
+    }
+    
+    // Get the correct editor
+    const editor = comment.side === 'original' ? 
+      this.currentEditor.getOriginalEditor() : 
+      this.currentEditor.getModifiedEditor()
+    
+    // Remove view zone
+    if (comment.zoneId) {
+      editor.changeViewZones(accessor => {
+        accessor.removeZone(comment.zoneId)
+      })
+    }
+    
+    // If no more comments on this line, remove decoration
+    const hasMoreComments = fileComments.some(c => 
+      c.lineNumber === comment.lineNumber && c.side === comment.side
+    )
+    
+    if (!hasMoreComments) {
+      // Find and remove the decoration for this line
+      this.removeCommentDecoration(comment.lineNumber, comment.side)
+    }
+    
+    // Show notification
+    this.showNotification('Comment deleted', 'info')
+  }
+  
+  removeCommentDecoration(lineNumber, side) {
+    const editor = side === 'original' ? 
+      this.currentEditor.getOriginalEditor() : 
+      this.currentEditor.getModifiedEditor()
+    
+    // Find the decoration for this line and side
+    const decorationIndex = this.commentDecorations.findIndex(d => 
+      d.lineNumber === lineNumber && d.side === side && d.editor === editor
+    )
+    
+    if (decorationIndex > -1) {
+      const decoration = this.commentDecorations[decorationIndex]
+      // Remove the decoration
+      editor.deltaDecorations(decoration.decorationId, [])
+      // Remove from our tracking array
+      this.commentDecorations.splice(decorationIndex, 1)
+    }
+  }
+  
+  clearComments() {
+    // Clear all comment widgets
+    this.commentWidgets?.forEach(widget => {
+      if (!widget.isDisposed && widget.editor) {
+        widget.editor.removeContentWidget(widget)
+      }
+    })
+    this.commentWidgets = []
+    
+    // Clear all decorations
+    this.commentDecorations?.forEach(({ decorationId, editor }) => {
+      if (decorationId && editor) {
+        editor.deltaDecorations([decorationId], [])
+      }
+    })
+    this.commentDecorations = []
   }
 }

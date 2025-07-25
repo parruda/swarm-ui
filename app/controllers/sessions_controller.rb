@@ -667,33 +667,39 @@ class SessionsController < ApplicationController
     Dir.chdir(directory) do
       # Reset all tracked files to HEAD
       reset_result = %x(git reset --hard HEAD 2>&1)
-      
+
       if $?.exitstatus != 0
-        render(json: { 
-          success: false, 
-          error: "Failed to reset tracked files: #{reset_result}" 
-        }, status: :unprocessable_entity)
+        render(
+          json: {
+            success: false,
+            error: "Failed to reset tracked files: #{reset_result}",
+          },
+          status: :unprocessable_entity,
+        )
         return
       end
 
       # Clean up untracked files and directories
       clean_result = %x(git clean -fd 2>&1)
-      
+
       if $?.exitstatus != 0
-        render(json: { 
-          success: false, 
-          error: "Failed to clean untracked files: #{clean_result}" 
-        }, status: :unprocessable_entity)
+        render(
+          json: {
+            success: false,
+            error: "Failed to clean untracked files: #{clean_result}",
+          },
+          status: :unprocessable_entity,
+        )
         return
       end
 
       operation_success = true
-      render(json: { 
-        success: true, 
-        message: "Successfully discarded all changes" 
+      render(json: {
+        success: true,
+        message: "Successfully discarded all changes",
       })
     end
-    
+
     # Trigger git status update after chdir block completes
     GitStatusUpdateJob.perform_later(@session.id) if operation_success
   rescue => e

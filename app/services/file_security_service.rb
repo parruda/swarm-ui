@@ -5,17 +5,23 @@
 class FileSecurityService
   # Patterns to prevent accidental system damage
   DANGEROUS_PATTERNS = [
-    /\.\.\//, # Parent directory traversal
-    /^\/(?!Users\/#{ENV["USER"]})/, # Paths outside user home (Mac)
-    /^\/(?!home\/#{ENV["USER"]})/, # Paths outside user home (Linux)
-    /\.git\//, # Git internals
+    %r{\.\./}, # Parent directory traversal
+    %r{^/(?!Users/#{ENV["USER"]})}, # Paths outside user home (Mac)
+    %r{^/(?!home/#{ENV["USER"]})}, # Paths outside user home (Linux)
+    %r{\.git/}, # Git internals
     /\.(ssh|aws|env)/, # Sensitive config files
   ].freeze
 
   # Protected system directories
-  PROTECTED_PATHS = %w[
-    /System /usr /bin /sbin /etc
-    ~/.ssh ~/.aws ~/.config
+  PROTECTED_PATHS = [
+    "/System",
+    "/usr",
+    "/bin",
+    "/sbin",
+    "/etc",
+    "~/.ssh",
+    "~/.aws",
+    "~/.config",
   ].map { |p| File.expand_path(p) }.freeze
 
   MAX_FILE_SIZE = 10.megabytes

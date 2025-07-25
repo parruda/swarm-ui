@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "English"
 require "yaml"
 require "shellwords"
 require "open3"
@@ -650,7 +651,7 @@ class SessionsController < ApplicationController
 
   def git_reset
     directory = params[:directory]
-    instance_name = params[:instance_name]
+    params[:instance_name]
     operation_success = false
 
     unless directory.present? && File.directory?(directory)
@@ -668,7 +669,7 @@ class SessionsController < ApplicationController
       # Reset all tracked files to HEAD
       reset_result = %x(git reset --hard HEAD 2>&1)
 
-      if $?.exitstatus != 0
+      if $CHILD_STATUS.exitstatus != 0
         render(
           json: {
             success: false,
@@ -682,7 +683,7 @@ class SessionsController < ApplicationController
       # Clean up untracked files and directories
       clean_result = %x(git clean -fd 2>&1)
 
-      if $?.exitstatus != 0
+      if $CHILD_STATUS.exitstatus != 0
         render(
           json: {
             success: false,

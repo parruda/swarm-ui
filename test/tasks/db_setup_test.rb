@@ -11,11 +11,11 @@ class DbSetupTest < ActiveSupport::TestCase
   end
 
   test "db:ensure_user task is defined" do
-    assert @rake.tasks.map(&:name).include?("db:ensure_user")
+    assert_includes @rake.tasks.map(&:name), "db:ensure_user"
   end
 
   test "db:prepare depends on db:ensure_user" do
     db_prepare_task = @rake.tasks.find { |t| t.name == "db:prepare" }
-    assert db_prepare_task.prerequisites.include?("ensure_user")
+    assert_includes db_prepare_task.prerequisites, "ensure_user"
   end
 end

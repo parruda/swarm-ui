@@ -68,6 +68,14 @@
                         hint: "Create a separate git worktree for this session",
                         wrapper: :tailwind_boolean %>
 
+            <%= f.input :initial_prompt,
+                        as: :text,
+                        label: "Initial Prompt (optional)",
+                        placeholder: "Enter an initial prompt for the session...",
+                        hint: "This prompt will be sent to claude-swarm when the session starts",
+                        wrapper: :tailwind,
+                        input_html: { rows: 4 } %>
+
             <div class="space-y-2">
               <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Environment Variables</label>
               <div data-controller="session-environment-variables">

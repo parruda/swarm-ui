@@ -55,6 +55,7 @@ class Session < ApplicationRecord
       new_session: new_session,
       openai_api_key: Setting.openai_api_key,
       environment_variables: environment_variables,
+      initial_prompt: initial_prompt,
     }
 
     # Base64 encode the payload (URL-safe)

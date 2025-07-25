@@ -3,6 +3,7 @@
 
 require "base64"
 require "json"
+require "shellwords"
 
 # Get the base64 encoded argument
 encoded_arg = ARGV.join("")
@@ -20,6 +21,7 @@ session_id = params[:session_id]
 new_session = params[:new_session]
 openai_api_key = params[:openai_api_key]
 environment_variables = params[:environment_variables]
+initial_prompt = params[:initial_prompt]
 
 # Build the command
 if new_session
@@ -27,6 +29,7 @@ if new_session
   command += " --session-id #{session_id}"
   command += " --worktree" if use_worktree
   command += " --root-dir #{project_path}"
+  command += " -i #{Shellwords.escape(initial_prompt)}" if initial_prompt && !initial_prompt.empty?
 else
   command = "bundle exec claude-swarm restore #{session_id}"
 end

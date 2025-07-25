@@ -59,6 +59,7 @@ class SessionsController < ApplicationController
         @session.configuration_path = @clone_source.configuration_path
         @session.use_worktree = @clone_source.use_worktree
         @session.environment_variables = @clone_source.environment_variables
+        @session.initial_prompt = @clone_source.initial_prompt
         @focus_name_field = true
       end
     end
@@ -838,6 +839,7 @@ class SessionsController < ApplicationController
       :session_id,
       :status,
       :environment_variables,
+      :initial_prompt,
     )
   end
 

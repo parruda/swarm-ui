@@ -239,6 +239,9 @@ export default class extends Controller {
         })
       })
     }
+    
+    // Update request changes button state after content is loaded
+    this.updateRequestChangesButton()
   }
 
   async loadMonaco() {
@@ -904,11 +907,16 @@ export default class extends Controller {
       `
     }
     
-    // Reset request changes button
+    // Reset request changes button - but keep it disabled initially
     const requestChangesButton = this.modal.querySelector('[data-git-diff-modal-target="requestChangesButton"]')
     if (requestChangesButton) {
-      requestChangesButton.disabled = false
-      requestChangesButton.classList.remove('animate-pulse')
+      requestChangesButton.disabled = true
+      requestChangesButton.title = "Add comments to request changes"
+      
+      // Set disabled state styling - matching the pattern from git status buttons
+      requestChangesButton.className = 'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-50'
+      
+      // Reset the content
       requestChangesButton.innerHTML = `
         <svg class="h-3.5 w-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
@@ -1082,6 +1090,9 @@ export default class extends Controller {
     // Show the comment
     this.displayComment(comment, file)
     
+    // Update request changes button state
+    this.updateRequestChangesButton()
+    
     // TODO: Save to backend
     // this.saveCommentsToBackend(file.path)
     
@@ -1229,6 +1240,9 @@ export default class extends Controller {
       this.modal.dataset.comments = JSON.stringify(this.comments)
     }
     
+    // Update request changes button state
+    this.updateRequestChangesButton()
+    
     // Get the correct editor
     const editor = comment.side === 'original' ? 
       this.currentEditor.getOriginalEditor() : 
@@ -1298,5 +1312,35 @@ export default class extends Controller {
     
     // Then clear all comment data
     this.comments = {}
+  }
+  
+  updateRequestChangesButton() {
+    const requestChangesButton = this.modal?.querySelector('[data-git-diff-modal-target="requestChangesButton"]')
+    if (!requestChangesButton) return
+    
+    // Count total comments across all files
+    let totalComments = 0
+    for (const fileComments of Object.values(this.comments || {})) {
+      if (Array.isArray(fileComments)) {
+        totalComments += fileComments.length
+      }
+    }
+    
+    // Update button state based on comment count
+    if (totalComments === 0) {
+      // Disable button
+      requestChangesButton.disabled = true
+      requestChangesButton.title = "Add comments to request changes"
+      
+      // Update classes to show disabled state
+      requestChangesButton.className = 'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-50'
+    } else {
+      // Enable button
+      requestChangesButton.disabled = false
+      requestChangesButton.title = `Send ${totalComments} comment${totalComments > 1 ? 's' : ''} to session`
+      
+      // Update classes to show enabled state
+      requestChangesButton.className = 'px-3 py-1.5 text-xs font-medium rounded bg-yellow-600 hover:bg-yellow-700 text-white transition-colors cursor-pointer'
+    }
   }
 }

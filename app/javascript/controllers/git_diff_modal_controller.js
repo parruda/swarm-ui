@@ -205,8 +205,19 @@ export default class extends Controller {
         </div>
         
         <!-- Monaco diff container -->
-        <div class="flex-1">
-          <div id="monaco-diff-container" style="height: 100%;"></div>
+        <div class="flex-1 flex flex-col">
+          <!-- Instructions banner -->
+          <div class="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 px-4 py-3">
+            <div class="flex items-center space-x-2">
+              <svg class="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <p class="text-sm text-blue-800 dark:text-blue-200">
+                To request changes: Click on line numbers to add comments, then click "Request Changes" to send them to the session.
+              </p>
+            </div>
+          </div>
+          <div id="monaco-diff-container" style="flex: 1;"></div>
         </div>
       </div>
     `

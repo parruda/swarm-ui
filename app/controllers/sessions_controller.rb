@@ -712,7 +712,7 @@ class SessionsController < ApplicationController
     # This method injects text into a running tmux session associated with the current SwarmUI session.
     # It's used by the diff modal's "Request Changes" feature to send code review comments directly
     # to the terminal where the AI agent is running, enabling seamless vibe coding workflows.
-    # The method uses tmux's send-keys command with the -l flag to send literal text without 
+    # The method uses tmux's send-keys command with the -l flag to send literal text without
     # shell interpretation, then sends an Enter key to execute the command.
     text = params[:text]
 
@@ -731,11 +731,11 @@ class SessionsController < ApplicationController
     tmux_session_name = "swarm-ui-#{@session.session_id}"
 
     # Send text to tmux session using -l flag for literal text
-    result, stderr, status = Open3.capture3("tmux", "send-keys", "-t", tmux_session_name, "-l", text)
-    
+    _, stderr, status = Open3.capture3("tmux", "send-keys", "-t", tmux_session_name, "-l", text)
+
     # Send Enter key separately
     if status.success?
-      result2, stderr2, status2 = Open3.capture3("tmux", "send-keys", "-t", tmux_session_name, "Enter")
+      _, _, status2 = Open3.capture3("tmux", "send-keys", "-t", tmux_session_name, "Enter")
       status = status2 unless status2.success?
     end
 

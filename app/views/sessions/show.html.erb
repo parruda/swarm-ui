@@ -216,22 +216,22 @@
               <div class="flex items-center space-x-3">
                 <!-- Reject button -->
                 <button type="button" 
-                        class="group px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 flex items-center space-x-2"
+                        class="px-3 py-1.5 text-xs font-medium rounded bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer"
                         data-action="click->git-diff-modal#reject"
                         data-git-diff-modal-target="rejectButton"
                         title="Discard all changes">
-                  <%= heroicon "x-circle", variant: :solid, options: { class: "h-4 w-4" } %>
-                  <span>Reject</span>
+                  <%= heroicon "x-circle", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
+                  Reject
                 </button>
                 
-                <!-- Approve button -->
+                <!-- Approve button (same style as commit button) -->
                 <button type="button" 
-                        class="group px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 flex items-center space-x-2"
+                        class="px-3 py-1.5 text-xs font-medium rounded bg-green-600 hover:bg-green-700 text-white transition-colors cursor-pointer"
                         data-action="click->git-diff-modal#approve"
                         data-git-diff-modal-target="approveButton"
-                        title="Commit all changes">
-                  <%= heroicon "check-circle", variant: :solid, options: { class: "h-4 w-4" } %>
-                  <span>Approve</span>
+                        title="Generate commit message with Claude and commit changes">
+                  <%= heroicon "check", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
+                  Approve
                 </button>
                 
                 <!-- Close button with hover effect -->

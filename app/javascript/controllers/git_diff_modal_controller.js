@@ -4,8 +4,14 @@ export default class extends Controller {
   connect() {
     this.boundCloseOnEscape = this.closeOnEscape.bind(this)
     this.boundCloseOnClickOutside = this.closeOnClickOutside.bind(this)
-    this.currentSessionId = null
-    this.currentDirectory = null
+    // Don't reset if already set
+    if (!this.currentSessionId) {
+      this.currentSessionId = null
+    }
+    if (!this.currentDirectory) {
+      this.currentDirectory = null
+    }
+    console.log("GitDiffModalController connected, currentSessionId:", this.currentSessionId)
   }
   
   findModalElements() {
@@ -37,9 +43,13 @@ export default class extends Controller {
       return
     }
     
-    const directory = event.currentTarget.dataset.directory
-    const instanceName = event.currentTarget.dataset.instanceName
-    const sessionId = event.currentTarget.dataset.sessionId
+    // Get data from the clicked element (event.currentTarget)
+    const clickedElement = event.currentTarget
+    const directory = clickedElement.dataset.directory
+    const instanceName = clickedElement.dataset.instanceName
+    const sessionId = clickedElement.dataset.sessionId
+    
+    console.log("Opening modal with data:", { directory, instanceName, sessionId })
     
     // Validate required data
     if (!sessionId || !directory) {
@@ -50,6 +60,13 @@ export default class extends Controller {
     
     this.currentSessionId = sessionId
     this.currentDirectory = directory
+    console.log("Set currentSessionId:", this.currentSessionId, "currentDirectory:", this.currentDirectory)
+    
+    // Store in data attributes as backup
+    if (this.modal) {
+      this.modal.dataset.sessionId = sessionId
+      this.modal.dataset.directory = directory
+    }
     
     // Update subtitle
     if (this.subtitleEl) {
@@ -101,6 +118,12 @@ export default class extends Controller {
         if (data.error) {
           this.showError(data.error)
         } else if (data.has_changes) {
+          // Store the session data in case it wasn't properly set
+          if (!this.currentSessionId || !this.currentDirectory) {
+            console.warn("Session data was not set properly, using fallback")
+            this.currentSessionId = sessionId
+            this.currentDirectory = directory
+          }
           await this.showDiffContent(data)
         } else {
           this.showNoChanges()
@@ -444,29 +467,59 @@ export default class extends Controller {
 
   async approve(event) {
     event.preventDefault()
+    console.log('Approve clicked', this.currentSessionId, this.currentDirectory)
     
-    const approveButton = event.currentTarget
+    // Ensure modal is found
+    if (!this.findModalElements()) {
+      console.error("Modal not found")
+      return
+    }
+    
+    // Fallback to modal data attributes if values are null
+    if (!this.currentSessionId && this.modal.dataset.sessionId) {
+      this.currentSessionId = this.modal.dataset.sessionId
+      console.log("Using fallback sessionId from modal dataset:", this.currentSessionId)
+    }
+    if (!this.currentDirectory && this.modal.dataset.directory) {
+      this.currentDirectory = this.modal.dataset.directory
+      console.log("Using fallback directory from modal dataset:", this.currentDirectory)
+    }
+    
+    // Final check
+    if (!this.currentSessionId || !this.currentDirectory) {
+      console.error("Cannot proceed without session ID and directory")
+      this.showNotification("Error: Session information is missing", 'error')
+      return
+    }
+    
+    const button = event.currentTarget
     const rejectButton = this.modal.querySelector('[data-git-diff-modal-target="rejectButton"]')
     
+    // Store original content
+    const originalContent = button.innerHTML
+    
     // Disable both buttons and show loading state
-    const originalContent = approveButton.innerHTML
-    approveButton.disabled = true
+    button.disabled = true
     rejectButton.disabled = true
-    approveButton.classList.add('animate-pulse')
-    approveButton.innerHTML = `
-      <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+    button.classList.add('animate-pulse')
+    button.innerHTML = `
+      <svg class="h-3.5 w-3.5 animate-spin inline mr-1" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
-      <span>Committing...</span>
+      Committing...
     `
     
     try {
       // Call the same commit endpoint used by the commit button
-      const response = await fetch(`/sessions/${this.currentSessionId}/git_commit`, {
+      const url = `/sessions/${this.currentSessionId}/git_commit`
+      console.log("Calling git_commit endpoint:", url)
+      
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
           "X-CSRF-Token": document.querySelector('[name="csrf-token"]').content
         },
         body: JSON.stringify({
@@ -475,11 +528,27 @@ export default class extends Controller {
         })
       })
       
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text()
+        console.error("Non-JSON response:", text)
+        throw new Error("Server returned non-JSON response")
+      }
+      
       const data = await response.json()
       
       if (response.ok && data.success) {
+        // Show success animation (same as git_actions_controller)
+        button.innerHTML = `
+          <svg class="h-3.5 w-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+          </svg>
+          Committed!
+        `
+        
         // Show success message
-        this.showNotification(`Changes approved and committed: ${data.commit_message}`, 'success')
+        this.showNotification(`Successfully committed changes: ${data.commit_message}`, 'success')
         
         // Close modal after a short delay
         setTimeout(() => {
@@ -490,26 +559,47 @@ export default class extends Controller {
         this.showNotification(data.error || "Failed to commit changes", 'error')
         
         // Restore button state
-        approveButton.disabled = false
+        button.disabled = false
         rejectButton.disabled = false
-        approveButton.classList.remove('animate-pulse')
-        approveButton.innerHTML = originalContent
+        button.classList.remove('animate-pulse')
+        button.innerHTML = originalContent
       }
     } catch (error) {
       this.showNotification(`Error: ${error.message}`, 'error')
       
       // Restore button state
-      approveButton.disabled = false
+      button.disabled = false
       rejectButton.disabled = false
-      approveButton.classList.remove('animate-pulse')
-      approveButton.innerHTML = originalContent
+      button.classList.remove('animate-pulse')
+      button.innerHTML = originalContent
     }
   }
 
   async reject(event) {
     event.preventDefault()
     
-    const rejectButton = event.currentTarget
+    // Ensure modal is found
+    if (!this.findModalElements()) {
+      console.error("Modal not found")
+      return
+    }
+    
+    // Fallback to modal data attributes if values are null
+    if (!this.currentSessionId && this.modal.dataset.sessionId) {
+      this.currentSessionId = this.modal.dataset.sessionId
+    }
+    if (!this.currentDirectory && this.modal.dataset.directory) {
+      this.currentDirectory = this.modal.dataset.directory
+    }
+    
+    // Final check
+    if (!this.currentSessionId || !this.currentDirectory) {
+      console.error("Cannot proceed without session ID and directory")
+      this.showNotification("Error: Session information is missing", 'error')
+      return
+    }
+    
+    const button = event.currentTarget
     const approveButton = this.modal.querySelector('[data-git-diff-modal-target="approveButton"]')
     
     // Confirm the action
@@ -517,25 +607,28 @@ export default class extends Controller {
       return
     }
     
+    // Store original content
+    const originalContent = button.innerHTML
+    
     // Disable both buttons and show loading state
-    const originalContent = rejectButton.innerHTML
-    rejectButton.disabled = true
+    button.disabled = true
     approveButton.disabled = true
-    rejectButton.classList.add('animate-pulse')
-    rejectButton.innerHTML = `
-      <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+    button.classList.add('animate-pulse')
+    button.innerHTML = `
+      <svg class="h-3.5 w-3.5 animate-spin inline mr-1" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
-      <span>Discarding...</span>
+      Discarding...
     `
     
     try {
-      // Call a new git_reset endpoint
+      // Call the git_reset endpoint
       const response = await fetch(`/sessions/${this.currentSessionId}/git_reset`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
           "X-CSRF-Token": document.querySelector('[name="csrf-token"]').content
         },
         body: JSON.stringify({
@@ -547,6 +640,14 @@ export default class extends Controller {
       const data = await response.json()
       
       if (response.ok && data.success) {
+        // Show success animation
+        button.innerHTML = `
+          <svg class="h-3.5 w-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+          </svg>
+          Discarded!
+        `
+        
         // Show success message
         this.showNotification("All changes have been discarded", 'success')
         
@@ -559,19 +660,19 @@ export default class extends Controller {
         this.showNotification(data.error || "Failed to discard changes", 'error')
         
         // Restore button state
-        rejectButton.disabled = false
+        button.disabled = false
         approveButton.disabled = false
-        rejectButton.classList.remove('animate-pulse')
-        rejectButton.innerHTML = originalContent
+        button.classList.remove('animate-pulse')
+        button.innerHTML = originalContent
       }
     } catch (error) {
       this.showNotification(`Error: ${error.message}`, 'error')
       
       // Restore button state
-      rejectButton.disabled = false
+      button.disabled = false
       approveButton.disabled = false
-      rejectButton.classList.remove('animate-pulse')
-      rejectButton.innerHTML = originalContent
+      button.classList.remove('animate-pulse')
+      button.innerHTML = originalContent
     }
   }
 

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
-  root "sessions#index"
+  root "projects#index"
 
   resources :sessions, only: [:index, :new, :create, :show] do
     member do

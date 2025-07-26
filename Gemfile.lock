@@ -75,6 +75,12 @@ GEM
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
     ast (2.4.3)
+    async (2.27.0)
+      console (~> 1.29)
+      fiber-annotation
+      io-event (~> 1.11)
+      metrics (~> 0.12)
+      traces (~> 0.15)
     base64 (0.3.0)
     benchmark (0.4.1)
     bigdecimal (3.2.2)
@@ -93,14 +99,23 @@ GEM
       rack-test (>= 0.6.3)
       regexp_parser (>= 1.5, < 3.0)
       xpath (~> 3.2)
-    claude_swarm (0.3.3)
-      fast-mcp-annotations (~> 1.5.3)
+    claude-code-sdk-ruby (0.1.4)
+      async (~> 2)
+      logger (~> 1)
+    claude_swarm (0.3.6)
+      claude-code-sdk-ruby (~> 0.1)
+      faraday-retry (~> 2.0)
+      fast-mcp-annotations (~> 1.5)
       ruby-mcp-client (~> 0.7)
       ruby-openai (>= 7.0, < 9.0)
       thor (~> 1.3)
       zeitwerk (~> 2.6)
     concurrent-ruby (1.3.5)
     connection_pool (2.5.3)
+    console (1.32.0)
+      fiber-annotation
+      fiber-local (~> 1.1)
+      json
     crack (1.0.0)
       bigdecimal
       rexml
@@ -170,6 +185,10 @@ GEM
       json (~> 2.0)
       mime-types (~> 3.4)
       rack (< 3)
+    fiber-annotation (0.2.0)
+    fiber-local (1.1.0)
+      fiber-storage
+    fiber-storage (1.0.1)
     fugit (1.11.1)
       et-orbi (~> 1, >= 1.2.11)
       raabro (~> 1.4)
@@ -196,6 +215,7 @@ GEM
       activesupport (>= 6.0.0)
       railties (>= 6.0.0)
     io-console (0.8.0)
+    io-event (1.12.1)
     irb (1.15.2)
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
@@ -217,6 +237,7 @@ GEM
       net-smtp
     marcel (1.0.4)
     matrix (0.4.3)
+    metrics (0.12.2)
     mime-types (3.7.0)
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
@@ -429,6 +450,7 @@ GEM
     thruster (0.1.14-x86_64-linux)
     tilt (2.6.0)
     timeout (0.4.3)
+    traces (0.15.2)
     turbo-rails (2.0.16)
       actionpack (>= 7.1.0)
       railties (>= 7.1.0)

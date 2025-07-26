@@ -57,11 +57,16 @@ if environment_variables && !environment_variables.empty?
   end
 end
 
+# Prepend environment variables to the command
+unless env.empty?
+  env_prefix = env.map { |k, v| "#{k}=#{Shellwords.escape(v)}" }.join(" ")
+  command = "#{env_prefix} #{command}"
+end
+
 # Execute tmux session (this will block until the session ends)
 puts "Executing ENV: #{env.inspect}"
 puts "Executing COMMAND: tmux -f config/tmux.conf new -A -s #{tmux_session_name} #{command}"
-
-system(env, "tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, command)
+system("tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, command)
 
 # After tmux exits, mark the session as stopped
 system(status_script, session_id, "stopped")

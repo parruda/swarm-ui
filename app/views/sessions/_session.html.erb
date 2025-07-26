@@ -15,14 +15,29 @@
             <%= session.status&.capitalize || 'Unknown' %>
           </span>
           <% if session.github_issue_number || session.github_pr_number %>
-            <span class="inline-flex items-center rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
-              <%= heroicon "link", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
-              <% if session.github_pr_number %>
-                PR #<%= session.github_pr_number %>
-              <% else %>
-                Issue #<%= session.github_issue_number %>
-              <% end %>
-            </span>
+            <% if session.project.github_configured? %>
+              <a href="https://github.com/<%= session.project.github_repo_full_name %>/<%= session.github_pr_number ? 'pull' : 'issues' %>/<%= session.github_pr_number || session.github_issue_number %>" 
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="inline-flex items-center rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors">
+                <%= heroicon "link", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                <% if session.github_pr_number %>
+                  PR #<%= session.github_pr_number %>
+                <% else %>
+                  Issue #<%= session.github_issue_number %>
+                <% end %>
+                <%= heroicon "arrow-top-right-on-square", variant: :mini, options: { class: "h-3 w-3 ml-1" } %>
+              </a>
+            <% else %>
+              <span class="inline-flex items-center rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                <%= heroicon "link", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                <% if session.github_pr_number %>
+                  PR #<%= session.github_pr_number %>
+                <% else %>
+                  Issue #<%= session.github_issue_number %>
+                <% end %>
+              </span>
+            <% end %>
           <% end %>
         </div>
         <% if session.project.present? %>

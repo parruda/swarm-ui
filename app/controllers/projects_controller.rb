@@ -100,6 +100,12 @@ class ProjectsController < ApplicationController
       return
     end
 
+    # Check if GitHub username is configured
+    unless Setting.github_username_configured?
+      redirect_back(fallback_location: edit_project_path(@project, anchor: "webhook-configuration"), alert: "Please configure your GitHub username in Settings before enabling webhooks.")
+      return
+    end
+
     # Check if any events are enabled
     if @project.github_webhook_events.enabled.empty?
       redirect_back(fallback_location: edit_project_path(@project, anchor: "webhook-configuration"), alert: "Please select at least one webhook event before enabling webhooks.")

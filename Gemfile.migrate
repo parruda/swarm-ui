@@ -1,9 +1,0 @@
-# Temporary Gemfile for PostgreSQL to SQLite migration
-source "https://rubygems.org"
-
-# Include both database adapters for migration
-gem "pg", "~> 1.1"
-gem "sqlite3", ">= 2.0"
-
-# Include Rails and dependencies from main Gemfile
-eval_gemfile "Gemfile"

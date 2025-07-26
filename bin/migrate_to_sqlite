@@ -1,6 +1,9 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+# HISTORICAL: This migration script was used to migrate from PostgreSQL to SQLite
+# It is kept for reference but is no longer needed after the migration is complete
+# 
 # This migration script requires both pg and sqlite3 gems
 # Use the temporary Gemfile.migrate if running this script
 # Example: BUNDLE_GEMFILE=Gemfile.migrate bundle exec bin/migrate_to_sqlite

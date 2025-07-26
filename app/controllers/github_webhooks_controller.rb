@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "open3"
+
 class GithubWebhooksController < ApplicationController
   skip_before_action :verify_authenticity_token
 
@@ -77,14 +79,14 @@ class GithubWebhooksController < ApplicationController
     pr_number = is_pr ? issue["number"] : nil
     issue_type = is_pr ? "pull_request" : "issue"
 
-    Rails.logger.info("Processing /swarm comment from parruda for #{issue_type} ##{issue["number"]}: #{prompt}")
+    Rails.logger.info("Processing /swarm comment from #{user_login} for #{issue_type} ##{issue["number"]}: #{prompt}")
 
     # Find or create session
     existing_session = BackgroundSessionService.find_existing_github_session(project, issue_number, pr_number)
-    
+
     if existing_session
       Rails.logger.info("Found existing session #{existing_session.id} for #{issue_type} ##{issue["number"]}")
-      
+
       if existing_session.active?
         # Send to existing active session
         BackgroundSessionService.send_comment_to_session(existing_session, prompt, user_login: user_login)
@@ -92,7 +94,7 @@ class GithubWebhooksController < ApplicationController
         # Restart stopped session
         BackgroundSessionService.restart_session(existing_session, prompt, user_login: user_login)
       end
-      
+
       Rails.logger.info("Successfully processed comment for session #{existing_session.id}")
     else
       # Create new session - the initial_prompt will be used when the session starts
@@ -106,9 +108,15 @@ class GithubWebhooksController < ApplicationController
         issue_title: issue_title,
         start_background: true,
       )
-      
+
       if session.persisted?
         Rails.logger.info("Successfully created and started session #{session.id}")
+
+        # Add thumbs up reaction to acknowledge session creation
+        if project.github_configured?
+          comment_url = payload["comment"]["url"]
+          GithubReactionService.add_thumbs_up_to_comment(project.github_repo_full_name, comment_url)
+        end
       else
         Rails.logger.error("Failed to create session for #{issue_type} ##{issue["number"]}")
       end
@@ -145,14 +153,14 @@ class GithubWebhooksController < ApplicationController
 
     full_prompt = code_context.any? ? "#{prompt}\n\nContext:\n#{code_context.join("\n")}" : prompt
 
-    Rails.logger.info("Processing /swarm review comment from parruda for PR ##{pr["number"]}: #{prompt}")
+    Rails.logger.info("Processing /swarm review comment from #{user_login} for PR ##{pr["number"]}: #{prompt}")
 
     # Find or create session
     existing_session = BackgroundSessionService.find_existing_github_session(project, nil, pr["number"])
-    
+
     if existing_session
       Rails.logger.info("Found existing session #{existing_session.id} for PR ##{pr["number"]}")
-      
+
       if existing_session.active?
         # Send to existing active session
         BackgroundSessionService.send_comment_to_session(existing_session, full_prompt, user_login: user_login)
@@ -160,7 +168,7 @@ class GithubWebhooksController < ApplicationController
         # Restart stopped session
         BackgroundSessionService.restart_session(existing_session, full_prompt, user_login: user_login)
       end
-      
+
       Rails.logger.info("Successfully processed review comment for session #{existing_session.id}")
     else
       # Create new session - the initial_prompt will be used when the session starts
@@ -173,9 +181,15 @@ class GithubWebhooksController < ApplicationController
         issue_title: pr_title,
         start_background: true,
       )
-      
+
       if session.persisted?
         Rails.logger.info("Successfully created and started session #{session.id}")
+
+        # Add thumbs up reaction to acknowledge session creation
+        if project.github_configured?
+          comment_url = payload["comment"]["url"]
+          GithubReactionService.add_thumbs_up_to_pr_review_comment(project.github_repo_full_name, comment_url)
+        end
       end
     end
   rescue => e
@@ -190,8 +204,8 @@ class GithubWebhooksController < ApplicationController
     review_body = payload["review"]["body"]
     user_login = payload["review"]["user"]["login"]
 
-    # Only process reviews from parruda
-    return unless user_login == "parruda"
+    # Only process reviews from configured GitHub user
+    return unless user_login == Setting.github_username
 
     # Check if review body starts with /swarm
     match = review_body&.match(%r{^/swarm\s+(.+)}mi)
@@ -205,27 +219,58 @@ class GithubWebhooksController < ApplicationController
     # Add review state context
     full_prompt = "PR Review (#{review_state}): #{prompt}"
 
-    Rails.logger.info("Processing /swarm review from parruda for PR ##{pr["number"]}: #{prompt}")
+    Rails.logger.info("Processing /swarm review from #{user_login} for PR ##{pr["number"]}: #{prompt}")
 
     # Find or create session
-    session = BackgroundSessionService.find_or_create_session(
-      project: project,
-      pr_number: pr["number"],
-      issue_type: "pull_request",
-      initial_prompt: full_prompt,
-      user_login: user_login,
-      issue_title: pr_title,
-      start_background: true,
-    )
+    existing_session = BackgroundSessionService.find_existing_github_session(project, nil, pr["number"])
 
-    if session.persisted?
-      if session.active?
-        BackgroundSessionService.send_comment_to_session(session, full_prompt, user_login: user_login)
+    if existing_session
+      Rails.logger.info("Found existing session #{existing_session.id} for PR ##{pr["number"]}")
+
+      if existing_session.active?
+        # Send to existing active session
+        BackgroundSessionService.send_comment_to_session(existing_session, full_prompt, user_login: user_login)
       else
-        BackgroundSessionService.restart_session(session, full_prompt, user_login: user_login)
+        # Restart stopped session
+        BackgroundSessionService.restart_session(existing_session, full_prompt, user_login: user_login)
       end
 
-      Rails.logger.info("Successfully processed review for session #{session.id}")
+      Rails.logger.info("Successfully processed review for session #{existing_session.id}")
+    else
+      # Create new session - the initial_prompt will be used when the session starts
+      session = BackgroundSessionService.find_or_create_session(
+        project: project,
+        pr_number: pr["number"],
+        issue_type: "pull_request",
+        initial_prompt: full_prompt,
+        user_login: user_login,
+        issue_title: pr_title,
+        start_background: true,
+      )
+
+      if session.persisted?
+        Rails.logger.info("Successfully created and started session #{session.id}")
+
+        # For PR reviews, we can't directly react to the review comment
+        # but we can post a comment on the PR acknowledging the session
+        if project.github_configured?
+          pr_number = pr["number"]
+          acknowledgment = "👍 SwarmUI session started for this review request."
+
+          cmd = [
+            "gh",
+            "pr",
+            "comment",
+            pr_number.to_s,
+            "--repo",
+            project.github_repo_full_name,
+            "--body",
+            acknowledgment,
+          ]
+
+          Open3.capture3(*cmd)
+        end
+      end
     end
   rescue => e
     Rails.logger.error("Error handling PR review: #{e.message}")

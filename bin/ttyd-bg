@@ -65,5 +65,5 @@ system(env, "tmux", "-f", "config/tmux.conf", "new-session", "-d", "-s", tmux_se
 
 puts "Background session started successfully"
 
-# Note: We cannot mark as stopped here because tmux -d returns immediately
+# NOTE: We cannot mark as stopped here because tmux -d returns immediately
 # The session will remain active until manually stopped or claude-swarm exits

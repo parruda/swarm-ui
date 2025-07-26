@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 class AddInitialPromptToSessions < ActiveRecord::Migration[8.0]
   def change
-    add_column :sessions, :initial_prompt, :text
+    add_column(:sessions, :initial_prompt, :text)
   end
 end

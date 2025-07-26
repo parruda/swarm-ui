@@ -181,7 +181,7 @@ class BackgroundSessionService
 
       # Get the terminal URL to extract encoded payload
       terminal_url = session.terminal_url(new_session: true)
-      
+
       # Extract the encoded payload from the URL
       query_string = terminal_url.split("?").last
       chunks = query_string.split("&").map { |param| param.split("=").last }

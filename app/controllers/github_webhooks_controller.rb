@@ -80,29 +80,38 @@ class GithubWebhooksController < ApplicationController
     Rails.logger.info("Processing /swarm comment from parruda for #{issue_type} ##{issue["number"]}: #{prompt}")
 
     # Find or create session
-    session = BackgroundSessionService.find_or_create_session(
-      project: project,
-      issue_number: issue_number,
-      pr_number: pr_number,
-      issue_type: issue_type,
-      initial_prompt: prompt,
-      user_login: user_login,
-      issue_title: issue_title,
-      start_background: true,
-    )
-
-    if session.persisted?
-      if session.active?
+    existing_session = BackgroundSessionService.find_existing_github_session(project, issue_number, pr_number)
+    
+    if existing_session
+      Rails.logger.info("Found existing session #{existing_session.id} for #{issue_type} ##{issue["number"]}")
+      
+      if existing_session.active?
         # Send to existing active session
-        BackgroundSessionService.send_comment_to_session(session, prompt, user_login: user_login)
+        BackgroundSessionService.send_comment_to_session(existing_session, prompt, user_login: user_login)
       else
         # Restart stopped session
-        BackgroundSessionService.restart_session(session, prompt, user_login: user_login)
+        BackgroundSessionService.restart_session(existing_session, prompt, user_login: user_login)
       end
-
-      Rails.logger.info("Successfully processed comment for session #{session.id}")
+      
+      Rails.logger.info("Successfully processed comment for session #{existing_session.id}")
     else
-      Rails.logger.error("Failed to create session for #{issue_type} ##{issue["number"]}")
+      # Create new session - the initial_prompt will be used when the session starts
+      session = BackgroundSessionService.find_or_create_session(
+        project: project,
+        issue_number: issue_number,
+        pr_number: pr_number,
+        issue_type: issue_type,
+        initial_prompt: prompt,
+        user_login: user_login,
+        issue_title: issue_title,
+        start_background: true,
+      )
+      
+      if session.persisted?
+        Rails.logger.info("Successfully created and started session #{session.id}")
+      else
+        Rails.logger.error("Failed to create session for #{issue_type} ##{issue["number"]}")
+      end
     end
   rescue => e
     Rails.logger.error("Error handling issue comment: #{e.message}")
@@ -139,24 +148,35 @@ class GithubWebhooksController < ApplicationController
     Rails.logger.info("Processing /swarm review comment from parruda for PR ##{pr["number"]}: #{prompt}")
 
     # Find or create session
-    session = BackgroundSessionService.find_or_create_session(
-      project: project,
-      pr_number: pr["number"],
-      issue_type: "pull_request",
-      initial_prompt: full_prompt,
-      user_login: user_login,
-      issue_title: pr_title,
-      start_background: true,
-    )
-
-    if session.persisted?
-      if session.active?
-        BackgroundSessionService.send_comment_to_session(session, full_prompt, user_login: user_login)
+    existing_session = BackgroundSessionService.find_existing_github_session(project, nil, pr["number"])
+    
+    if existing_session
+      Rails.logger.info("Found existing session #{existing_session.id} for PR ##{pr["number"]}")
+      
+      if existing_session.active?
+        # Send to existing active session
+        BackgroundSessionService.send_comment_to_session(existing_session, full_prompt, user_login: user_login)
       else
-        BackgroundSessionService.restart_session(session, full_prompt, user_login: user_login)
+        # Restart stopped session
+        BackgroundSessionService.restart_session(existing_session, full_prompt, user_login: user_login)
       end
-
-      Rails.logger.info("Successfully processed review comment for session #{session.id}")
+      
+      Rails.logger.info("Successfully processed review comment for session #{existing_session.id}")
+    else
+      # Create new session - the initial_prompt will be used when the session starts
+      session = BackgroundSessionService.find_or_create_session(
+        project: project,
+        pr_number: pr["number"],
+        issue_type: "pull_request",
+        initial_prompt: full_prompt,
+        user_login: user_login,
+        issue_title: pr_title,
+        start_background: true,
+      )
+      
+      if session.persisted?
+        Rails.logger.info("Successfully created and started session #{session.id}")
+      end
     end
   rescue => e
     Rails.logger.error("Error handling PR review comment: #{e.message}")

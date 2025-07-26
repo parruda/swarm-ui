@@ -78,8 +78,6 @@ class BackgroundSessionService
       send_comment_to_session(session, new_prompt, user_login: user_login)
     end
 
-    private
-
     def find_existing_github_session(project, issue_number, pr_number)
       scope = project.sessions
 
@@ -94,6 +92,8 @@ class BackgroundSessionService
       # Get the most recent session (active or stopped)
       scope.where(status: ["active", "stopped"]).order(created_at: :desc).first
     end
+
+    private
 
     def create_session(project:, issue_number: nil, pr_number: nil, issue_type: nil, initial_prompt:, user_login: nil, issue_title: nil, session_name: nil)
       # Generate session name if not provided
@@ -179,18 +179,20 @@ class BackgroundSessionService
     def start_session_background(session)
       Rails.logger.info("Starting session #{session.id} in background")
 
-      # Get the terminal URL
+      # Get the terminal URL to extract encoded payload
       terminal_url = session.terminal_url(new_session: true)
+      
+      # Extract the encoded payload from the URL
+      query_string = terminal_url.split("?").last
+      chunks = query_string.split("&").map { |param| param.split("=").last }
+      encoded_payload = chunks.join("")
 
-      Rails.logger.info("Hitting terminal URL: #{terminal_url}")
+      Rails.logger.info("Executing ttyd-bg for session #{session.id}")
 
-      # Make a GET request to the terminal URL to trigger session start
-      require "net/http"
-      uri = URI(terminal_url)
+      # Execute ttyd-bg script with the encoded payload
+      system("bin/ttyd-bg", encoded_payload)
 
-      Net::HTTP.get(uri)
-
-      Rails.logger.info("Background session triggered for session #{session.id}")
+      Rails.logger.info("Background session started for session #{session.id}")
 
       # Give it a moment to start
       sleep(0.5)

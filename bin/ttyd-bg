@@ -1,0 +1,69 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "base64"
+require "json"
+require "shellwords"
+
+# Get the base64 encoded argument
+encoded_arg = ARGV.join("")
+
+# Decode and parse JSON with symbol keys
+decoded = Base64.urlsafe_decode64(encoded_arg)
+params = JSON.parse(decoded, symbolize_names: true)
+
+# Extract parameters
+tmux_session_name = params[:tmux_session_name]
+project_path = params[:project_path]
+swarm_file = params[:swarm_file]
+use_worktree = params[:use_worktree]
+session_id = params[:session_id]
+new_session = params[:new_session]
+openai_api_key = params[:openai_api_key]
+environment_variables = params[:environment_variables]
+initial_prompt = params[:initial_prompt]
+
+# Build the command
+if new_session
+  command = "bundle exec claude-swarm start #{swarm_file}"
+  command += " --session-id #{session_id}"
+  command += " --worktree" if use_worktree
+  command += " --root-dir #{project_path}"
+  command += " -i #{Shellwords.escape(initial_prompt)}" if initial_prompt && !initial_prompt.empty?
+else
+  command = "bundle exec claude-swarm restore #{session_id}"
+end
+
+rails_root = File.expand_path("..", __dir__)
+status_script = File.join(rails_root, "bin", "update_session_status")
+
+# Mark session as active before starting
+system(status_script, session_id, "active")
+
+# Build environment for tmux session
+env = {}
+env["OPENAI_API_KEY"] = openai_api_key if openai_api_key && !openai_api_key.empty?
+
+# Parse and add custom environment variables
+if environment_variables && !environment_variables.empty?
+  environment_variables.each_line do |line|
+    line = line.strip
+    next if line.empty? || line.start_with?("#")
+
+    key, value = line.split("=", 2)
+    if key && value
+      env[key.strip] = value.strip
+    end
+  end
+end
+
+puts "Starting background session: #{session_id}"
+puts "Tmux session: #{tmux_session_name}"
+
+# Start tmux session in detached mode
+system(env, "tmux", "-f", "config/tmux.conf", "new-session", "-d", "-s", tmux_session_name, command)
+
+puts "Background session started successfully"
+
+# Note: We cannot mark as stopped here because tmux -d returns immediately
+# The session will remain active until manually stopped or claude-swarm exits

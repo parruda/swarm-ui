@@ -4,38 +4,12 @@ class GithubWebhookEvent < ApplicationRecord
   # Associations
   belongs_to :project
 
-  # Common GitHub webhook events
+  # Available GitHub webhook events for SwarmUI
+  # Limited to comment-based events that can trigger /swarm commands
   AVAILABLE_EVENTS = [
-    "push",
-    "pull_request",
+    "issue_comment",
     "pull_request_review",
     "pull_request_review_comment",
-    "issues",
-    "issue_comment",
-    "release",
-    "deployment",
-    "deployment_status",
-    "repository_dispatch",
-    "workflow_dispatch",
-    "workflow_run",
-    "check_run",
-    "check_suite",
-    "status",
-    "commit_comment",
-    "create",
-    "delete",
-    "fork",
-    "star",
-    "watch",
-    "discussion",
-    "discussion_comment",
-    "milestone",
-    "project",
-    "project_card",
-    "project_column",
-    "public",
-    "label",
-    "branch_protection_rule",
   ].freeze
 
   # Validations
@@ -49,7 +23,7 @@ class GithubWebhookEvent < ApplicationRecord
   # Common event presets
   class << self
     def common_events
-      ["push", "pull_request", "issues", "release"]
+      AVAILABLE_EVENTS
     end
   end
 end

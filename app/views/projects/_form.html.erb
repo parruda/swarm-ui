@@ -133,6 +133,23 @@
         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">GitHub Webhook Configuration</h3>
         
         <% if project.github_configured? %>
+          <% if !Setting.github_username_configured? %>
+            <div class="rounded-md bg-amber-50 dark:bg-amber-900/20 p-4 mb-4">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <%= heroicon "exclamation-triangle", variant: :solid, options: { class: "h-5 w-5 text-amber-400" } %>
+                </div>
+                <div class="ml-3">
+                  <h3 class="text-sm font-medium text-amber-800 dark:text-amber-200">GitHub username not configured</h3>
+                  <div class="mt-2 text-sm text-amber-700 dark:text-amber-300">
+                    <p>Before enabling webhooks, you need to configure your GitHub username in <%= link_to "Settings", edit_settings_path(anchor: "github-username"), class: "font-medium underline hover:text-amber-800 dark:hover:text-amber-200" %>.</p>
+                    <p class="mt-1">Only comments from your configured GitHub user will trigger SwarmUI sessions.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+          
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <div>
@@ -147,7 +164,9 @@
               
               <div class="flex items-center gap-3">
                 <% has_enabled_events = project.github_webhook_events.enabled.any? %>
-                <% if project.github_webhook_enabled? || has_enabled_events %>
+                <% can_enable_webhooks = Setting.github_username_configured? && (project.github_webhook_enabled? || has_enabled_events) %>
+                
+                <% if can_enable_webhooks %>
                   <%= link_to toggle_webhook_project_path(project), method: :post, data: { turbo_method: :post }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-orange-900 hover:bg-orange-800 text-white'}" do %>
                     <% if project.github_webhook_enabled? %>
                       <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
@@ -158,7 +177,8 @@
                     <% end %>
                   <% end %>
                 <% else %>
-                  <button type="button" disabled class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed" title="Select at least one event to enable webhooks">
+                  <% tooltip = !Setting.github_username_configured? ? "Configure GitHub username in Settings first" : "Select at least one event to enable webhooks" %>
+                  <button type="button" disabled class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed" title="<%= tooltip %>">
                     <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
                     Enable Webhooks
                   </button>

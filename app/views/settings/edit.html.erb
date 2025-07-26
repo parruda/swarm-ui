@@ -77,6 +77,60 @@
             </div>
           </div>
 
+          <!-- GitHub Integration Section -->
+          <div class="bg-white dark:bg-gray-800 shadow-xl rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <%= heroicon "globe-alt", variant: :outline, options: { class: "h-5 w-5 text-orange-600 dark:text-orange-400" } %>
+                GitHub Integration
+              </h2>
+            </div>
+            
+            <div class="p-6">
+              <div class="space-y-6">
+                <!-- GitHub Username -->
+                <div>
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <%= form.label :github_username, class: "block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2" do %>
+                        <span class="flex items-center gap-2">
+                          <%= heroicon "at-symbol", variant: :mini, options: { class: "h-4 w-4 text-orange-500" } %>
+                          GitHub Username
+                        </span>
+                      <% end %>
+                      <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        Only comments from this GitHub user starting with <code class="bg-gray-100 dark:bg-gray-900 px-1.5 py-0.5 rounded text-xs font-mono">/swarm</code> will trigger sessions.
+                        This is required for webhook functionality.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div class="relative">
+                    <%= form.text_field :github_username, 
+                        placeholder: "your-github-username", 
+                        class: "block w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-sm focus:border-orange-500 focus:ring-orange-500 dark:focus:border-orange-400 dark:focus:ring-orange-400 text-base dark:text-gray-100 dark:placeholder-gray-500 transition-colors duration-200 pr-12",
+                        autocomplete: "off" %>
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                      <%= heroicon "user", variant: :mini, options: { class: "h-5 w-5 text-gray-400" } %>
+                    </div>
+                  </div>
+                  
+                  <% if @setting.github_username.present? %>
+                    <p class="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                      <%= heroicon "check-circle", variant: :mini, options: { class: "h-4 w-4" } %>
+                      GitHub username is configured: <span class="font-medium">@<%= @setting.github_username %></span>
+                    </p>
+                  <% else %>
+                    <p class="mt-2 text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                      <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-4 w-4" } %>
+                      No GitHub username configured - webhooks cannot be enabled
+                    </p>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- More sections can be added here in the future -->
         </div>
 

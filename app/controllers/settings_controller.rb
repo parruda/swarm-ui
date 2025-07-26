@@ -22,6 +22,6 @@ class SettingsController < ApplicationController
   end
 
   def setting_params
-    params.require(:setting).permit(:openai_api_key)
+    params.require(:setting).permit(:openai_api_key, :github_username)
   end
 end

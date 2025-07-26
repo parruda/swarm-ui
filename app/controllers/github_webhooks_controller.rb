@@ -60,8 +60,8 @@ class GithubWebhooksController < ApplicationController
     comment_body = payload["comment"]["body"]
     user_login = payload["comment"]["user"]["login"]
 
-    # Only process comments from parruda
-    return unless user_login == "parruda"
+    # Only process comments from configured GitHub user
+    return unless user_login == Setting.github_username
 
     # Check if comment starts with /swarm
     match = comment_body&.match(%r{^/swarm\s+(.+)}mi)
@@ -125,8 +125,8 @@ class GithubWebhooksController < ApplicationController
     comment_body = payload["comment"]["body"]
     user_login = payload["comment"]["user"]["login"]
 
-    # Only process comments from parruda
-    return unless user_login == "parruda"
+    # Only process comments from configured GitHub user
+    return unless user_login == Setting.github_username
 
     # Check if comment starts with /swarm
     match = comment_body&.match(%r{^/swarm\s+(.+)}mi)

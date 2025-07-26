@@ -6,8 +6,8 @@ source "https://rubygems.org"
 gem "rails", "~> 8.0.2"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
-# Use postgresql as the database for Active Record
-gem "pg", "~> 1.1"
+# Use sqlite3 as the database for Active Record
+gem "sqlite3", ">= 2.0"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
@@ -22,6 +22,10 @@ gem "tailwindcss-rails"
 gem "jbuilder"
 # Forms made easy for Rails! It's tied to a simple DSL, with no opinion on markup
 gem "simple_form"
+
+# Use Redis for pub/sub
+gem "redis", "~> 5.0"
+gem "connection_pool", "~> 2.4"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"

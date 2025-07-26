@@ -5,7 +5,9 @@ require "timeout"
 
 class WebhookProcessService
   class << self
-    def start(project)
+    def start(project_or_id)
+      project = project_or_id.is_a?(Project) ? project_or_id : Project.find(project_or_id)
+      
       return unless project.github_webhook_enabled?
       return if project.github_webhook_processes.where(status: "running").exists?
 

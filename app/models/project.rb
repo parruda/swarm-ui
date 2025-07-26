@@ -32,6 +32,7 @@ class Project < ApplicationRecord
   before_validation :detect_vcs_type, on: :create
   before_validation :normalize_path
   after_save :populate_github_fields_from_remote, if: :saved_change_to_vcs_type?
+  after_save :notify_webhook_change, if: :saved_change_to_github_webhook_enabled?
 
   # Class methods
   class << self
@@ -168,6 +169,22 @@ class Project < ApplicationRecord
   end
 
   private
+
+  def notify_webhook_change
+    return unless self.class.column_names.include?("github_webhook_enabled")
+    
+    message = {
+      project_id: id,
+      enabled: github_webhook_enabled,
+      operation: "UPDATE"
+    }.to_json
+    
+    RedisClient.publish(WebhookManager::WEBHOOK_CHANGES_CHANNEL, message)
+    Rails.logger.info "Published webhook change notification for project #{id}: #{github_webhook_enabled}"
+  rescue => e
+    Rails.logger.error "Failed to publish webhook change notification: #{e.message}"
+    # Don't let Redis failures break the save
+  end
 
   def detect_vcs_type
     return unless path.present?

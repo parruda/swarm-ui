@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_25_044123) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_25_045538) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -94,6 +94,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_25_044123) do
     t.text "environment_variables"
     t.bigint "project_id", null: false
     t.text "initial_prompt"
+    t.integer "github_issue_number"
+    t.integer "github_pr_number"
+    t.string "github_issue_type"
+    t.index ["project_id", "github_issue_number"], name: "index_sessions_on_project_id_and_github_issue_number"
+    t.index ["project_id", "github_pr_number"], name: "index_sessions_on_project_id_and_github_pr_number"
     t.index ["project_id"], name: "index_sessions_on_project_id"
     t.index ["session_id"], name: "index_sessions_on_session_id", unique: true
   end

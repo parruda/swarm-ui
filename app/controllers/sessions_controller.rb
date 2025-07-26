@@ -840,6 +840,9 @@ class SessionsController < ApplicationController
       :status,
       :environment_variables,
       :initial_prompt,
+      :github_issue_number,
+      :github_pr_number,
+      :github_issue_type,
     )
   end
 

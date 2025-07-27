@@ -5,6 +5,9 @@ class Project < ApplicationRecord
   VCS_TYPES = ["git", "none"].freeze
   IMPORT_STATUSES = ["pending", "importing", "completed", "failed"].freeze
 
+  # Attributes
+  attribute :environment_variables, :json, default: -> { {} }
+  
   # Encryption
   encrypts :environment_variables
 

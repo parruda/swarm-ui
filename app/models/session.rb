@@ -4,6 +4,9 @@ class Session < ApplicationRecord
   # Associations
   belongs_to :project
 
+  # Attributes
+  attribute :environment_variables, :json, default: -> { {} }
+  
   # Encryption
   encrypts :environment_variables
 

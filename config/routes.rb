@@ -29,6 +29,7 @@ Rails.application.routes.draw do
       post :sync
       post :toggle_webhook
       get :webhook_status
+      get :environment_variables
     end
   end
 

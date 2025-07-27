@@ -47,6 +47,8 @@ class SessionsController < ApplicationController
         @session.project_id = project.id
         @session.configuration_path = project.default_config_path
         @session.use_worktree = project.default_use_worktree
+        # Prefill environment variables from project
+        @session.environment_variables = project.environment_variables.dup if project.environment_variables.present?
         @focus_name_field = true
       end
     end
@@ -70,6 +72,19 @@ class SessionsController < ApplicationController
     @session.session_id ||= SecureRandom.uuid
     @session.started_at = Time.current
     @session.status ||= "active"
+
+    # Convert environment_variables from text format to Hash
+    if params[:session][:environment_variables].is_a?(String)
+      env_hash = {}
+      params[:session][:environment_variables].split("\n").each do |line|
+        line = line.strip
+        next if line.empty?
+        
+        key, value = line.split("=", 2)
+        env_hash[key] = value if key && value
+      end
+      @session.environment_variables = env_hash
+    end
 
     if @session.save
       redirect_to(session_path(@session, new_session: true))

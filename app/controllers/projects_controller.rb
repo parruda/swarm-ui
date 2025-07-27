@@ -159,6 +159,11 @@ class ProjectsController < ApplicationController
     render(json: status)
   end
 
+  def environment_variables
+    project = Project.find(params[:id])
+    render(json: { environment_variables: project.environment_variables })
+  end
+
   private
 
   def set_project

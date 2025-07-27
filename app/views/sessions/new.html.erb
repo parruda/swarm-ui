@@ -79,7 +79,8 @@
             <div class="space-y-2">
               <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Environment Variables</label>
               <div data-controller="session-environment-variables">
-                <%= f.hidden_field :environment_variables, data: { session_environment_variables_target: "textField" } %>
+                <% env_text = @session.environment_variables.is_a?(Hash) ? @session.environment_variables.map { |k, v| "#{k}=#{v}" }.join("\n") : @session.environment_variables %>
+                <%= f.hidden_field :environment_variables, value: env_text, data: { session_environment_variables_target: "textField" } %>
                 <div data-session-environment-variables-target="container" class="space-y-2">
                   <!-- Environment variable rows will be dynamically added here -->
                 </div>

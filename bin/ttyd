@@ -46,13 +46,22 @@ env["OPENAI_API_KEY"] = openai_api_key if openai_api_key && !openai_api_key.empt
 
 # Parse and add custom environment variables
 if environment_variables && !environment_variables.empty?
-  environment_variables.each_line do |line|
-    line = line.strip
-    next if line.empty? || line.start_with?("#")
+  case environment_variables
+  when Hash
+    # Handle Hash format (from database)
+    environment_variables.each do |key, value|
+      env[key.to_s] = value.to_s
+    end
+  when String
+    # Handle String format (legacy)
+    environment_variables.each_line do |line|
+      line = line.strip
+      next if line.empty? || line.start_with?("#")
 
-    key, value = line.split("=", 2)
-    if key && value
-      env[key.strip] = value.strip
+      key, value = line.split("=", 2)
+      if key && value
+        env[key.strip] = value.strip
+      end
     end
   end
 end

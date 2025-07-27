@@ -23,7 +23,7 @@ class WebhookManager
       # Start Redis subscription in a separate thread
       @threads << Thread.new do
         Rails.logger.info("Starting Redis subscription thread")
-        
+
         @redis_sub.subscribe(WEBHOOK_CHANGES_CHANNEL, WEBHOOK_EVENTS_CHANNEL) do |on|
           on.subscribe do |channel, subscriptions|
             Rails.logger.info("Subscribed to #{channel} (#{subscriptions} subscriptions)")
@@ -53,7 +53,7 @@ class WebhookManager
       # Main thread for health checks
       while @running
         check_process_health
-        sleep 5 # Check health every 5 seconds
+        sleep(5) # Check health every 5 seconds
       end
     rescue => e
       Rails.logger.error("WebhookManager error: #{e.message}")
@@ -61,16 +61,16 @@ class WebhookManager
       raise
     ensure
       Rails.logger.info("WebhookManager shutting down...")
-      
+
       # Stop Redis subscription
-      @redis_sub.unsubscribe if @redis_sub
-      
+      @redis_sub&.unsubscribe
+
       # Wait for threads to finish
       @threads.each(&:join)
-      
+
       # Stop all webhook processes
       stop_all_webhook_processes
-      
+
       Rails.logger.info("WebhookManager shutdown complete")
     end
   end
@@ -94,18 +94,18 @@ class WebhookManager
   end
 
   def setup_signal_handlers
-    %w[INT TERM].each do |sig|
+    ["INT", "TERM"].each do |sig|
       Signal.trap(sig) do
         Rails.logger.info("Received #{sig} signal")
         @running = false
-        @redis_sub.unsubscribe if @redis_sub
+        @redis_sub&.unsubscribe
       end
     end
   end
 
   def handle_notification(payload)
     Rails.logger.info("Handling webhook change notification: #{payload}")
-    
+
     begin
       data = JSON.parse(payload)
       project_id = data["project_id"]
@@ -125,11 +125,11 @@ class WebhookManager
 
   def handle_events_changed(payload)
     Rails.logger.info("Handling events change notification: #{payload}")
-    
+
     begin
       data = JSON.parse(payload)
       project_id = data["project_id"]
-      
+
       if project_id
         # Restart the process to pick up new events
         project = Project.find_by(id: project_id)
@@ -144,36 +144,36 @@ class WebhookManager
 
   def kill_orphaned_gh_processes
     Rails.logger.info("Looking for orphaned gh webhook processes...")
-    
+
     # Get all PIDs from our database
     known_pids = GithubWebhookProcess.where(status: "running").pluck(:pid).compact
 
     # Find all gh webhook forward processes
-    ps_output = `ps aux | grep "[g]h webhook forward" | grep -v grep`
-    
+    ps_output = %x(ps aux | grep "[g]h webhook forward" | grep -v grep)
+
     orphaned_count = 0
     ps_output.each_line do |line|
       parts = line.split
       pid = parts[1].to_i
-      
+
       # If this PID is not in our database, it's orphaned
-      unless known_pids.include?(pid)
-        Rails.logger.info("Found orphaned gh process with PID #{pid}, killing it")
-        begin
-          Process.kill("TERM", pid)
-          orphaned_count += 1
-        rescue Errno::ESRCH
-          # Process already dead
-        end
+      next if known_pids.include?(pid)
+
+      Rails.logger.info("Found orphaned gh process with PID #{pid}, killing it")
+      begin
+        Process.kill("TERM", pid)
+        orphaned_count += 1
+      rescue Errno::ESRCH
+        # Process already dead
       end
     end
-    
+
     Rails.logger.info("Found #{orphaned_count} gh webhook processes to check")
-    
+
     # Also clean up any database records for dead processes
     GithubWebhookProcess.where(status: "running").find_each do |process|
       next unless process.pid
-      
+
       begin
         # Check if process is still alive
         Process.kill(0, process.pid)
@@ -187,11 +187,11 @@ class WebhookManager
 
   def check_process_health
     Rails.logger.debug("Checking process health...")
-    
+
     # Check each running process
     GithubWebhookProcess.includes(:project).where(status: "running").find_each do |process|
       WebhookProcessService.check_process(process)
-      
+
       # Restart if needed
       if process.reload.status != "running" && process.project.github_webhook_enabled?
         Rails.logger.info("Process for project #{process.project_id} died, restarting...")
@@ -205,28 +205,28 @@ class WebhookManager
 
   def sync_all_webhooks
     Rails.logger.info("Syncing all webhook states")
-    
+
     # Ensure processes are running for enabled webhooks
     Project.where(github_webhook_enabled: true).find_each do |project|
       ensure_process_running(project.id)
     end
-    
+
     # Ensure processes are stopped for disabled webhooks
     Project.where(github_webhook_enabled: false).find_each do |project|
       ensure_process_stopped(project.id)
     end
-    
+
     # Clean up any orphaned processes
     cleanup_orphaned_processes
   end
 
   def restart_process(project_id)
     Rails.logger.info("Restarting webhook process for project #{project_id}")
-    
+
     # Stop existing process
     process = GithubWebhookProcess.find_by(project_id: project_id, status: "running")
     WebhookProcessService.stop(process) if process
-    
+
     # Start new process
     ensure_process_running(project_id)
   end
@@ -234,13 +234,13 @@ class WebhookManager
   def ensure_process_running(project_id)
     # Check if process is already running
     existing = GithubWebhookProcess.find_by(project_id: project_id, status: "running")
-    
+
     if existing
       # Verify it's actually alive
       WebhookProcessService.monitor_process(existing)
       return if existing.reload.status == "running"
     end
-    
+
     # Start new process
     Rails.logger.info("Starting webhook process for project #{project_id}")
     WebhookProcessService.start(project_id)

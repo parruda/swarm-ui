@@ -150,6 +150,7 @@
                         <% can_commit = status[:has_changes] %>
                         <% can_pull = status[:behind] > 0 && !status[:has_changes] %>
                         <% can_push = status[:ahead] > 0 %>
+                        <% can_reset = status[:has_changes] %>
                         
                         <% stage_disabled_reason = "No unstaged changes" unless can_stage %>
                         <% commit_disabled_reason = "No changes to commit" unless can_commit %>
@@ -276,6 +277,29 @@
                                 <%= status[:ahead] %>
                               </span>
                             <% end %>
+                          </button>
+                          
+                          <!-- Reset button -->
+                          <% can_reset = status[:has_changes] %>
+                          <% reset_disabled_reason = "No changes to reset" unless can_reset %>
+                          
+                          <button type="button" 
+                                  class="<%= can_reset ? 
+                                        'px-3 py-1.5 text-xs font-medium rounded bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer' :
+                                        'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
+                                  <% if can_reset %>
+                                    data-action="click->git-actions#reset"
+                                    data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
+                                    data-git-actions-instance-param="<%= html_escape(instance_name) %>"
+                                    data-git-actions-session-param="<%= session.id %>"
+                                    data-git-actions-status-id-param="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
+                                  <% else %>
+                                    disabled
+                                  <% end %>
+                                  data-git-actions-reset-button="true"
+                                  title="<%= can_reset ? "Reset all changes and remove untracked files (git reset --hard && git clean -fd)" : reset_disabled_reason %>">
+                            <%= heroicon "arrow-path", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
+                            Reset
                           </button>
                         </div>
                       </div>

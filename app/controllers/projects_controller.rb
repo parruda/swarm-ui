@@ -34,7 +34,7 @@ class ProjectsController < ApplicationController
 
   def create
     @project = Project.new(project_params)
-    
+
     # Handle git import
     if params[:project][:git_url].present?
       # Validate git URL
@@ -44,7 +44,7 @@ class ProjectsController < ApplicationController
         render(:new, status: :unprocessable_entity)
         return
       end
-      
+
       # Set import status and clear path requirement
       @project.import_status = "pending"
       @project.path = "pending" # Temporary value, will be updated after clone

@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require "English"
 require "base64"
 require "json"
 require "shellwords"
@@ -85,7 +86,7 @@ success = system("tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_sessi
 # If tmux failed to execute, pause to let user read the error
 unless success
   puts "\n\nError: tmux command failed to execute!"
-  puts "Exit status: #{$?.exitstatus}" if $?
+  puts "Exit status: #{$CHILD_STATUS.exitstatus}" if $CHILD_STATUS
   puts "\nPress ENTER to continue..."
   $stdin.gets
 end

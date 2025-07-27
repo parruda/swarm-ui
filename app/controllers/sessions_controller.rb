@@ -789,7 +789,7 @@ class SessionsController < ApplicationController
       })
     end
 
-    # Trigger git status update after chdir block completes
+    # Trigger git status update after reset completes
     GitStatusUpdateJob.perform_later(@session.id) if operation_success
   rescue => e
     Rails.logger.error("Git reset error: #{e.message}")

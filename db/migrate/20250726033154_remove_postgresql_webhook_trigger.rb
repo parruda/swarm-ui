@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 class RemovePostgresqlWebhookTrigger < ActiveRecord::Migration[8.0]
   def up
     # Skip if using SQLite (triggers don't exist)
-    return if ActiveRecord::Base.connection.adapter_name == 'SQLite'
-    
+    return if ActiveRecord::Base.connection.adapter_name == "SQLite"
+
     # Remove PostgreSQL triggers and functions
     execute(<<-SQL)
       DROP TRIGGER IF EXISTS webhook_change_trigger ON projects;
@@ -12,8 +14,8 @@ class RemovePostgresqlWebhookTrigger < ActiveRecord::Migration[8.0]
 
   def down
     # Skip if using SQLite
-    return if ActiveRecord::Base.connection.adapter_name == 'SQLite'
-    
+    return if ActiveRecord::Base.connection.adapter_name == "SQLite"
+
     # Re-create PostgreSQL triggers if rolling back
     execute(<<-SQL)
       CREATE OR REPLACE FUNCTION notify_webhook_change() RETURNS TRIGGER AS $$

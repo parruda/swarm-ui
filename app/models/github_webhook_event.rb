@@ -19,7 +19,7 @@ class GithubWebhookEvent < ApplicationRecord
   # Scopes
   scope :enabled, -> { where(enabled: true) }
   scope :disabled, -> { where(enabled: false) }
-  
+
   # Callbacks
   after_save :notify_events_changed, if: :saved_change_to_enabled?
   after_destroy :notify_events_changed
@@ -30,19 +30,19 @@ class GithubWebhookEvent < ApplicationRecord
       AVAILABLE_EVENTS
     end
   end
-  
+
   private
-  
+
   def notify_events_changed
     message = {
       project_id: project_id,
-      operation: destroyed? ? "DESTROY" : "UPDATE"
+      operation: destroyed? ? "DESTROY" : "UPDATE",
     }.to_json
-    
+
     RedisClient.publish(WebhookManager::WEBHOOK_EVENTS_CHANNEL, message)
-    Rails.logger.info "Published webhook events change notification for project #{project_id}"
+    Rails.logger.info("Published webhook events change notification for project #{project_id}")
   rescue => e
-    Rails.logger.error "Failed to publish webhook events change notification: #{e.message}"
+    Rails.logger.error("Failed to publish webhook events change notification: #{e.message}")
     # Don't let Redis failures break the save
   end
 end

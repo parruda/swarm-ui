@@ -14,10 +14,10 @@ end
 begin
   $redis_pool.with do |redis|
     redis.ping
-    Rails.logger.info "Redis connected successfully to #{redis_config['url']}"
+    Rails.logger.info("Redis connected successfully to #{redis_config["url"]}")
   end
 rescue => e
-  Rails.logger.error "Redis connection failed: #{e.message}"
+  Rails.logger.error("Redis connection failed: #{e.message}")
   # Don't fail hard if Redis is not available in development
   if Rails.env.production?
     raise
@@ -31,7 +31,7 @@ class RedisClient
       redis.publish(channel, message)
     end
   end
-  
+
   def self.with(&block)
     $redis_pool.with(&block)
   end

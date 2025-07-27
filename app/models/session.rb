@@ -6,7 +6,7 @@ class Session < ApplicationRecord
 
   # Attributes
   attribute :environment_variables, :json, default: -> { {} }
-  
+
   # Encryption
   encrypts :environment_variables
 

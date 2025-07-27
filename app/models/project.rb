@@ -7,7 +7,7 @@ class Project < ApplicationRecord
 
   # Attributes
   attribute :environment_variables, :json, default: -> { {} }
-  
+
   # Encryption
   encrypts :environment_variables
 
@@ -210,17 +210,17 @@ class Project < ApplicationRecord
 
   def notify_webhook_change
     return unless self.class.column_names.include?("github_webhook_enabled")
-    
+
     message = {
       project_id: id,
       enabled: github_webhook_enabled,
-      operation: "UPDATE"
+      operation: "UPDATE",
     }.to_json
-    
+
     RedisClient.publish(WebhookManager::WEBHOOK_CHANGES_CHANNEL, message)
-    Rails.logger.info "Published webhook change notification for project #{id}: #{github_webhook_enabled}"
+    Rails.logger.info("Published webhook change notification for project #{id}: #{github_webhook_enabled}")
   rescue => e
-    Rails.logger.error "Failed to publish webhook change notification: #{e.message}"
+    Rails.logger.error("Failed to publish webhook change notification: #{e.message}")
     # Don't let Redis failures break the save
   end
 

@@ -3,6 +3,7 @@
 class Project < ApplicationRecord
   # Constants
   VCS_TYPES = ["git", "none"].freeze
+  IMPORT_STATUSES = ["pending", "importing", "completed", "failed"].freeze
 
   # Encryption
   encrypts :environment_variables
@@ -17,9 +18,11 @@ class Project < ApplicationRecord
 
   # Validations
   validates :name, presence: true
-  validates :path, presence: true, uniqueness: true
+  validates :path, presence: true, uniqueness: true, unless: :importing?
   validates :vcs_type, inclusion: { in: VCS_TYPES, allow_nil: true }
-  validate :path_must_exist
+  validates :import_status, inclusion: { in: IMPORT_STATUSES, allow_nil: true }
+  validates :git_url, presence: true, if: :importing?
+  validate :path_must_exist, unless: :importing?
 
   # Scopes
   scope :active, -> { where(archived: false) }
@@ -168,6 +171,38 @@ class Project < ApplicationRecord
     github_webhook_events.enabled.pluck(:event_type).sort
   end
 
+  # Import-related methods
+  def importing?
+    import_status.in?(["pending", "importing"])
+  end
+
+  def import_completed?
+    import_status == "completed"
+  end
+
+  def import_failed?
+    import_status == "failed"
+  end
+
+  def start_import!
+    update!(import_status: "importing", import_started_at: Time.current, import_error: nil)
+  end
+
+  def complete_import!(path)
+    update!(import_status: "completed", import_completed_at: Time.current, path: path, import_error: nil)
+  end
+
+  def fail_import!(error)
+    update!(import_status: "failed", import_error: error, import_completed_at: Time.current)
+  end
+
+  def detect_vcs_type
+    return unless path.present?
+    return unless File.directory?(path)
+
+    self.vcs_type = File.directory?(File.join(path, ".git")) ? "git" : "none"
+  end
+
   private
 
   def notify_webhook_change
@@ -184,13 +219,6 @@ class Project < ApplicationRecord
   rescue => e
     Rails.logger.error "Failed to publish webhook change notification: #{e.message}"
     # Don't let Redis failures break the save
-  end
-
-  def detect_vcs_type
-    return unless path.present?
-    return unless File.directory?(path)
-
-    self.vcs_type = File.directory?(File.join(path, ".git")) ? "git" : "none"
   end
 
   def normalize_path

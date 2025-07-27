@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_26_033154) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_27_020844) do
   create_table "github_webhook_events", force: :cascade do |t|
     t.bigint "project_id", null: false
     t.string "event_type"
@@ -68,7 +68,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_26_033154) do
     t.boolean "github_webhook_enabled", default: false
     t.string "github_repo_owner"
     t.string "github_repo_name"
+    t.string "git_url"
+    t.string "import_status"
+    t.text "import_error"
+    t.datetime "import_started_at"
+    t.datetime "import_completed_at"
     t.index ["archived"], name: "index_projects_on_archived"
+    t.index ["import_status"], name: "index_projects_on_import_status"
     t.index ["path"], name: "index_projects_on_path", unique: true
   end
 

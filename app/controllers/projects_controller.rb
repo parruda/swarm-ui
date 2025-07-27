@@ -34,9 +34,30 @@ class ProjectsController < ApplicationController
 
   def create
     @project = Project.new(project_params)
+    
+    # Handle git import
+    if params[:project][:git_url].present?
+      # Validate git URL
+      service = GitImportService.new(params[:project][:git_url])
+      unless service.valid?
+        @project.errors.add(:git_url, "is not a valid git repository URL")
+        render(:new, status: :unprocessable_entity)
+        return
+      end
+      
+      # Set import status and clear path requirement
+      @project.import_status = "pending"
+      @project.path = "pending" # Temporary value, will be updated after clone
+    end
 
     if @project.save
-      redirect_to(@project, notice: "Project was successfully created.")
+      # Queue the import job if it's a git import
+      if @project.import_status == "pending"
+        ProjectImportJob.perform_later(@project.id)
+        redirect_to(projects_path, notice: "Project import has been queued. You will see the status update shortly.")
+      else
+        redirect_to(@project, notice: "Project was successfully created.")
+      end
     else
       render(:new, status: :unprocessable_entity)
     end
@@ -148,6 +169,7 @@ class ProjectsController < ApplicationController
     permitted = params.require(:project).permit(
       :name,
       :path,
+      :git_url,
       :default_config_path,
       :default_use_worktree,
       :github_webhook_enabled,

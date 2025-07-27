@@ -1,6 +1,6 @@
 <% content_for :title, "Projects" %>
 
-<div class="py-8">
+<div class="py-8" data-controller="auto-refresh" data-auto-refresh-interval-value="3000">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <div class="sm:flex sm:items-center">
       <div class="sm:flex-auto">
@@ -51,6 +51,20 @@
                         <%= link_to project.name, project_path(project), class: "hover:text-orange-900 dark:hover:text-orange-400" %>
                       <% end %>
                     </h3>
+                    <% if project.importing? %>
+                      <span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-blue-600/20 dark:ring-blue-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0" data-import-status="importing">
+                        <svg class="animate-spin h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Importing...
+                      </span>
+                    <% elsif project.import_failed? %>
+                      <span class="inline-flex items-center rounded-md bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 ring-red-600/20 dark:ring-red-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0" title="<%= project.import_error %>">
+                        <%= heroicon "x-circle", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                        Import Failed
+                      </span>
+                    <% end %>
                     <% if @filter == 'archived' %>
                       <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
                         <%= heroicon "archive-box", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
@@ -84,9 +98,14 @@
                       </span>
                     <% end %>
                   </div>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate font-mono" title="<%= project.path %>">
-                    <%= project.path %>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate font-mono" title="<%= project.path || project.git_url %>">
+                    <%= project.path || project.git_url %>
                   </p>
+                  <% if project.import_failed? && project.import_error.present? %>
+                    <p class="text-xs text-red-600 dark:text-red-400 mt-1">
+                      <%= project.import_error %>
+                    </p>
+                  <% end %>
                   <% if project.default_config_path.present? %>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       <span class="font-semibold">Config:</span> <%= project.default_config_path %>
@@ -142,9 +161,11 @@
                     Restore
                   <% end %>
                 <% else %>
-                  <%= link_to new_session_path(project_id: project.id), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
-                    <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-                    New Session
+                  <% unless project.importing? %>
+                    <%= link_to new_session_path(project_id: project.id), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                      <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                      New Session
+                    <% end %>
                   <% end %>
                   <%= link_to edit_project_path(project), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
                     <%= heroicon "pencil", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>

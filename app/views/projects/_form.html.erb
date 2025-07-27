@@ -1,18 +1,47 @@
-<%= simple_form_for project, local: true, wrapper: :tailwind do |f| %>
+<%= simple_form_for project, local: true, wrapper: :tailwind, html: { data: { controller: "project-form filesystem-browser" } } do |f| %>
   <div class="space-y-6">
     <%= f.input :name,
                 label: "Project Name",
                 placeholder: "My Project",
                 hint: "A descriptive name for your project",
-                wrapper: :tailwind %>
+                wrapper: :tailwind,
+                input_html: { data: { project_form_target: "nameInput" } } %>
 
     <% if project.new_record? %>
-      <div class="space-y-2">
+      <!-- Import from Git Toggle -->
+      <div class="flex items-center">
+        <input type="checkbox" 
+               id="import_from_git" 
+               class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-600"
+               data-project-form-target="importToggle"
+               data-action="change->project-form#toggleImportSection">
+        <label for="import_from_git" class="ml-2 block text-sm text-gray-900 dark:text-gray-100">
+          Import from Git repository
+        </label>
+      </div>
+
+      <!-- Git Import Section -->
+      <div class="space-y-2 hidden" data-project-form-target="importSection">
+        <%= f.input :git_url,
+                    label: "Git Repository URL",
+                    placeholder: "https://github.com/username/repository.git",
+                    hint: "Enter the HTTPS or SSH URL of your git repository",
+                    wrapper: :tailwind,
+                    input_html: { 
+                      data: { 
+                        project_form_target: "gitUrlInput",
+                        action: "blur->project-form#extractProjectName"
+                      } 
+                    } %>
+      </div>
+
+      <!-- Browse Section -->
+      <div class="space-y-2" data-project-form-target="browseSection">
         <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">
           Project Path
           <span class="text-red-500">*</span>
         </label>
-        <%= f.hidden_field :path, data: { filesystem_browser_target: "projectPathInput" } %>
+        <%= f.hidden_field :path, data: { filesystem_browser_target: "projectPathInput", project_form_target: "projectPathInput" } %>
         <div class="mt-3 flex items-center gap-3">
           <button type="button"
                   class="inline-flex items-center gap-2 rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
@@ -35,7 +64,7 @@
         <% end %>
       </div>
 
-      <div class="space-y-2" data-filesystem-browser-target="configSection">
+      <div class="space-y-2" data-filesystem-browser-target="configSection" data-project-form-target="configSection">
         <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Default Configuration File</label>
         <select name="project[default_config_path]" 
                 class="block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200 <%= project.path.blank? ? 'opacity-50 cursor-not-allowed' : '' %>"
@@ -69,7 +98,7 @@
         <%= f.hidden_field :path, value: project.path, data: { filesystem_browser_target: "projectPathInput" } %>
       </div>
 
-      <div class="space-y-2" data-filesystem-browser-target="configSection">
+      <div class="space-y-2" data-filesystem-browser-target="configSection" data-project-form-target="configSection">
         <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Default Configuration File</label>
         <select name="project[default_config_path]" 
                 class="block w-full rounded-md border-gray-300 dark:border-gray-600 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 transition-colors duration-200"

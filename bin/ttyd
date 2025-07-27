@@ -66,7 +66,20 @@ end
 # Execute tmux session (this will block until the session ends)
 puts "Executing ENV: #{env.inspect}"
 puts "Executing COMMAND: tmux -f config/tmux.conf new -A -s #{tmux_session_name} #{command}"
-system("tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, command)
+
+# Wrap the command to handle errors and keep the session open on failure
+wrapped_command = "bash -c '#{command}; EXIT_CODE=$?; if [ $EXIT_CODE -ne 0 ]; then echo; echo \"Command exited with status $EXIT_CODE\"; echo \"Press ENTER to exit...\"; read; fi; exit $EXIT_CODE'"
+
+# Capture the exit status of tmux
+success = system("tmux", "-f", "config/tmux.conf", "new", "-A", "-s", tmux_session_name, wrapped_command)
+
+# If tmux failed to execute, pause to let user read the error
+unless success
+  puts "\n\nError: tmux command failed to execute!"
+  puts "Exit status: #{$?.exitstatus}" if $?
+  puts "\nPress ENTER to continue..."
+  $stdin.gets
+end
 
 # After tmux exits, mark the session as stopped
 system(status_script, session_id, "stopped")

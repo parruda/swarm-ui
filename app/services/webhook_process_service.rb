@@ -149,6 +149,23 @@ class WebhookProcessService
       start(project)
     end
 
+    def check_process(process)
+      return unless process.status == "running" && process.pid
+
+      begin
+        # Check if the process exists
+        Process.kill(0, process.pid)
+        # Process is alive
+      rescue Errno::ESRCH
+        # Process is dead
+        Rails.logger.info("Process #{process.pid} for project #{process.project_id} is dead")
+        process.update!(status: "stopped", stopped_at: Time.current)
+      rescue => e
+        Rails.logger.error("Error checking process #{process.pid}: #{e.message}")
+        process.update!(status: "error", stopped_at: Time.current)
+      end
+    end
+
     private
 
     def capture_output(io, process, stream_type)

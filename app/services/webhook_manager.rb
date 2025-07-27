@@ -190,7 +190,7 @@ class WebhookManager
     
     # Check each running process
     GithubWebhookProcess.includes(:project).where(status: "running").find_each do |process|
-      WebhookProcessService.monitor_process(process)
+      WebhookProcessService.check_process(process)
       
       # Restart if needed
       if process.reload.status != "running" && process.project.github_webhook_enabled?

@@ -16,6 +16,7 @@ Rails.application.routes.draw do
       post :diff_file_contents
       post :git_pull
       post :git_push
+      post :git_stage
       post :git_commit
       post :git_reset
       post :send_to_tmux

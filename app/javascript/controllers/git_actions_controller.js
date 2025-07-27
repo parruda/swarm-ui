@@ -284,6 +284,79 @@ export default class extends Controller {
     }, 500)
   }
   
+  async stage(event) {
+    event.preventDefault()
+    event.stopPropagation() // Prevent dropdown from closing
+    
+    const button = event.currentTarget
+    const directory = button.dataset.gitActionsDirectoryParam
+    const instanceName = button.dataset.gitActionsInstanceParam
+    const sessionId = button.dataset.gitActionsSessionParam
+    const statusId = button.dataset.gitActionsStatusIdParam
+    
+    // Disable button and show loading state with animation
+    const originalContent = button.innerHTML
+    button.disabled = true
+    button.classList.add('animate-pulse')
+    button.innerHTML = `
+      <span class="absolute inset-0 rounded-md bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200"></span>
+      <svg class="h-3.5 w-3.5 animate-spin relative inline-block" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span class="relative whitespace-nowrap">Staging...</span>
+    `
+    
+    try {
+      const response = await fetch(`/sessions/${sessionId}/git_stage`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": document.querySelector('[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ directory, instance_name: instanceName })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        // Show success message with animation
+        this.showNotification(`Successfully staged ${data.files_staged} file${data.files_staged === 1 ? '' : 's'} for ${instanceName}`, 'success')
+        
+        // Animate button success - keep purple color
+        button.innerHTML = `
+          <span class="absolute inset-0 rounded-md bg-white opacity-10"></span>
+          <svg class="h-3.5 w-3.5 relative inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+          </svg>
+          <span class="relative whitespace-nowrap">Staged!</span>
+        `
+        
+        // After animation, re-enable the button
+        setTimeout(() => {
+          button.disabled = false
+          button.classList.remove('animate-pulse')
+          button.innerHTML = originalContent
+        }, 1500)
+      } else {
+        // Show error message
+        this.showNotification(data.error || "Failed to stage changes", 'error')
+        
+        // Restore button
+        button.disabled = false
+        button.classList.remove('animate-pulse')
+        button.innerHTML = originalContent
+      }
+    } catch (error) {
+      this.showNotification(`Error: ${error.message}`, 'error')
+      
+      // Restore button
+      button.disabled = false
+      button.classList.remove('animate-pulse')
+      button.innerHTML = originalContent
+    }
+  }
+  
   async commit(event) {
     event.preventDefault()
     event.stopPropagation() // Prevent dropdown from closing
@@ -369,7 +442,8 @@ export default class extends Controller {
       'arrow-down-tray': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"></path>',
       'arrow-up-tray': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"></path>',
       'check-circle': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
-      'check': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>'
+      'check': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>',
+      'plus-circle': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>'
     }
     
     return `<svg class="${className}" fill="none" stroke="currentColor" viewBox="0 0 24 24">

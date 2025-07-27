@@ -6,7 +6,7 @@ require "shellwords"
 require "open3"
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_commit, :git_reset, :send_to_tmux]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_stage, :git_commit, :git_reset, :send_to_tmux]
 
   def index
     @filter = params[:filter] || "active"
@@ -79,7 +79,7 @@ class SessionsController < ApplicationController
       params[:session][:environment_variables].split("\n").each do |line|
         line = line.strip
         next if line.empty?
-        
+
         key, value = line.split("=", 2)
         env_hash[key] = value if key && value
       end
@@ -554,6 +554,78 @@ class SessionsController < ApplicationController
     else
       Rails.logger.error("Git push error: #{e.message}")
       render(json: { error: "Failed to push: #{e.message}" }, status: :internal_server_error)
+    end
+  end
+
+  def git_stage
+    directory = params[:directory]
+    params[:instance_name]
+    operation_success = false
+
+    unless directory.present? && File.directory?(directory)
+      render(json: { error: "Invalid directory" }, status: :bad_request)
+      return
+    end
+
+    # Security check - ensure directory belongs to this session
+    Rails.logger.debug("[GitStage] Checking directory authorization for: #{directory}")
+    unless directory_belongs_to_session?(directory)
+      Rails.logger.error("[GitStage] Unauthorized access to directory: #{directory} for session: #{@session.id}")
+      render(json: { error: "Unauthorized access to directory" }, status: :forbidden)
+      return
+    end
+
+    # Use lock to prevent concurrent git operations
+    GitOperationLockService.with_lock(@session.id, directory) do
+      Rails.logger.debug("[GitStage] Starting git stage operation in: #{directory}")
+
+      # Get status before staging
+      status_before, _, _ = Open3.capture3("git status --porcelain", chdir: directory)
+      unstaged_count = status_before.lines.count { |line| line =~ /^[ M?]/ }
+
+      if unstaged_count == 0
+        render(json: {
+          success: false,
+          error: "No unstaged changes",
+        })
+        return
+      end
+
+      # Stage all changes
+      stage_result, stage_err, stage_status = Open3.capture3("git add .", chdir: directory)
+      stage_output = stage_result + stage_err
+
+      if stage_status.success?
+        operation_success = true
+
+        # Get status after staging to count staged files
+        status_after, _, _ = Open3.capture3("git status --porcelain", chdir: directory)
+        staged_count = status_after.lines.count { |line| line =~ /^[AM]/ }
+
+        render(json: {
+          success: true,
+          files_staged: staged_count,
+          message: "Successfully staged all changes",
+        })
+      else
+        render(
+          json: {
+            success: false,
+            error: "Failed to stage changes: #{stage_output}",
+          },
+          status: :unprocessable_entity,
+        )
+      end
+    end # end of lock block
+
+    # Trigger git status update after staging completes
+    GitStatusUpdateJob.perform_later(@session.id) if operation_success
+  rescue => e
+    if e.message.include?("Another git operation is in progress")
+      render(json: { error: e.message }, status: :conflict)
+    else
+      Rails.logger.error("Git stage error: #{e.message}")
+      render(json: { error: "Failed to stage: #{e.message}" }, status: :internal_server_error)
     end
   end
 

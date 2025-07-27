@@ -144,108 +144,140 @@
                       </div>
                       
                       <!-- Actions Section -->
-                      <div class="flex items-center space-x-2 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <!-- Commit button -->
+                      <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <!-- Status messages -->
+                        <% can_stage = status[:modified] > 0 || status[:untracked] > 0 %>
                         <% can_commit = status[:has_changes] %>
-                        <% commit_disabled_reason = "No changes to commit" unless can_commit %>
-                        
-                        <button type="button" class="<%= can_commit ? 
-                                      'px-3 py-1.5 text-xs font-medium rounded bg-green-600 hover:bg-green-700 text-white transition-colors cursor-pointer' :
-                                      'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
-                                <% if can_commit %>
-                                  data-action="click->git-actions#commit"
-                                  data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
-                                  data-git-actions-instance-param="<%= html_escape(instance_name) %>"
-                                  data-git-actions-session-param="<%= session.id %>"
-                                  data-git-actions-status-id-param="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
-                                <% else %>
-                                  disabled
-                                <% end %>
-                                data-git-actions-commit-button="true"
-                                title="<%= can_commit ? "Generate commit message with Claude and commit changes" : commit_disabled_reason %>">
-                          <%= heroicon "check", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
-                          Commit
-                        </button>
-                        
-                        <!-- Pull button -->
                         <% can_pull = status[:behind] > 0 && !status[:has_changes] %>
+                        <% can_push = status[:ahead] > 0 %>
+                        
+                        <% stage_disabled_reason = "No unstaged changes" unless can_stage %>
+                        <% commit_disabled_reason = "No changes to commit" unless can_commit %>
                         <% pull_disabled_reason = if status[:has_changes]
                              "Commit or stash changes first"
                            elsif status[:behind] == 0
                              "Nothing to pull"
                            end %>
-                        
-                        <button type="button" 
-                                class="<%= can_pull ? 
-                                      'px-3 py-1.5 text-xs font-medium rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors cursor-pointer' :
-                                      'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
-                                <% if can_pull %>
-                                  data-action="click->git-actions#pull"
-                                  data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
-                                  data-git-actions-instance-param="<%= html_escape(instance_name) %>"
-                                  data-git-actions-session-param="<%= session.id %>"
-                                  data-git-actions-status-id-param="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
-                                <% else %>
-                                  disabled
-                                <% end %>
-                                data-git-actions-pull-button="true"
-                                title="<%= can_pull ? "Pull #{status[:behind]} commit#{status[:behind] == 1 ? '' : 's'} from remote" : pull_disabled_reason %>">
-                          <%= heroicon "arrow-down-tray", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
-                          Pull
-                          <% if status[:behind] > 0 %>
-                            <span class="ml-1 px-1 py-0.5 text-[10px] font-bold bg-white/20 rounded">
-                              <%= status[:behind] %>
-                            </span>
-                          <% end %>
-                        </button>
-                        
-                        <!-- Push button -->
-                        <% can_push = status[:ahead] > 0 %>
                         <% push_disabled_reason = "Nothing to push" unless can_push %>
                         
-                        <button type="button" 
-                                class="<%= can_push ? 
-                                      'px-3 py-1.5 text-xs font-medium rounded bg-orange-900 hover:bg-orange-800 text-white transition-colors cursor-pointer' :
-                                      'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
-                                <% if can_push %>
-                                  data-action="click->git-actions#push"
-                                  data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
-                                  data-git-actions-instance-param="<%= html_escape(instance_name) %>"
-                                  data-git-actions-session-param="<%= session.id %>"
-                                  data-git-actions-status-id-param="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
-                                <% else %>
-                                  disabled
-                                <% end %>
-                                data-git-actions-push-button="true"
-                                title="<%= can_push ? "Push #{status[:ahead]} commit#{status[:ahead] == 1 ? '' : 's'} to remote" : push_disabled_reason %>">
-                          <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
-                          Push
-                          <% if status[:ahead] > 0 %>
-                            <span class="ml-1 px-1 py-0.5 text-[10px] font-bold bg-white/20 rounded">
-                              <%= status[:ahead] %>
-                            </span>
-                          <% end %>
-                        </button>
-                        
-                        <!-- Status messages for disabled buttons -->
-                        <% if !can_pull && pull_disabled_reason && status[:has_changes] %>
-                          <span class="text-xs text-yellow-600 dark:text-yellow-400 flex items-center">
-                            <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3.5 w-3.5 mr-1" } %>
-                            <%= pull_disabled_reason %>
-                          </span>
-                        <% elsif !can_pull && pull_disabled_reason && !status[:has_changes] %>
-                          <span class="text-xs text-green-600 dark:text-green-400 flex items-center">
-                            <%= heroicon "check-circle", variant: :mini, options: { class: "h-3.5 w-3.5 mr-1" } %>
-                            <%= pull_disabled_reason %>
-                          </span>
+                        <% if pull_disabled_reason || push_disabled_reason %>
+                          <div class="flex items-center gap-3 mb-2 text-xs">
+                            <% if !can_pull && pull_disabled_reason && status[:has_changes] %>
+                              <span class="text-yellow-600 dark:text-yellow-400 flex items-center">
+                                <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3.5 w-3.5 mr-1" } %>
+                                <%= pull_disabled_reason %>
+                              </span>
+                            <% elsif !can_pull && pull_disabled_reason && !status[:has_changes] %>
+                              <span class="text-green-600 dark:text-green-400 flex items-center">
+                                <%= heroicon "check-circle", variant: :mini, options: { class: "h-3.5 w-3.5 mr-1" } %>
+                                <%= pull_disabled_reason %>
+                              </span>
+                            <% end %>
+                            
+                            <% if !can_push && push_disabled_reason %>
+                              <span class="text-gray-500 dark:text-gray-400 flex items-center">
+                                <%= heroicon "check-circle", variant: :mini, options: { class: "h-3.5 w-3.5 mr-1" } %>
+                                <%= push_disabled_reason %>
+                              </span>
+                            <% end %>
+                          </div>
                         <% end %>
                         
-                        <% if !can_push && push_disabled_reason %>
-                          <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                            <%= heroicon "check-circle", variant: :mini, options: { class: "h-3.5 w-3.5 mr-1" } %>
-                            <%= push_disabled_reason %>
-                          </span>
-                        <% end %>
+                        <!-- Action buttons -->
+                        <div class="flex items-center space-x-2">
+                          <!-- Stage button -->
+                          <button type="button" class="<%= can_stage ? 
+                                        'px-3 py-1.5 text-xs font-medium rounded bg-purple-600 hover:bg-purple-700 text-white transition-colors cursor-pointer' :
+                                        'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
+                                  <% if can_stage %>
+                                    data-action="click->git-actions#stage"
+                                    data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
+                                    data-git-actions-instance-param="<%= html_escape(instance_name) %>"
+                                    data-git-actions-session-param="<%= session.id %>"
+                                    data-git-actions-status-id-param="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
+                                  <% else %>
+                                    disabled
+                                  <% end %>
+                                  data-git-actions-stage-button="true"
+                                  title="<%= can_stage ? "Stage all unstaged changes (git add .)" : stage_disabled_reason %>">
+                            <%= heroicon "plus-circle", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
+                            Stage
+                            <% if status[:modified] + status[:untracked] > 0 %>
+                              <span class="ml-1 px-1 py-0.5 text-[10px] font-bold bg-white/20 rounded">
+                                <%= status[:modified] + status[:untracked] %>
+                              </span>
+                            <% end %>
+                          </button>
+                          
+                          <!-- Commit button -->
+                          <button type="button" class="<%= can_commit ? 
+                                        'px-3 py-1.5 text-xs font-medium rounded bg-green-600 hover:bg-green-700 text-white transition-colors cursor-pointer' :
+                                        'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
+                                  <% if can_commit %>
+                                    data-action="click->git-actions#commit"
+                                    data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
+                                    data-git-actions-instance-param="<%= html_escape(instance_name) %>"
+                                    data-git-actions-session-param="<%= session.id %>"
+                                    data-git-actions-status-id-param="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
+                                  <% else %>
+                                    disabled
+                                  <% end %>
+                                  data-git-actions-commit-button="true"
+                                  title="<%= can_commit ? "Generate commit message with Claude and commit changes" : commit_disabled_reason %>">
+                            <%= heroicon "check", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
+                            Commit
+                          </button>
+                          
+                          <!-- Pull button -->
+                          <button type="button" 
+                                  class="<%= can_pull ? 
+                                        'px-3 py-1.5 text-xs font-medium rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors cursor-pointer' :
+                                        'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
+                                  <% if can_pull %>
+                                    data-action="click->git-actions#pull"
+                                    data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
+                                    data-git-actions-instance-param="<%= html_escape(instance_name) %>"
+                                    data-git-actions-session-param="<%= session.id %>"
+                                    data-git-actions-status-id-param="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
+                                  <% else %>
+                                    disabled
+                                  <% end %>
+                                  data-git-actions-pull-button="true"
+                                  title="<%= can_pull ? "Pull #{status[:behind]} commit#{status[:behind] == 1 ? '' : 's'} from remote" : pull_disabled_reason %>">
+                            <%= heroicon "arrow-down-tray", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
+                            Pull
+                            <% if status[:behind] > 0 %>
+                              <span class="ml-1 px-1 py-0.5 text-[10px] font-bold bg-white/20 rounded">
+                                <%= status[:behind] %>
+                              </span>
+                            <% end %>
+                          </button>
+                          
+                          <!-- Push button -->
+                          <button type="button" 
+                                  class="<%= can_push ? 
+                                        'px-3 py-1.5 text-xs font-medium rounded bg-orange-900 hover:bg-orange-800 text-white transition-colors cursor-pointer' :
+                                        'px-3 py-1.5 text-xs font-medium rounded bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed' %>"
+                                  <% if can_push %>
+                                    data-action="click->git-actions#push"
+                                    data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
+                                    data-git-actions-instance-param="<%= html_escape(instance_name) %>"
+                                    data-git-actions-session-param="<%= session.id %>"
+                                    data-git-actions-status-id-param="status-<%= instance_name.parameterize %>-<%= status[:directory].parameterize %>"
+                                  <% else %>
+                                    disabled
+                                  <% end %>
+                                  data-git-actions-push-button="true"
+                                  title="<%= can_push ? "Push #{status[:ahead]} commit#{status[:ahead] == 1 ? '' : 's'} to remote" : push_disabled_reason %>">
+                            <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-3.5 w-3.5 inline mr-1" } %>
+                            Push
+                            <% if status[:ahead] > 0 %>
+                              <span class="ml-1 px-1 py-0.5 text-[10px] font-bold bg-white/20 rounded">
+                                <%= status[:ahead] %>
+                              </span>
+                            <% end %>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   <% end %>

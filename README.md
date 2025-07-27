@@ -32,11 +32,10 @@ The following will be installed automatically by the installation script:
 - **tmux** - Terminal multiplexer for session management
 - **gh CLI** - GitHub command line interface
 - **gh webhook extension** - For GitHub webhook integration
-- **Container runtime** - Either Docker or Podman (Podman will be installed if neither is present)
+- **Redis** - For pub/sub and webhook notifications (must be available as `redis-server` in your PATH)
 
-### Services
-- **PostgreSQL** - Can run containerized via Docker/Podman or use existing installation
-- **Redis** - For Solid Queue/Cable (handled by Rails)
+### Database
+- **SQLite** - Embedded database (no separate server required)
 
 ## Installation
 
@@ -63,29 +62,22 @@ cd swarm-ui
 ```bash
 bin/install
 ```
-This will install all required system dependencies (ttyd, tmux, gh CLI, and container runtime).
+This will:
+- Install all required system dependencies (ttyd, tmux, gh CLI, and Redis)
+- Install Ruby dependencies (bundle install)
+- Create and migrate the database
 
-3. Install Ruby dependencies:
-```bash
-bundle install
-```
-
-4. Start the application:
+3. Start the application:
 
 ```bash
 bin/start
 ```
-This starts all services including PostgreSQL in a container.
+This starts all services:
 - Rails app runs on port 4269
 - ttyd terminal runs on port 4268
-- PostgreSQL runs on port 4267
+- Redis runs on a Unix socket
 
-The application will be available in `http://localhost:4269`
-
-By default, this uses Podman as the container engine. If you prefer to use Docker instead:
-```bash
-CONTAINER_ENGINE=docker bin/start
-```
+The application will be available at `http://localhost:4269`
 
 ## Development
 
@@ -95,22 +87,14 @@ bin/setup
 ```
 This will:
 - Install Ruby dependencies
-- Create the PostgreSQL user if needed (swarm_ui/swarm_ui)
-- Create and migrate the database
+- Create and migrate the SQLite database
 - Start the development server
-
-**Note**: If PostgreSQL user creation fails, you may need to create it manually:
-```bash
-sudo -u postgres createuser -s swarm_ui
-psql -c "ALTER USER swarm_ui WITH PASSWORD 'swarm_ui';"
-```
 
 ### Running Development Mode
 ```bash
-bin/dev # in one terminal
-bin/pg-dev # in another terminal
+bin/dev
 ```
-This starts only the Rails server, Tailwind CSS watcher, and ttyd on the default ports.
+This starts all services including Redis, Rails server, Tailwind CSS watcher, and ttyd.
 
 The application will be available at:
 - `http://localhost:3000` when using `bin/dev`
@@ -144,8 +128,9 @@ SwarmUI is built with:
 - **Rails 8.0.2**: Modern web framework
 - **Hotwire**: Turbo + Stimulus for reactive UI
 - **Tailwind CSS 4**: Utility-first CSS framework
-- **PostgreSQL**: Primary database
-- **Solid Queue**: Background job processing
+- **SQLite**: Embedded database
+- **Redis**: Pub/sub for webhook notifications
+- **Solid Queue**: Background job processing (in-memory for development)
 - **Solid Cable**: WebSocket support
 - **Import Maps**: No-build JavaScript
 

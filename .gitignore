@@ -21,6 +21,11 @@
 !/tmp/pids/
 !/tmp/pids/.keep
 
+# Ignore socket files, but keep the directory.
+/tmp/sockets/*
+!/tmp/sockets/
+!/tmp/sockets/.keep
+
 # Ignore storage (uploaded files in development and any SQLite databases).
 /storage/*
 !/storage/.keep

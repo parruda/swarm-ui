@@ -9,6 +9,13 @@ echo
 OS="$(uname -s)"
 ARCH="$(uname -m)"
 
+# Windows detection - normalize OS name
+case "$OS" in
+  MINGW*|MSYS*|CYGWIN*)
+    OS="Windows"
+    ;;
+esac
+
 # Function to check if command exists
 command_exists() {
   command -v "$1" >/dev/null 2>&1
@@ -49,17 +56,42 @@ fi
 echo "✓ Ruby $RUBY_VERSION found"
 echo
 
+# Check for Claude Code
+echo "Checking for Claude Code..."
+if ! command_exists claude; then
+  echo
+  echo "ERROR: Claude Code is not installed!"
+  echo
+  echo "Claude Code is required for SwarmUI to function properly."
+  echo "Please install Claude Code by running:"
+  echo
+  echo "  npm install -g @anthropic-ai/claude-code"
+  echo
+  echo "After installation, make sure to configure Claude Code with your API key."
+  echo "For more information, visit: https://docs.anthropic.com/en/docs/claude-code"
+  echo
+  exit 1
+fi
+
+echo "✓ Claude Code found at: $(which claude)"
+echo
+echo "SwarmUI requires Claude Code to be properly configured and ready to use."
+echo "If you haven't configured Claude Code yet, please do so before proceeding."
+echo
+echo "Press ENTER to continue..."
+read -r
+
 # Display dependencies
 echo "This script will install the following dependencies if not already present:"
 echo
 echo "Required dependencies:"
 echo "  • Ruby >= 3.4       - ✓ Already installed ($RUBY_VERSION)"
+echo "  • Claude Code       - ✓ Already installed ($(claude --version 2>/dev/null | head -n1 || echo 'version unknown'))"
 echo "  • ttyd              - Terminal emulator for web access"
 echo "  • tmux              - Terminal multiplexer"
 echo "  • gh CLI            - GitHub command line interface"
 echo "  • gh webhook ext    - GitHub webhook extension"
-echo "  • diff2html-cli     - Diff to HTML converter (npm package)"
-echo "  • Container runtime - Podman or Docker (Podman will be installed if neither is present)"
+echo "  • Redis             - For pub/sub and webhook notifications"
 echo
 echo "Platform: $OS ($ARCH)"
 echo
@@ -103,30 +135,13 @@ install_macos() {
     echo "GitHub CLI is already installed"
   fi
 
-  # Check for Node.js/npm
-  if ! command_exists npm; then
-    echo "Installing Node.js (for npm)..."
-    brew install node
-  else
-    echo "npm is already installed"
-  fi
 
-  # Install diff2html-cli
-  if ! command_exists diff2html; then
-    echo "Installing diff2html-cli..."
-    npm install -g diff2html-cli
+  # Install Redis
+  if ! command_exists redis-server; then
+    echo "Installing Redis..."
+    brew install redis
   else
-    echo "diff2html-cli is already installed"
-  fi
-
-  # Check for container runtime (Docker or Podman)
-  if command_exists docker; then
-    echo "Docker is already installed"
-  elif command_exists podman; then
-    echo "Podman is already installed"
-  else
-    echo "No container runtime found. Installing Podman..."
-    brew install podman
+    echo "Redis is already installed"
   fi
 }
 
@@ -215,38 +230,17 @@ install_linux() {
     echo "GitHub CLI is already installed"
   fi
 
-  # Check for Node.js/npm
-  if ! command_exists npm; then
-    echo "Installing Node.js (for npm)..."
+
+  # Install Redis
+  if ! command_exists redis-server; then
+    echo "Installing Redis..."
     if [ "$PKG_MANAGER" = "apt-get" ]; then
-      # Install Node.js from NodeSource repository for Debian/Ubuntu
-      curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-      sudo apt-get install -y nodejs
-    elif [ "$PKG_MANAGER" = "yum" ] || [ "$PKG_MANAGER" = "dnf" ]; then
-      # Install Node.js from NodeSource repository for RHEL/CentOS/Fedora
-      curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash -
-      eval $PKG_INSTALL nodejs
+      eval $PKG_INSTALL redis-server
+    else
+      eval $PKG_INSTALL redis
     fi
   else
-    echo "npm is already installed"
-  fi
-
-  # Install diff2html-cli
-  if ! command_exists diff2html; then
-    echo "Installing diff2html-cli..."
-    npm install -g diff2html-cli
-  else
-    echo "diff2html-cli is already installed"
-  fi
-
-  # Check for container runtime (Docker or Podman)
-  if command_exists docker; then
-    echo "Docker is already installed"
-  elif command_exists podman; then
-    echo "Podman is already installed"
-  else
-    echo "No container runtime found. Installing Podman..."
-    eval $PKG_INSTALL podman
+    echo "Redis is already installed"
   fi
 }
 
@@ -258,64 +252,68 @@ case "$OS" in
   Linux)
     install_linux
     ;;
+  Windows)
+    echo "Windows detected!"
+    echo
+    echo "On Windows, the following dependencies must be installed manually:"
+    echo
+    echo "Required dependencies:"
+    echo "  • Ruby >= 3.4       - Download from: https://rubyinstaller.org/"
+    echo "  • Claude Code       - Install with: npm install -g @anthropic-ai/claude-code"
+    echo "  • ttyd              - Download from: https://github.com/tsl0922/ttyd/releases"
+    echo "  • tmux              - Install via Git Bash or WSL"
+    echo "  • gh CLI            - Download from: https://cli.github.com/"
+    echo "  • gh webhook ext    - After installing gh, run: gh extension install cli/gh-webhook"
+    echo "  • Redis             - Download from: https://github.com/microsoftarchive/redis/releases"
+    echo
+    echo "Please ensure all these dependencies are installed and available in your PATH."
+    echo
+    echo "If you have already installed these dependencies, press ENTER to proceed with the installation."
+    echo "Otherwise, press Ctrl+C to cancel and install the dependencies first."
+    read -r
+    echo
+    echo "Proceeding with Ruby dependencies installation..."
+    ;;
   *)
     echo "Error: Unsupported operating system: $OS"
-    echo "This script supports macOS and Linux only."
+    echo "This script supports macOS, Linux, and Windows (manual dependency installation required)."
     exit 1
     ;;
 esac
 
-# Function to setup container runtime
-setup_container_runtime() {
+# Check gh CLI configuration
+if command_exists gh; then
   echo
-  echo "Setting up container runtime..."
+  echo "GitHub CLI detected. Checking authentication..."
   
-  # Check if we're on macOS
-  if [ "$OS" = "Darwin" ]; then
-    if command_exists docker; then
-      # Check if Docker daemon is running
-      if docker info >/dev/null 2>&1; then
-        echo "Docker daemon is running"
-      else
-        echo "Docker is installed but not running. Please start Docker Desktop."
-      fi
-    elif command_exists podman; then
-      # Check if a Podman machine exists
-      if podman machine list --format "{{.Name}}" | grep -q "podman-machine-default"; then
-        echo "Podman machine already exists"
-        
-        # Check if it's running
-        if podman machine list --format "{{.Name}} {{.Running}}" | grep -q "podman-machine-default true"; then
-          echo "Podman machine is already running"
-        else
-          echo "Starting Podman machine..."
-          podman machine start
-        fi
-      else
-        echo "Initializing Podman machine..."
-        podman machine init
-        echo "Starting Podman machine..."
-        podman machine start
-      fi
-    fi
+  if gh auth status >/dev/null 2>&1; then
+    echo "✓ GitHub CLI is authenticated"
+    echo
+    echo "IMPORTANT: SwarmUI requires specific GitHub scopes to function properly."
+    echo "Please ensure your gh authentication includes these scopes:"
+    echo "  • repo (for accessing repositories)"
+    echo "  • read:org (for organization access)"
+    echo "  • write:discussion (for issue comments)"
+    echo
+    echo "To check your current scopes, run:"
+    echo "  gh auth status -t"
+    echo
+    echo "If you need to add these scopes, run:"
+    echo "  gh auth refresh -s repo,read:org,write:discussion"
+    echo
+    echo "Press ENTER to continue after verifying your scopes..."
+    read -r
   else
-    # On Linux, just check if the service is running
-    if command_exists docker; then
-      if docker info >/dev/null 2>&1; then
-        echo "Docker daemon is running"
-      else
-        echo "Docker is installed but not running. You may need to start the Docker service."
-        echo "Try: sudo systemctl start docker"
-      fi
-    elif command_exists podman; then
-      if podman info >/dev/null 2>&1; then
-        echo "Podman is ready"
-      else
-        echo "Podman is installed but may need additional setup."
-      fi
-    fi
+    echo
+    echo "GitHub CLI is not authenticated!"
+    echo
+    echo "Please authenticate with the required scopes by running:"
+    echo "  gh auth login -s repo,read:org,write:discussion"
+    echo
+    echo "After authentication, run this installer again."
+    exit 1
   fi
-}
+fi
 
 # Install gh webhook extension
 echo
@@ -327,11 +325,6 @@ else
   echo "gh webhook extension installed successfully"
 fi
 
-# Setup container runtime if either Docker or Podman is installed
-if command_exists docker || command_exists podman; then
-  setup_container_runtime
-fi
-
 echo
 echo "Installation complete!"
 echo
@@ -340,31 +333,20 @@ command_exists ttyd && echo "✓ ttyd $(ttyd --version 2>&1 | head -n1)"
 command_exists tmux && echo "✓ tmux $(tmux -V)"
 command_exists gh && echo "✓ gh $(gh --version | head -n1)"
 gh extension list | grep -q "cli/gh-webhook" && echo "✓ gh webhook extension"
-command_exists diff2html && echo "✓ diff2html-cli $(diff2html --version 2>&1)"
+command_exists redis-server && echo "✓ redis $(redis-server --version)"
 
-# Show container runtime status
-if command_exists docker; then
-  echo "✓ docker $(docker --version)"
-  if docker info >/dev/null 2>&1; then
-    echo "  ✓ Docker daemon is running"
-  else
-    echo "  ✗ Docker daemon is not running"
-  fi
-elif command_exists podman; then
-  echo "✓ podman $(podman --version)"
-  if [ "$OS" = "Darwin" ]; then
-    if podman machine list --format "{{.Name}} {{.Running}}" | grep -q "podman-machine-default true"; then
-      echo "  ✓ Podman machine is running"
-    else
-      echo "  ✗ Podman machine is not running (run 'podman machine start' to start it)"
-    fi
-  else
-    if podman info >/dev/null 2>&1; then
-      echo "  ✓ Podman is ready"
-    else
-      echo "  ✗ Podman may need additional setup"
-    fi
-  fi
-else
-  echo "✗ No container runtime installed (Docker or Podman required)"
-fi
+echo
+echo "Installing Ruby dependencies..."
+bundle install
+
+echo
+echo "Setting up the database..."
+bin/rails db:create db:migrate
+
+echo
+echo "Setup complete!"
+echo
+echo "To start the application, run:"
+echo "  bin/start"
+echo
+echo "The application will be available at http://localhost:4269"

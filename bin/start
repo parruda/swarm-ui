@@ -8,9 +8,8 @@ fi
 echo "Starting SwarmUI on PORT: $PORT"
 
 # Set ports for all services
-export PORT="${PORT:-4169}"  # Rails app
-export TTYD_PORT="${TTYD_PORT:-4368}"  # ttyd terminal
-export POSTGRES_PORT="${POSTGRES_PORT:-4367}"  # PostgreSQL
+export PORT="${PORT:-4269}"  # Rails app
+export TTYD_PORT="${TTYD_PORT:-4268}"  # ttyd terminal
 
 
 # Let the debug gem allow remote connections,

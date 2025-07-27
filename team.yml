@@ -4,11 +4,8 @@ swarm:
   main: lead_developer
   # before:
   #   - bundle install
-  #   - BACKGROUND=1 bin/pg-start ${DB_PORT:=5432}
   #   - rails db:create
   #   - rails db:migrate
-  # after:
-  #   - podman stop swarm_ui_postgres_db_${DB_PORT:=5432}
   instances:
     lead_developer:
       description: "Lead full-stack Rails developer implementing the complete SwarmUI application"

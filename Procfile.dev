@@ -1,4 +1,5 @@
-web: bin/rails server
+web: sleep 2 && bin/rails server -p $PORT
 css: bin/rails tailwindcss:watch
+redis: redis-server config/redis.conf
 ttyd: ttyd -p 8999 -W -a -t 'fontSize=14' bin/ttyd
-webhook_manager: bin/rails webhook:manager
+webhook_manager: sleep 2 && bin/rails webhook:manager

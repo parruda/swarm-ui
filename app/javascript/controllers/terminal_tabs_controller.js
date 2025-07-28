@@ -93,7 +93,7 @@ export default class extends Controller {
 
   addTerminalTab(terminal) {
     // Create tab element
-    const tab = document.createElement('button')
+    const tab = document.createElement('div')
     tab.id = `terminal_tab_${terminal.id}`
     tab.dataset.terminalTabsTarget = 'tab'
     tab.dataset.tabId = terminal.id
@@ -107,14 +107,14 @@ export default class extends Controller {
       </svg>
       <span class="truncate max-w-[150px]" title="${terminal.directory}">${terminal.name}</span>
       
-      <!-- Close button -->
-      <button 
+      <!-- Close button (always visible) -->
+      <button type="button"
         data-action="click->terminal-tabs#closeTerminal"
         data-terminal-id="${terminal.id}"
-        class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+        class="ml-2 p-0.5 rounded hover:bg-red-600/20"
         title="Close terminal"
         onclick="event.stopPropagation()">
-        <svg class="h-3 w-3 hover:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="h-3 w-3 text-gray-400 hover:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>

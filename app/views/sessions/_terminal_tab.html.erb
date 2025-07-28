@@ -1,20 +1,19 @@
-<button 
-  id="terminal_tab_<%= terminal.terminal_id %>"
-  data-terminal-tabs-target="tab"
-  data-tab-id="<%= terminal.terminal_id %>"
-  data-tab-url="<%= terminal.terminal_url %>"
-  data-action="click->terminal-tabs#switchTab"
-  class="group px-4 py-2 bg-gray-900 text-gray-300 border-r border-gray-700 flex items-center space-x-2 hover:bg-gray-800 hover:text-white transition-colors min-w-0 relative cursor-pointer">
+<div id="terminal_tab_<%= terminal.terminal_id %>" 
+     data-terminal-tabs-target="tab"
+     data-tab-id="<%= terminal.terminal_id %>"
+     data-tab-url="<%= terminal.terminal_url %>"
+     data-action="click->terminal-tabs#switchTab"
+     class="group px-4 py-2 bg-gray-900 text-gray-300 border-r border-gray-700 flex items-center space-x-2 hover:bg-gray-800 hover:text-white transition-colors min-w-0 relative cursor-pointer">
   <%= heroicon "terminal", variant: :mini, options: { class: "h-4 w-4 flex-shrink-0 text-blue-400" } %>
   <span class="truncate max-w-[150px]" title="<%= terminal.directory %>"><%= terminal.name %></span>
   
-  <!-- Close button -->
-  <button 
-    data-action="click->terminal-tabs#closeTerminal"
-    data-terminal-id="<%= terminal.terminal_id %>"
-    class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
-    title="Close terminal"
-    onclick="event.stopPropagation()">
-    <%= heroicon "x-mark", variant: :mini, options: { class: "h-3 w-3 hover:text-red-400" } %>
+  <!-- Close button (always visible) -->
+  <button type="button"
+          data-action="click->terminal-tabs#closeTerminal"
+          data-terminal-id="<%= terminal.terminal_id %>"
+          class="ml-2 p-0.5 rounded hover:bg-red-600/20"
+          title="Close terminal"
+          onclick="event.stopPropagation()">
+    <%= heroicon "x-mark", variant: :mini, options: { class: "h-3 w-3 text-gray-400 hover:text-red-400" } %>
   </button>
-</button>
+</div>

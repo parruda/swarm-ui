@@ -18,7 +18,7 @@
     <div class="bg-gray-900 border-b border-gray-800">
       <div class="flex items-center" data-terminal-tabs-target="tabBar">
         <!-- Claude Swarm tab (always first) -->
-        <button 
+        <div 
           data-terminal-tabs-target="tab"
           data-tab-id="swarm"
           data-tab-url="<%= @terminal_url %>"
@@ -26,7 +26,7 @@
           class="px-4 py-2 bg-gray-800 text-white border-r border-gray-700 flex items-center space-x-2 hover:bg-gray-700 transition-colors min-w-0 cursor-default">
           <%= image_tag "logo.png", class: "h-4 w-4 flex-shrink-0", alt: "Claude Swarm" %>
           <span class="truncate"><%= @main_instance_name %></span>
-        </button>
+        </div>
         
         <!-- Terminal tabs will be added here dynamically -->
         <div id="terminal_tabs_container" class="flex flex-1">

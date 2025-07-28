@@ -70,6 +70,7 @@ class TerminalSession < ApplicationRecord
 
   def broadcast_terminal_removal
     # Broadcast removal of terminal tab when it stops
+    Rails.logger.info "Broadcasting terminal removal for terminal_tab_#{terminal_id} to session_#{session_id}_terminals"
     broadcast_remove_to(
       "session_#{session_id}_terminals",
       target: "terminal_tab_#{terminal_id}",

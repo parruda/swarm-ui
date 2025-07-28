@@ -135,13 +135,20 @@ export default class extends Controller {
 
   observeTabRemovals() {
     const container = document.getElementById('terminal_tabs_container')
-    if (!container) return
+    if (!container) {
+      console.error('Terminal tabs container not found')
+      return
+    }
+    
+    console.log('Setting up mutation observer for terminal tab removals')
     
     this.observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.removedNodes.forEach((node) => {
+          console.log('Node removed:', node)
           // Check if the removed node was the active tab
           if (node.nodeType === 1 && node.classList && node.classList.contains('bg-gray-800')) {
+            console.log('Active tab was removed, switching to swarm tab')
             // Find the swarm tab and activate it
             const swarmTab = this.element.querySelector('[data-tab-id="swarm"]')
             if (swarmTab) {

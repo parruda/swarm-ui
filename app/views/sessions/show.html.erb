@@ -10,12 +10,49 @@
 <div id="session_redirect"></div>
 
 <div data-controller="git-diff-modal">
-<div class="fixed inset-0 top-16 bg-stone-950 overflow-hidden" data-controller="right-pane">
+<div class="fixed inset-0 top-16 bg-stone-950 overflow-hidden" data-controller="right-pane terminal-tabs">
+  <!-- Tab bar for terminals -->
+  <% if @terminal_url %>
+    <%= turbo_stream_from "session_#{@session.id}_terminals" %>
+    
+    <div class="bg-gray-900 border-b border-gray-800">
+      <div class="flex items-center" data-terminal-tabs-target="tabBar">
+        <!-- Claude Swarm tab (always first) -->
+        <button 
+          data-terminal-tabs-target="tab"
+          data-tab-id="swarm"
+          data-tab-url="<%= @terminal_url %>"
+          data-action="click->terminal-tabs#switchTab"
+          class="px-4 py-2 bg-gray-800 text-white border-r border-gray-700 flex items-center space-x-2 hover:bg-gray-700 transition-colors min-w-0 cursor-default">
+          <%= image_tag "logo.png", class: "h-4 w-4 flex-shrink-0", alt: "Claude Swarm" %>
+          <span class="truncate"><%= @main_instance_name %></span>
+        </button>
+        
+        <!-- Terminal tabs will be added here dynamically -->
+        <div id="terminal_tabs_container" class="flex flex-1">
+          <% @session.terminal_sessions.active.ordered.each do |terminal| %>
+            <%= render "terminal_tab", terminal: terminal %>
+          <% end %>
+        </div>
+        
+        <!-- Add terminal button -->
+        <button 
+          data-action="click->terminal-tabs#openTerminalPicker"
+          class="px-3 py-2 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+          title="Open new terminal">
+          <%= heroicon "plus", variant: :solid, options: { class: "h-4 w-4" } %>
+        </button>
+      </div>
+    </div>
+  <% end %>
+  
   <!-- Terminal iframe or session summary -->
-  <div class="w-full h-full">
+  <div class="w-full h-full <%= @terminal_url ? 'calc-height-minus-tabs' : '' %>" data-terminal-tabs-target="iframeContainer">
     <% if @terminal_url %>
       <iframe 
-        src="<%= @terminal_url %>" 
+        src="<%= @terminal_url %>"
+        data-terminal-tabs-target="iframe"
+        data-tab-id="swarm"
         class="w-full h-full border-0"
         scrolling="no"
         style="overflow: hidden;"

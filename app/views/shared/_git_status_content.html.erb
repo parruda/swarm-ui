@@ -76,11 +76,26 @@
                            <% end %>>
                         
                         <!-- Directory path -->
-                        <div class="flex items-center space-x-2 mb-2">
-                          <%= heroicon "folder", variant: :mini, options: { class: "h-4 w-4 text-gray-500" } %>
-                          <code class="text-sm text-gray-700 dark:text-gray-300">
-                            <%= status[:directory].gsub(ENV['HOME'], '~') %>
-                          </code>
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="flex items-center space-x-2">
+                            <%= heroicon "folder", variant: :mini, options: { class: "h-4 w-4 text-gray-500" } %>
+                            <code class="text-sm text-gray-700 dark:text-gray-300">
+                              <%= status[:directory].gsub(ENV['HOME'], '~') %>
+                            </code>
+                          </div>
+                          
+                          <% if session.persisted? && session.active? %>
+                            <!-- Terminal button -->
+                            <button type="button"
+                                    class="px-2 py-1 text-xs font-medium rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                                    data-action="click->git-actions#openTerminal"
+                                    data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
+                                    data-git-actions-instance-param="<%= html_escape(instance_name) %>"
+                                    title="Open terminal in this directory">
+                              <%= heroicon "terminal", variant: :mini, options: { class: "h-3 w-3 inline mr-1" } %>
+                              Terminal
+                            </button>
+                          <% end %>
                         </div>
                         
                         <!-- Branch and status info -->

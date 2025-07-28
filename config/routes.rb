@@ -20,6 +20,8 @@ Rails.application.routes.draw do
       post :git_commit
       post :git_reset
       post :send_to_tmux
+      post :create_terminal
+      get :terminals
     end
   end
 
@@ -64,6 +66,12 @@ Rails.application.routes.draw do
       member do
         post :ended, to: "sessions#mark_ended"
         put :status, to: "sessions#update_status"
+      end
+    end
+
+    resources :terminal_sessions, only: [] do
+      member do
+        put :status, to: "terminal_sessions#update_status"
       end
     end
   end

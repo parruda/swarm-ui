@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_27_020844) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_27_180611) do
   create_table "github_webhook_events", force: :cascade do |t|
     t.bigint("project_id", null: false)
     t.string("event_type")
@@ -125,6 +125,22 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_27_020844) do
     t.index(["name"], name: "index_swarm_templates_on_name")
   end
 
+  create_table "terminal_sessions", force: :cascade do |t|
+    t.integer("session_id", null: false)
+    t.string("terminal_id", null: false)
+    t.string("directory", null: false)
+    t.string("instance_name", null: false)
+    t.string("name", null: false)
+    t.string("status", default: "active", null: false)
+    t.datetime("opened_at", null: false)
+    t.datetime("ended_at")
+    t.datetime("created_at", null: false)
+    t.datetime("updated_at", null: false)
+    t.index(["session_id", "status"], name: "index_terminal_sessions_on_session_id_and_status")
+    t.index(["session_id"], name: "index_terminal_sessions_on_session_id")
+    t.index(["terminal_id"], name: "index_terminal_sessions_on_terminal_id", unique: true)
+  end
+
   create_table "version_checkers", force: :cascade do |t|
     t.string("remote_version")
     t.datetime("checked_at")
@@ -137,4 +153,5 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_27_020844) do
   add_foreign_key "github_webhook_events", "projects"
   add_foreign_key "github_webhook_processes", "projects"
   add_foreign_key "sessions", "projects"
+  add_foreign_key "terminal_sessions", "sessions"
 end

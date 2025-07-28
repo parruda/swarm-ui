@@ -3,6 +3,7 @@
 class Session < ApplicationRecord
   # Associations
   belongs_to :project
+  has_many :terminal_sessions, dependent: :destroy
 
   # Attributes
   attribute :environment_variables, :json, default: -> { {} }
@@ -46,6 +47,7 @@ class Session < ApplicationRecord
 
   # Broadcast redirect when session stops
   after_update_commit :broadcast_redirect_if_stopped
+  after_update :cleanup_terminals_on_stop, if: :saved_change_to_status?
 
   def terminal_url(new_session: false)
     # Build the JSON payload for the ttyd session
@@ -138,5 +140,15 @@ class Session < ApplicationRecord
   def decrement_project_counters
     project.decrement!(:total_sessions_count)
     project.decrement!(:active_sessions_count) if status == "active"
+  end
+
+  def cleanup_terminals_on_stop
+    if status == "stopped" && status_before_last_save == "active"
+      terminal_sessions.active.each do |terminal|
+        # Kill the terminal's tmux session
+        system("tmux", "kill-session", "-t", terminal.tmux_session_name)
+        terminal.update!(status: "stopped", ended_at: Time.current)
+      end
+    end
   end
 end

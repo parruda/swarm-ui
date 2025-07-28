@@ -522,6 +522,30 @@ export default class extends Controller {
     }
   }
   
+  async openTerminal(event) {
+    event.preventDefault()
+    event.stopPropagation()
+    
+    const button = event.currentTarget
+    const directory = button.dataset.gitActionsDirectoryParam
+    const instanceName = button.dataset.gitActionsInstanceParam
+    
+    // First hide the dropdown
+    const dropdown = button.closest('[data-controller="dropdown-hover"]')
+    if (dropdown) {
+      dropdown.dispatchEvent(new MouseEvent('mouseleave'))
+    }
+    
+    // Get the terminal tabs controller element and dispatch event
+    const terminalTabsElement = document.querySelector('[data-controller~="terminal-tabs"]')
+    if (terminalTabsElement) {
+      // Dispatch event to create terminal
+      terminalTabsElement.dispatchEvent(new CustomEvent('terminal:create', {
+        detail: { directory, instanceName }
+      }))
+    }
+  }
+
   heroicon(name, className = '') {
     const icons = {
       'arrow-down-tray': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"></path>',

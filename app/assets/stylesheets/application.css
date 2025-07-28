@@ -148,3 +148,8 @@ iframe::-webkit-scrollbar {
   color: #dc2626;
 }
 
+/* Terminal tabs height calculation */
+.calc-height-minus-tabs {
+  height: calc(100% - 41px); /* Subtract tab bar height */
+}
+

@@ -6,7 +6,7 @@ require "shellwords"
 require "open3"
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_stage, :git_commit, :git_reset, :send_to_tmux]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_stage, :git_commit, :git_reset, :send_to_tmux, :create_terminal, :terminals]
 
   def index
     @filter = params[:filter] || "active"
@@ -100,6 +100,17 @@ class SessionsController < ApplicationController
       @terminal_url = @session.terminal_url(new_session: params[:new_session])
     end
 
+    # Load swarm configuration to get team name and main instance
+    @swarm_config = load_swarm_config
+    @main_instance_name = if @swarm_config && @swarm_config["swarm"]
+      # Get the team name if available, otherwise use first instance name
+      @swarm_config["swarm"]["team_name"] || 
+      @swarm_config["swarm"]["instances"]&.keys&.first || 
+      "Claude Swarm"
+    else
+      "Claude Swarm"
+    end
+
     # Fetch git status for active sessions
     if @session.active?
       git_service = GitStatusService.new(@session)
@@ -114,6 +125,12 @@ class SessionsController < ApplicationController
     if @session.status != "active"
       redirect_to(sessions_path, alert: "Session is not active.")
       return
+    end
+
+    # Kill all terminal sessions first
+    @session.terminal_sessions.active.each do |terminal|
+      system("tmux", "kill-session", "-t", terminal.tmux_session_name)
+      terminal.update!(status: "stopped", ended_at: Time.current)
     end
 
     # Kill the tmux session
@@ -794,6 +811,59 @@ class SessionsController < ApplicationController
   rescue => e
     Rails.logger.error("Git reset error: #{e.message}")
     render(json: { error: "Failed to reset: #{e.message}" }, status: :internal_server_error)
+  end
+
+  def create_terminal
+    directory = params[:directory]
+    instance_name = params[:instance_name]
+
+    unless directory.present? && File.directory?(directory)
+      render(json: { error: "Invalid directory" }, status: :bad_request)
+      return
+    end
+
+    # Security check - ensure directory belongs to this session
+    unless directory_belongs_to_session?(directory)
+      render(json: { error: "Unauthorized access to directory" }, status: :forbidden)
+      return
+    end
+
+    # Generate terminal details
+    terminal_id = SecureRandom.uuid
+    name = File.basename(directory)
+
+    # Check if we already have terminals for this directory
+    existing_count = @session.terminal_sessions.active.where(directory: directory).count
+    name = "#{name} (#{existing_count + 1})" if existing_count > 0
+
+    # Create terminal session
+    terminal = @session.terminal_sessions.create!(
+      terminal_id: terminal_id,
+      directory: directory,
+      instance_name: instance_name,
+      name: name,
+      status: "active",
+      opened_at: Time.current,
+    )
+
+    render(json: {
+      success: true,
+      terminal: {
+        id: terminal.terminal_id,
+        name: terminal.name,
+        directory: terminal.directory,
+        instance_name: terminal.instance_name,
+        url: terminal.terminal_url,
+      },
+    })
+  rescue => e
+    Rails.logger.error("Failed to create terminal: #{e.message}")
+    render(json: { error: "Failed to create terminal: #{e.message}" }, status: :internal_server_error)
+  end
+
+  def terminals
+    @terminals = @session.terminal_sessions.active.ordered
+    render(partial: "terminals", locals: { terminals: @terminals })
   end
 
   def send_to_tmux

@@ -6,7 +6,7 @@ require "shellwords"
 require "open3"
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_stage, :git_commit, :git_reset, :send_to_tmux, :create_terminal, :terminals]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_stage, :git_commit, :git_reset, :send_to_tmux, :create_terminal, :terminals, :kill_terminal]
 
   def index
     @filter = params[:filter] || "active"
@@ -864,6 +864,24 @@ class SessionsController < ApplicationController
   def terminals
     @terminals = @session.terminal_sessions.active.ordered
     render(partial: "terminals", locals: { terminals: @terminals })
+  end
+
+  def kill_terminal
+    terminal_id = params[:terminal_id]
+    terminal = @session.terminal_sessions.find_by(terminal_id: terminal_id)
+    
+    if terminal.nil?
+      render(json: { error: "Terminal not found" }, status: :not_found)
+      return
+    end
+    
+    # Kill the terminal's tmux session
+    system("tmux", "kill-session", "-t", terminal.tmux_session_name)
+    
+    # Mark the terminal as stopped
+    terminal.update!(status: "stopped", ended_at: Time.current)
+    
+    render(json: { success: true })
   end
 
   def send_to_tmux

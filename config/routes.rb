@@ -21,6 +21,7 @@ Rails.application.routes.draw do
       post :git_reset
       post :send_to_tmux
       post :create_terminal
+      post :kill_terminal
       get :terminals
     end
   end

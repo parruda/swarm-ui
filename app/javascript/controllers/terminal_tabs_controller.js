@@ -102,8 +102,8 @@ export default class extends Controller {
     tab.className = 'group px-4 py-2 bg-gray-900 text-gray-300 border-r border-gray-700 flex items-center space-x-2 hover:bg-gray-800 hover:text-white transition-colors min-w-0 relative cursor-pointer'
     
     tab.innerHTML = `
-      <svg class="h-4 w-4 flex-shrink-0 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+      <svg class="h-4 w-4 flex-shrink-0 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M3.25 3A2.25 2.25 0 001 5.25v9.5A2.25 2.25 0 003.25 17h13.5A2.25 2.25 0 0019 14.75v-9.5A2.25 2.25 0 0016.75 3H3.25zm.943 8.752a.75.75 0 01.055-1.06L6.128 9l-1.88-1.693a.75.75 0 111.004-1.114l2.5 2.25a.75.75 0 010 1.114l-2.5 2.25a.75.75 0 01-1.06-.055zM9.75 10.25a.75.75 0 000 1.5h2.5a.75.75 0 000-1.5h-2.5z" clip-rule="evenodd" />
       </svg>
       <span class="truncate max-w-[150px]" title="${terminal.directory}">${terminal.name}</span>
       
@@ -182,9 +182,30 @@ export default class extends Controller {
       }
     }
     
+    // Call server to kill the terminal session
+    const sessionId = window.location.pathname.match(/sessions\/(\d+)/)[1]
+    
+    try {
+      const response = await fetch(`/sessions/${sessionId}/kill_terminal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+          terminal_id: terminalId
+        })
+      })
+      
+      if (!response.ok) {
+        console.error('Failed to kill terminal')
+        // Still remove the tab even if the request fails
+      }
+    } catch (error) {
+      console.error('Error killing terminal:', error)
+    }
+    
     // Remove the tab
     tab.remove()
-    
-    // The server will be notified via websocket when the tmux session ends
   }
 }

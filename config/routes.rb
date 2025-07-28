@@ -35,6 +35,39 @@ Rails.application.routes.draw do
       get :webhook_status
       get :environment_variables
     end
+
+    # Nested swarm templates under projects
+    resources :swarm_templates
+  end
+
+  # Top-level swarm templates routes (for general purpose swarms)
+  resources :swarm_templates do
+    member do
+      post :duplicate
+      get :preview_yaml
+      post :launch_session
+      get :export
+    end
+
+    collection do
+      get :library
+    end
+
+    resources :instances, controller: "swarm_template_instances" do
+      member do
+        post :update_connections
+      end
+    end
+  end
+
+  resources :instance_templates do
+    member do
+      post :duplicate
+    end
+
+    collection do
+      get :library
+    end
   end
 
   # GitHub webhook receiver endpoint

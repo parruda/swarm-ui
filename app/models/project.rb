@@ -15,6 +15,7 @@ class Project < ApplicationRecord
   has_many :sessions
   has_many :github_webhook_events, dependent: :destroy
   has_many :github_webhook_processes, dependent: :destroy
+  has_many :swarm_templates, dependent: :destroy
 
   # Nested attributes
   accepts_nested_attributes_for :github_webhook_events, allow_destroy: true

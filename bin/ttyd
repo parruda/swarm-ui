@@ -145,4 +145,3 @@ else
   # After tmux exits, mark the session as stopped
   system(status_script, session_id, "stopped")
 end
-

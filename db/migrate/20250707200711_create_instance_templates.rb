@@ -4,25 +4,28 @@ class CreateInstanceTemplates < ActiveRecord::Migration[8.0]
   def change
     create_table(:instance_templates) do |t|
       t.string(:name, null: false)
-      t.text(:description)
-      t.string(:model) # opus, sonnet, haiku, gpt-4o, etc
-      t.string(:provider) # claude, openai
-      t.text(:prompt)
-      t.string(:directory)
-      t.jsonb(:tools) # Array of tool names ["Read", "Edit", "Bash", etc]
-      t.jsonb(:allowed_tools) # Optional restriction of tools
-      t.jsonb(:disallowed_tools) # Optional tools to explicitly disallow
-      t.boolean(:worktree, default: false)
-      t.boolean(:vibe, default: false) # Dangerous mode with fewer restrictions
+      t.text(:description, null: false) # Required in swarm YAML
+      t.string(:category) # frontend, backend, security, database, etc.
 
-      # OpenAI-specific settings
-      t.float(:temperature)
-      t.string(:api_version) # chat_completion, responses
-      t.string(:reasoning_effort) # low, medium, high (for o-series models only)
+      # Core configuration - stored as JSONB for flexibility
+      t.jsonb(:config, default: {}, null: false)
+      # Will contain: model, provider, directory, allowed_tools, disallowed_tools,
+      # connections, mcps, prompt, worktree, vibe, temperature, api_version, etc.
+
+      # Environment variables required by this template
+      t.jsonb(:required_variables, default: [])
+      # Example: ["PROJECT_DIR", "FRONTEND_DIR"]
+
+      # Metadata
+      t.jsonb(:metadata, default: {}) # tags, suggested_models, etc.
+      t.boolean(:system_template, default: false) # Pre-built templates
+      t.integer(:usage_count, default: 0)
 
       t.timestamps
     end
 
     add_index(:instance_templates, :name)
+    add_index(:instance_templates, :category)
+    add_index(:instance_templates, :system_template)
   end
 end

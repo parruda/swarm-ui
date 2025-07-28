@@ -65,6 +65,13 @@ class SessionsController < ApplicationController
         @focus_name_field = true
       end
     end
+
+    # Check if we're launching from a swarm template
+    if params[:session].present?
+      session_params = params[:session].permit(:swarm_name, :configuration_path, :use_worktree, :initial_prompt)
+      @session.assign_attributes(session_params)
+      @focus_name_field = @session.swarm_name.blank?
+    end
   end
 
   def create
@@ -104,9 +111,9 @@ class SessionsController < ApplicationController
     @swarm_config = load_swarm_config
     @main_instance_name = if @swarm_config && @swarm_config["swarm"]
       # Get the team name if available, otherwise use first instance name
-      @swarm_config["swarm"]["team_name"] || 
-      @swarm_config["swarm"]["instances"]&.keys&.first || 
-      "Claude Swarm"
+      @swarm_config["swarm"]["team_name"] ||
+        @swarm_config["swarm"]["instances"]&.keys&.first ||
+        "Claude Swarm"
     else
       "Claude Swarm"
     end
@@ -869,18 +876,18 @@ class SessionsController < ApplicationController
   def kill_terminal
     terminal_id = params[:terminal_id]
     terminal = @session.terminal_sessions.find_by(terminal_id: terminal_id)
-    
+
     if terminal.nil?
       render(json: { error: "Terminal not found" }, status: :not_found)
       return
     end
-    
+
     # Kill the terminal's tmux session
     system("tmux", "kill-session", "-t", terminal.tmux_session_name)
-    
+
     # Mark the terminal as stopped
     terminal.update!(status: "stopped", ended_at: Time.current)
-    
+
     render(json: { success: true })
   end
 

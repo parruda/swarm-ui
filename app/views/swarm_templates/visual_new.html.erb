@@ -1,0 +1,220 @@
+<% content_for :title, "Swarm Builder" %>
+
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900" data-controller="swarm-visual-builder">
+  <!-- Header -->
+  <div class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+    <div class="px-4 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <%= link_to swarm_templates_path, class: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" do %>
+            <%= heroicon "arrow-left", variant: :outline, options: { class: "h-5 w-5" } %>
+          <% end %>
+          <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Swarm Builder</h1>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+          <button type="button"
+                  data-action="click->swarm-visual-builder#importYaml"
+                  class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600">
+            <%= heroicon "arrow-down-tray", variant: :outline, options: { class: "h-4 w-4 mr-2" } %>
+            Import YAML
+          </button>
+          
+          <button type="button"
+                  data-action="click->swarm-visual-builder#exportYaml"
+                  class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600">
+            <%= heroicon "arrow-up-tray", variant: :outline, options: { class: "h-4 w-4 mr-2" } %>
+            Export YAML
+          </button>
+          
+          <button type="button"
+                  id="save-swarm"
+                  data-action="click->swarm-visual-builder#saveSwarm"
+                  class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-orange-600 dark:bg-orange-900 rounded-md hover:bg-orange-700 dark:hover:bg-orange-800">
+            <%= heroicon "check", variant: :solid, options: { class: "h-4 w-4 mr-2" } %>
+            Save Swarm
+          </button>
+        </div>
+      </div>
+      
+      <!-- Quick info bar -->
+      <div class="mt-4 flex items-center space-x-6 text-sm">
+        <div class="flex items-center space-x-2">
+          <input type="text"
+                 id="swarm_template_name"
+                 data-swarm-visual-builder-target="nameInput"
+                 placeholder="Swarm name..."
+                 class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+        </div>
+        
+        <div class="flex items-center space-x-2">
+          <span class="text-gray-500 dark:text-gray-400">Tags:</span>
+          <div data-swarm-visual-builder-target="tagsContainer" class="flex items-center gap-2"></div>
+          <input type="text"
+                 data-swarm-visual-builder-target="tagInput"
+                 data-action="keydown->swarm-visual-builder#addTag"
+                 placeholder="Add tag..."
+                 class="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="flex h-[calc(100vh-140px)]">
+    <!-- Left Panel - Instance Library -->
+    <div class="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+      <div class="p-4">
+        <div class="mb-4">
+          <input type="text"
+                 data-swarm-visual-builder-target="searchInput"
+                 data-action="input->swarm-visual-builder#filterTemplates"
+                 placeholder="Search instances..."
+                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+        </div>
+        
+        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+          Instance Templates
+        </h3>
+        
+        <div data-swarm-visual-builder-target="instanceTemplates" class="space-y-2">
+          <% @instance_templates.each do |template| %>
+            <div draggable="true"
+                 data-template-card
+                 data-template-id="<%= template.id %>"
+                 data-template-name="<%= template.name %>"
+                 data-template-description="<%= template.description %>"
+                 data-template-config='<%= template.config.to_json %>'
+                 class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-move hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100"><%= template.name %></h4>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><%= template.description %></p>
+                </div>
+                <span class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
+                  <%= template.model %>
+                </span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        
+        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <button type="button"
+                  class="w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600">
+            <%= heroicon "plus", variant: :outline, options: { class: "h-4 w-4 inline mr-2" } %>
+            Create Custom Instance
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center - Visual Canvas -->
+    <div class="flex-1 relative">
+      <div data-swarm-visual-builder-target="canvas" 
+           class="absolute inset-0 bg-gray-100 dark:bg-gray-900 overflow-auto">
+        <!-- Canvas content will be inserted here -->
+        
+        <!-- Empty state -->
+        <div data-swarm-visual-builder-target="emptyState" 
+             class="absolute inset-0 flex items-center justify-center">
+          <div class="text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 2l10 5v10l-10 5-10-5V7z M12 7v10 M2 7l10 5 10-5 M7 19.5V9.5l10 5v10" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No instances yet</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Drag instance templates from the left panel to get started</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Zoom controls -->
+      <div class="absolute bottom-4 left-4 flex items-center space-x-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2">
+        <button type="button" 
+                data-action="click->swarm-visual-builder#zoomOut"
+                class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+          <%= heroicon "minus", variant: :solid, options: { class: "h-4 w-4" } %>
+        </button>
+        <span class="text-sm px-2" data-swarm-visual-builder-target="zoomLevel">100%</span>
+        <button type="button" 
+                data-action="click->swarm-visual-builder#zoomIn"
+                class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+          <%= heroicon "plus", variant: :solid, options: { class: "h-4 w-4" } %>
+        </button>
+      </div>
+      
+      <!-- Canvas toolbar -->
+      <div class="absolute top-4 left-4 flex items-center space-x-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2">
+        <button type="button" 
+                title="Auto-layout" 
+                data-action="click->swarm-visual-builder#autoLayout"
+                class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+          <%= heroicon "squares-plus", variant: :outline, options: { class: "h-4 w-4" } %>
+        </button>
+        <div class="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
+        <button type="button" 
+                title="Clear all" 
+                data-action="click->swarm-visual-builder#clearAll"
+                class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-red-600">
+          <%= heroicon "trash", variant: :outline, options: { class: "h-4 w-4" } %>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Panel - Properties/YAML -->
+    <div class="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
+      <!-- Tabs -->
+      <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="flex">
+          <button type="button" 
+                  data-swarm-visual-builder-target="propertiesTabButton"
+                  data-action="click->swarm-visual-builder#switchToProperties"
+                  class="flex-1 px-4 py-3 text-sm font-medium text-orange-600 dark:text-orange-400 border-b-2 border-orange-600 dark:border-orange-400">
+            Properties
+          </button>
+          <button type="button" 
+                  data-swarm-visual-builder-target="yamlTabButton"
+                  data-action="click->swarm-visual-builder#switchToYaml"
+                  class="flex-1 px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+            YAML Preview
+          </button>
+        </nav>
+      </div>
+      
+      <!-- Tab Panels -->
+      <div class="flex-1 overflow-hidden">
+        <!-- Properties Panel -->
+        <div data-swarm-visual-builder-target="propertiesTab" class="h-full overflow-y-auto">
+          <div data-swarm-visual-builder-target="propertiesPanel" class="h-full">
+            <div class="p-4 text-center text-gray-500 dark:text-gray-400">
+              <p>Select an instance to edit its properties</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- YAML Preview -->
+        <div data-swarm-visual-builder-target="yamlPreviewTab" 
+             class="hidden h-full overflow-y-auto">
+          <div data-swarm-visual-builder-target="yamlPreview" 
+               class="h-full p-4 bg-gray-50 dark:bg-gray-900">
+            <pre class="text-sm font-mono text-gray-700 dark:text-gray-300"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Hidden file input for import -->
+  <input type="file" 
+         data-swarm-visual-builder-target="importInput"
+         data-action="change->swarm-visual-builder#handleImportFile"
+         accept=".yaml,.yml"
+         class="hidden">
+  
+  <!-- SVG Icons -->
+  <svg class="hidden">
+    <symbol id="cube-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+      <path d="M12 2l10 5v10l-10 5-10-5V7z M12 7v10 M2 7l10 5 10-5 M7 19.5V9.5l10 5v10" />
+    </symbol>
+  </svg>
+</div>

@@ -10,3 +10,6 @@ pin_all_from "app/javascript/controllers", under: "controllers"
 
 # Monaco Editor for diff viewing
 pin "monaco-editor", to: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/+esm"
+
+# YAML parsing for import/export
+pin "js-yaml", to: "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/+esm"

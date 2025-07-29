@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import jsyaml from "js-yaml"
 
 export default class extends Controller {
   static targets = [
@@ -1392,10 +1393,28 @@ export default class extends Controller {
       configData.swarm.main = this.nodeKeyMap.get(this.mainNodeId)
     }
     
+    // Collect instance data for saving
+    const instancesData = []
+    this.nodes.forEach((node, id) => {
+      instancesData.push({
+        key: this.nodeKeyMap.get(id),
+        name: node.data.label,
+        description: node.data.description || '',
+        provider: node.data.provider || 'claude',
+        model: node.data.model || 'sonnet',
+        directory: node.data.directory || '.',
+        system_prompt: node.data.system_prompt || '',
+        temperature: node.data.temperature,
+        vibe: node.data.vibe || false,
+        allowed_tools: node.data.allowed_tools || []
+      })
+    })
+    
     const formData = new FormData()
     formData.append('swarm_template[name]', name)
     formData.append('swarm_template[tags]', JSON.stringify(this.tags))
     formData.append('swarm_template[config_data]', JSON.stringify(configData))
+    formData.append('swarm_template[instances_data]', JSON.stringify(instancesData))
     
     fetch('/swarm_templates', {
       method: 'POST',
@@ -1436,8 +1455,135 @@ export default class extends Controller {
     
     const reader = new FileReader()
     reader.onload = (e) => {
-      alert('YAML import not implemented')
+      try {
+        const yamlContent = e.target.result
+        const data = jsyaml.load(yamlContent)
+        
+        if (!data || !data.swarm || !data.swarm.instances) {
+          alert('Invalid swarm YAML format')
+          return
+        }
+        
+        // Clear existing canvas
+        this.clearAll()
+        
+        // Set swarm name
+        if (data.swarm.name && this.hasNameInputTarget) {
+          this.nameInputTarget.value = data.swarm.name
+        }
+        
+        // Import tags if present
+        if (data.swarm.tags && Array.isArray(data.swarm.tags)) {
+          this.tags = [...data.swarm.tags]
+          this.renderTags()
+        }
+        
+        // Create instance templates from the YAML
+        const instances = data.swarm.instances
+        const instanceKeys = Object.keys(instances)
+        
+        // First pass: create all nodes
+        const keyToNodeIdMap = new Map()
+        const nodePositions = this.calculateImportNodePositions(instanceKeys.length)
+        
+        instanceKeys.forEach((key, index) => {
+          const instance = instances[key]
+          const position = nodePositions[index]
+          
+          // Convert YAML format to internal format
+          const config = {
+            description: instance.description || '',
+            provider: instance.provider || 'claude',
+            model: instance.model || 'sonnet',
+            directory: instance.directory || '.',
+            system_prompt: instance.prompt || '',
+            temperature: instance.temperature,
+            vibe: instance.vibe || false,
+            allowed_tools: instance.allowed_tools || []
+          }
+          
+          // For OpenAI instances, ensure vibe mode is true
+          if (config.provider === 'openai') {
+            config.vibe = true
+          }
+          
+          // Create the node
+          const nodeId = this.nextNodeId
+          this.addNodeFromTemplate(key, config, position)
+          keyToNodeIdMap.set(key, nodeId)
+        })
+        
+        // Second pass: create connections
+        instanceKeys.forEach((key) => {
+          const instance = instances[key]
+          const fromNodeId = keyToNodeIdMap.get(key)
+          
+          if (instance.connections && Array.isArray(instance.connections)) {
+            instance.connections.forEach(targetKey => {
+              const toNodeId = keyToNodeIdMap.get(targetKey)
+              if (toNodeId !== undefined) {
+                this.connections.push({
+                  from: fromNodeId,
+                  to: toNodeId
+                })
+              }
+            })
+          }
+        })
+        
+        // Set main instance if specified
+        if (data.swarm.main && keyToNodeIdMap.has(data.swarm.main)) {
+          this.mainNodeId = keyToNodeIdMap.get(data.swarm.main)
+        }
+        
+        // Update the display
+        this.updateConnections()
+        this.updateYamlPreview()
+        
+        // Clear file input for future imports
+        event.target.value = ''
+        
+      } catch (error) {
+        console.error('Error parsing YAML:', error)
+        alert('Failed to import YAML: ' + error.message)
+      }
     }
     reader.readAsText(file)
+  }
+  
+  calculateImportNodePositions(nodeCount) {
+    const positions = []
+    const centerX = 400
+    const centerY = 300
+    const radius = 200
+    
+    if (nodeCount === 1) {
+      positions.push({ x: centerX, y: centerY })
+    } else if (nodeCount <= 6) {
+      // Arrange in a circle
+      for (let i = 0; i < nodeCount; i++) {
+        const angle = (i / nodeCount) * Math.PI * 2 - Math.PI / 2
+        positions.push({
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle)
+        })
+      }
+    } else {
+      // Grid layout for many nodes
+      const cols = Math.ceil(Math.sqrt(nodeCount))
+      const spacing = 250
+      const startX = centerX - (cols - 1) * spacing / 2
+      
+      for (let i = 0; i < nodeCount; i++) {
+        const row = Math.floor(i / cols)
+        const col = i % cols
+        positions.push({
+          x: startX + col * spacing,
+          y: 100 + row * spacing
+        })
+      }
+    }
+    
+    return positions
   }
 }

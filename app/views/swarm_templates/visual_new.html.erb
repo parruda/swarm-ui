@@ -3,58 +3,68 @@
 <% content_for :full_width do %>
 <div class="fixed inset-0 top-[56px] flex flex-col bg-gray-50 dark:bg-gray-900" data-controller="swarm-visual-builder">
   <!-- Header -->
-  <div class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-    <div class="px-4 py-4">
-      <div class="flex items-center justify-between">
+  <div class="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+    <div class="px-6 py-5">
+      <div class="flex items-center justify-between gap-6">
         <!-- Left section -->
-        <div class="flex items-center space-x-4 flex-shrink-0">
-          <%= link_to swarm_templates_path, class: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" do %>
+        <div class="flex items-center gap-5 flex-shrink-0">
+          <%= link_to swarm_templates_path, class: "p-2 -m-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" do %>
             <%= heroicon "arrow-left", variant: :outline, options: { class: "h-5 w-5" } %>
           <% end %>
-          <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Swarm Builder</h1>
+          <div class="flex items-center gap-3">
+            <div class="w-px h-8 bg-gray-300 dark:bg-gray-600"></div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Swarm Builder</h1>
+          </div>
         </div>
         
         <!-- Center section -->
-        <div class="flex items-center space-x-4 flex-1 max-w-2xl mx-4">
-          <input type="text"
-                 id="swarm_template_name"
-                 data-swarm-visual-builder-target="nameInput"
-                 data-action="input->swarm-visual-builder#updateYamlPreview"
-                 placeholder="Swarm name..."
-                 class="w-48 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400">
+        <div class="flex items-center gap-6 flex-1 max-w-4xl">
+          <div class="relative flex-1 max-w-xs">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <%= heroicon "beaker", variant: :outline, options: { class: "h-5 w-5 text-gray-400" } %>
+            </div>
+            <input type="text"
+                   id="swarm_template_name"
+                   data-swarm-visual-builder-target="nameInput"
+                   data-action="input->swarm-visual-builder#updateYamlPreview"
+                   placeholder="Enter swarm name..."
+                   class="w-full pl-10 pr-4 py-2.5 text-sm font-medium border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:border-orange-500 dark:focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-500/20 dark:focus:ring-orange-400/20 transition-all">
+          </div>
           
-          <div class="flex items-center space-x-2 flex-1">
-            <span class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">Tags:</span>
-            <div data-swarm-visual-builder-target="tagsContainer" class="flex items-center gap-2 flex-wrap"></div>
+          <div class="flex items-center gap-3 flex-1 bg-gray-50 dark:bg-gray-900/50 rounded-lg px-4 py-2.5 border-2 border-dashed border-gray-300 dark:border-gray-600">
+            <%= heroicon "tag", variant: :outline, options: { class: "h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0" } %>
+            <div data-swarm-visual-builder-target="tagsContainer" class="flex items-center gap-2 flex-wrap flex-1 min-h-[28px]"></div>
             <input type="text"
                    data-swarm-visual-builder-target="tagInput"
                    data-action="keydown->swarm-visual-builder#addTag"
                    placeholder="Add tags (comma separated)..."
-                   class="w-48 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400">
+                   class="flex-1 min-w-[200px] bg-transparent border-0 outline-none text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 px-0 py-0">
           </div>
         </div>
         
         <!-- Right section -->
-        <div class="flex items-center space-x-2 flex-shrink-0">
-          <button type="button"
-                  data-action="click->swarm-visual-builder#importYaml"
-                  class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors h-8">
-            <%= heroicon "arrow-down-tray", variant: :outline, options: { class: "h-4 w-4 mr-1.5" } %>
-            Import YAML
-          </button>
-          
-          <button type="button"
-                  data-action="click->swarm-visual-builder#exportYaml"
-                  class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors h-8">
-            <%= heroicon "arrow-up-tray", variant: :outline, options: { class: "h-4 w-4 mr-1.5" } %>
-            Export YAML
-          </button>
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-900 rounded-lg p-1">
+            <button type="button"
+                    data-action="click->swarm-visual-builder#importYaml"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-all hover:shadow-md">
+              <%= heroicon "arrow-down-tray", variant: :outline, options: { class: "h-4 w-4 mr-2" } %>
+              Import
+            </button>
+            
+            <button type="button"
+                    data-action="click->swarm-visual-builder#exportYaml"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-all hover:shadow-md">
+              <%= heroicon "arrow-up-tray", variant: :outline, options: { class: "h-4 w-4 mr-2" } %>
+              Export
+            </button>
+          </div>
           
           <button type="button"
                   id="save-swarm"
                   data-action="click->swarm-visual-builder#saveSwarm"
-                  class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-orange-900 dark:bg-orange-900 rounded-md hover:bg-orange-800 dark:hover:bg-orange-800 transition-colors h-8">
-            <%= heroicon "check", variant: :solid, options: { class: "h-4 w-4 mr-1.5" } %>
+                  class="inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-orange-600 to-orange-700 dark:from-orange-700 dark:to-orange-800 rounded-lg hover:from-orange-700 hover:to-orange-800 dark:hover:from-orange-800 dark:hover:to-orange-900 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200">
+            <%= heroicon "check-circle", variant: :solid, options: { class: "h-5 w-5 mr-2" } %>
             Save Swarm
           </button>
         </div>

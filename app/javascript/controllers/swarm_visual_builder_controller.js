@@ -937,9 +937,13 @@ export default class extends Controller {
   addTag(event) {
     if (event.key === 'Enter' || event.key === ',') {
       event.preventDefault()
-      const tag = event.target.value.trim()
-      if (tag && !this.tags.includes(tag)) {
-        this.tags.push(tag)
+      const input = event.target.value
+      
+      // Split by comma and process each tag
+      const newTags = input.split(',').map(t => t.trim()).filter(t => t && !this.tags.includes(t))
+      
+      if (newTags.length > 0) {
+        this.tags.push(...newTags)
         this.renderTags()
         event.target.value = ''
       }
@@ -954,9 +958,16 @@ export default class extends Controller {
   
   renderTags() {
     this.tagsContainerTarget.innerHTML = this.tags.map(tag => `
-      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800 transition-all hover:bg-orange-200 dark:hover:bg-orange-900/50">
         ${tag}
-        <button type="button" data-action="click->swarm-visual-builder#removeTag" data-tag="${tag}" class="ml-1">×</button>
+        <button type="button" 
+                data-action="click->swarm-visual-builder#removeTag" 
+                data-tag="${tag}" 
+                class="ml-1 -mr-1 p-0.5 rounded-full hover:bg-orange-300 dark:hover:bg-orange-800 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
       </span>
     `).join('')
   }

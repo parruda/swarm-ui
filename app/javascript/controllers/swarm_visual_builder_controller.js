@@ -78,6 +78,13 @@ export default class extends Controller {
     
     // Setup drag and drop
     this.setupDragAndDrop()
+    
+    // Click on viewport to deselect
+    this.viewport.addEventListener('click', (e) => {
+      if (e.target === this.viewport || e.target === this.svg) {
+        this.deselectAll()
+      }
+    })
   }
   
   setupDragAndDrop() {
@@ -86,7 +93,7 @@ export default class extends Controller {
       e.dataTransfer.dropEffect = 'copy'
     })
     
-    this.container.addEventListener('drop', async (e) => {
+    this.viewport.addEventListener('drop', async (e) => {
       e.preventDefault()
       
       const templateName = e.dataTransfer.getData('templateName')
@@ -94,12 +101,26 @@ export default class extends Controller {
       
       if (!templateName) return
       
-      // Calculate position
-      const rect = this.container.getBoundingClientRect()
-      const x = (e.clientX - rect.left + this.container.scrollLeft) / this.zoomLevel
-      const y = (e.clientY - rect.top + this.container.scrollTop) / this.zoomLevel
+      // Get mouse position relative to the page
+      const mouseX = e.pageX
+      const mouseY = e.pageY
+      
+      // Get the viewport's position on the page
+      const viewportRect = this.viewport.getBoundingClientRect()
+      const viewportPageX = viewportRect.left + window.pageXOffset
+      const viewportPageY = viewportRect.top + window.pageYOffset
+      
+      // Calculate position within viewport, accounting for zoom
+      const x = (mouseX - viewportPageX) / this.zoomLevel
+      const y = (mouseY - viewportPageY) / this.zoomLevel
       
       await this.addNodeFromTemplate(templateName, templateConfig, { x, y })
+    })
+    
+    // Also add dragover to viewport
+    this.viewport.addEventListener('dragover', (e) => {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
     })
   }
   
@@ -122,14 +143,16 @@ export default class extends Controller {
       counter++
     }
     
-    // Create node data
+    // Create node data - center on drop position
     const nodeId = this.nextNodeId++
+    const nodeWidth = 200
+    const nodeHeight = 120
     const nodeData = {
       id: nodeId,
       key: nodeKey,
       label: nodeKey,
-      x: position.x - 100,
-      y: position.y - 60,
+      x: position.x - nodeWidth / 2,
+      y: position.y - nodeHeight / 2,
       description: config.description || name,
       model: config.model || "sonnet",
       provider: config.provider || "claude",
@@ -137,7 +160,12 @@ export default class extends Controller {
       allowed_tools: config.allowed_tools || []
     }
     
-    // Create node element
+    // Set first node as main BEFORE creating element
+    if (this.nodes.size === 0) {
+      this.mainNodeId = nodeId
+    }
+    
+    // Create node element (will use mainNodeId to determine visual state)
     const nodeElement = this.createNodeElement(nodeData)
     this.viewport.appendChild(nodeElement)
     
@@ -147,11 +175,6 @@ export default class extends Controller {
       element: nodeElement
     })
     this.nodeKeyMap.set(nodeId, nodeKey)
-    
-    // Set first node as main
-    if (this.nodes.size === 1) {
-      this.mainNodeId = nodeId
-    }
     
     this.updateYamlPreview()
   }
@@ -176,8 +199,8 @@ export default class extends Controller {
           ${nodeData.provider !== 'claude' ? `<span class="node-tag provider-tag">${nodeData.provider}</span>` : ''}
         </div>
       </div>
-      <div class="socket input" data-socket="in" data-node-id="${nodeData.id}" title="Click to start connection"></div>
-      <div class="socket output" data-socket="out" data-node-id="${nodeData.id}" title="Click to start connection"></div>
+      ${this.mainNodeId !== nodeData.id ? `<div class="socket input" data-socket="in" data-node-id="${nodeData.id}" title="Drag to connect from another instance"></div>` : ''}
+      <div class="socket output" data-socket="out" data-node-id="${nodeData.id}" title="Drag to connect to another instance"></div>
     `
     
     // Add event handlers
@@ -185,11 +208,15 @@ export default class extends Controller {
     node.addEventListener('click', () => this.selectNode(nodeData.id))
     
     // Socket handlers for drag connections
-    const inputSocket = node.querySelector('.socket.input')
     const outputSocket = node.querySelector('.socket.output')
+    if (outputSocket) {
+      this.setupSocketDrag(outputSocket, nodeData.id, 'output')
+    }
     
-    this.setupSocketDrag(outputSocket, nodeData.id, 'output')
-    this.setupSocketDrag(inputSocket, nodeData.id, 'input')
+    const inputSocket = node.querySelector('.socket.input')
+    if (inputSocket) {
+      this.setupSocketDrag(inputSocket, nodeData.id, 'input')
+    }
     
     return node
   }
@@ -205,8 +232,8 @@ export default class extends Controller {
       this.pendingConnection = { 
         nodeId, 
         socketType,
-        startX: rect.left - containerRect.left + rect.width/2 + this.container.scrollLeft,
-        startY: rect.top - containerRect.top + rect.height/2 + this.container.scrollTop
+        startX: rect.left - containerRect.left + rect.width/2,
+        startY: rect.top - containerRect.top + rect.height/2
       }
       
       // Add connecting class to socket
@@ -233,8 +260,8 @@ export default class extends Controller {
   handleConnectionDragMove(e) {
     if (this.pendingConnection) {
       const rect = this.viewport.getBoundingClientRect()
-      const x = e.clientX - rect.left + this.container.scrollLeft
-      const y = e.clientY - rect.top + this.container.scrollTop
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
       
       const dragPath = this.svg.querySelector('#dragPath')
       const d = `M ${this.pendingConnection.startX} ${this.pendingConnection.startY} L ${x} ${y}`
@@ -263,9 +290,10 @@ export default class extends Controller {
       const { nodeId: fromId, socketType: fromType } = this.pendingConnection
       
       if (fromId !== targetNodeId) {
-        if (fromType === 'output') {
+        // Check if trying to connect to main node (which has no input)
+        if (fromType === 'output' && targetNodeId !== this.mainNodeId) {
           this.createConnection(fromId, targetNodeId)
-        } else {
+        } else if (fromType === 'input' && fromId !== this.mainNodeId) {
           this.createConnection(targetNodeId, fromId)
         }
       }
@@ -297,6 +325,10 @@ export default class extends Controller {
     }
   }
   
+  hasIncomingConnections(nodeId) {
+    return this.connections.some(c => c.to === nodeId)
+  }
+  
   makeDraggable(element, nodeData) {
     let isDragging = false
     let dragMouseX = 0
@@ -309,10 +341,13 @@ export default class extends Controller {
       e.preventDefault()
       isDragging = true
       
-      // Get mouse position relative to the node
-      const rect = element.getBoundingClientRect()
-      dragMouseX = e.clientX - rect.left
-      dragMouseY = e.clientY - rect.top
+      // Store the initial mouse position in client coordinates
+      const startMouseX = e.clientX
+      const startMouseY = e.clientY
+      
+      // Store the initial node position
+      const startNodeX = nodeData.x
+      const startNodeY = nodeData.y
       
       element.style.zIndex = 1000
       element.style.cursor = 'grabbing'
@@ -321,13 +356,13 @@ export default class extends Controller {
       const handleMouseMove = (e) => {
         if (!isDragging) return
         
-        // Calculate new position based on viewport
-        const containerRect = this.container.getBoundingClientRect()
-        const newX = (e.clientX - containerRect.left + this.container.scrollLeft - dragMouseX) / this.zoomLevel
-        const newY = (e.clientY - containerRect.top + this.container.scrollTop - dragMouseY) / this.zoomLevel
+        // Calculate the delta from the start position
+        const deltaX = (e.clientX - startMouseX) / this.zoomLevel
+        const deltaY = (e.clientY - startMouseY) / this.zoomLevel
         
-        nodeData.x = newX
-        nodeData.y = newY
+        // Apply the delta to the original position
+        nodeData.x = startNodeX + deltaX
+        nodeData.y = startNodeY + deltaY
         
         element.style.left = nodeData.x + 'px'
         element.style.top = nodeData.y + 'px'
@@ -357,6 +392,11 @@ export default class extends Controller {
       this.connections.push({ from: fromId, to: toId })
       this.updateConnections()
       this.updateYamlPreview()
+      
+      // Update properties panel if the target node is selected
+      if (this.selectedNode && this.selectedNode.data.id === toId) {
+        this.showNodeProperties(this.selectedNode.data)
+      }
     }
   }
   
@@ -373,15 +413,18 @@ export default class extends Controller {
         const fromSocket = fromNode.element.querySelector('.socket.output')
         const toSocket = toNode.element.querySelector('.socket.input')
         
+        // Skip if sockets don't exist (e.g., main node has no input)
+        if (!fromSocket || !toSocket) return
+        
         const fromRect = fromSocket.getBoundingClientRect()
         const toRect = toSocket.getBoundingClientRect()
         const viewportRect = this.viewport.getBoundingClientRect()
         
-        // Calculate actual positions including scroll offset
-        const x1 = fromRect.left - viewportRect.left + fromRect.width/2 + this.container.scrollLeft
-        const y1 = fromRect.top - viewportRect.top + fromRect.height/2 + this.container.scrollTop
-        const x2 = toRect.left - viewportRect.left + toRect.width/2 + this.container.scrollLeft
-        const y2 = toRect.top - viewportRect.top + toRect.height/2 + this.container.scrollTop
+        // Calculate actual positions relative to viewport
+        const x1 = fromRect.left - viewportRect.left + fromRect.width/2
+        const y1 = fromRect.top - viewportRect.top + fromRect.height/2
+        const x2 = toRect.left - viewportRect.left + toRect.width/2
+        const y2 = toRect.top - viewportRect.top + toRect.height/2
         
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
         path.dataset.connectionIndex = index
@@ -422,6 +465,25 @@ export default class extends Controller {
       this.selectedConnection = index
       this.selectedNode = null
     }
+  }
+  
+  deselectAll() {
+    // Deselect connections
+    this.selectedConnection = null
+    this.svg.querySelectorAll('.connection').forEach(path => {
+      path.setAttribute('stroke', '#f97316')
+      path.setAttribute('stroke-width', '2')
+    })
+    
+    // Deselect nodes
+    this.selectedNode = null
+    this.nodes.forEach((node) => {
+      node.element.classList.remove('selected')
+      node.element.style.borderColor = ''
+    })
+    
+    // Clear properties panel
+    this.propertiesPanelTarget.innerHTML = '<div class="p-4 text-center text-gray-500">Select an instance to edit properties</div>'
   }
   
   selectNode(nodeId) {
@@ -496,10 +558,12 @@ export default class extends Controller {
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
               <input type="checkbox" 
                      ${this.mainNodeId === nodeData.id ? 'checked' : ''}
+                     ${this.hasIncomingConnections(nodeData.id) ? 'disabled' : ''}
                      data-action="change->swarm-visual-builder#setMainNode"
                      data-node-id="${nodeData.id}"
-                     class="mr-2">
+                     class="mr-2 disabled:opacity-50 disabled:cursor-not-allowed">
               Main Instance
+              ${this.hasIncomingConnections(nodeData.id) ? '<span class="text-xs text-gray-500 dark:text-gray-400 block ml-6">Cannot be main (has incoming connections)</span>' : ''}
             </label>
           </div>
           
@@ -543,25 +607,33 @@ export default class extends Controller {
   setMainNode(event) {
     const nodeId = parseInt(event.target.dataset.nodeId)
     if (event.target.checked) {
-      // Remove main indicator from previous main node
-      if (this.mainNodeId) {
-        const prevMainNode = this.nodes.get(this.mainNodeId)
-        if (prevMainNode) {
-          const mainBadge = prevMainNode.element.querySelector('.absolute.-top-2.-right-2')
-          if (mainBadge) mainBadge.remove()
-        }
-      }
+      const prevMainNodeId = this.mainNodeId
       
       // Set new main node
       this.mainNodeId = nodeId
       
-      // Add main indicator to new main node
+      // Rebuild previous main node to add back input socket
+      if (prevMainNodeId && this.nodes.has(prevMainNodeId)) {
+        const prevNode = this.nodes.get(prevMainNodeId)
+        const prevElement = prevNode.element
+        const newPrevElement = this.createNodeElement(prevNode.data)
+        prevElement.parentNode.replaceChild(newPrevElement, prevElement)
+        prevNode.element = newPrevElement
+      }
+      
+      // Rebuild new main node to remove input socket
       const newMainNode = this.nodes.get(nodeId)
       if (newMainNode) {
-        newMainNode.element.insertAdjacentHTML('afterbegin', 
-          '<span class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded z-10">Main</span>'
-        )
+        const oldElement = newMainNode.element
+        const newElement = this.createNodeElement(newMainNode.data)
+        oldElement.parentNode.replaceChild(newElement, oldElement)
+        newMainNode.element = newElement
+        
+        // Remove any connections TO the new main node
+        this.connections = this.connections.filter(c => c.to !== nodeId)
       }
+      
+      this.updateConnections()
     }
     this.updateYamlPreview()
   }
@@ -763,7 +835,7 @@ export default class extends Controller {
   
   updateZoom() {
     this.viewport.style.transform = `scale(${this.zoomLevel})`
-    this.viewport.style.transformOrigin = 'top left'
+    this.viewport.style.transformOrigin = '0 0'
     if (this.hasZoomLevelTarget) {
       this.zoomLevelTarget.textContent = `${Math.round(this.zoomLevel * 100)}%`
     }
@@ -811,16 +883,24 @@ export default class extends Controller {
     document.addEventListener('keydown', (e) => {
       if (e.target.matches('input, textarea, select')) return
       
-      if (e.key === 'Delete' && this.selectedNode) {
+      // Delete or Backspace for selected node
+      if ((e.key === 'Delete' || e.key === 'Backspace') && this.selectedNode) {
+        e.preventDefault()
         this.deleteNode({ currentTarget: { dataset: { nodeId: this.selectedNode.data.id } } })
       }
-      
-      if ((e.key === 'Delete' || e.key === 'Backspace') && this.selectedConnection !== null) {
+      // Delete or Backspace for selected connection
+      else if ((e.key === 'Delete' || e.key === 'Backspace') && this.selectedConnection !== null) {
         e.preventDefault()
+        const deletedConnection = this.connections[this.selectedConnection]
         this.connections.splice(this.selectedConnection, 1)
         this.selectedConnection = null
         this.updateConnections()
         this.updateYamlPreview()
+        
+        // Update properties panel if a node involved in the connection is selected
+        if (this.selectedNode && (this.selectedNode.data.id === deletedConnection.to || this.selectedNode.data.id === deletedConnection.from)) {
+          this.showNodeProperties(this.selectedNode.data)
+        }
       }
       
       // Cancel connection on Escape

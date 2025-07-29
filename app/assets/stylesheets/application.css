@@ -252,22 +252,38 @@ iframe::-webkit-scrollbar {
   position: absolute;
   cursor: crosshair;
   transition: all 0.2s ease;
-}
-
-.socket.input {
-  left: -8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: #9ca3af;
+  background-color: #f97316;
   border: 2px solid #ffffff;
+  z-index: 10;
 }
 
-.socket.output {
+.socket.socket-top {
+  left: 50%;
+  top: -8px;
+  transform: translateX(-50%);
+}
+
+.socket.socket-right {
   right: -8px;
   top: 50%;
   transform: translateY(-50%);
-  background-color: #f97316;
-  border: 2px solid #ffffff;
+}
+
+.socket.socket-bottom {
+  left: 50%;
+  bottom: -8px;
+  transform: translateX(-50%);
+}
+
+.socket.socket-left {
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Socket states */
+.socket.used-as-destination {
+  background-color: #9ca3af;
 }
 
 .dark .socket {
@@ -275,6 +291,16 @@ iframe::-webkit-scrollbar {
 }
 
 .socket:hover {
+  transform: scale(1.2);
+}
+
+.socket.socket-top:hover,
+.socket.socket-bottom:hover {
+  transform: translateX(-50%) scale(1.2);
+}
+
+.socket.socket-left:hover,
+.socket.socket-right:hover {
   transform: translateY(-50%) scale(1.2);
 }
 

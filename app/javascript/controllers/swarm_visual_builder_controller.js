@@ -201,8 +201,10 @@ export default class extends Controller {
           ${nodeData.provider !== 'claude' ? `<span class="node-tag provider-tag">${nodeData.provider}</span>` : ''}
         </div>
       </div>
-      ${this.mainNodeId !== nodeData.id ? `<div class="socket input" data-socket="in" data-node-id="${nodeData.id}" title="Drag to connect from another instance"></div>` : ''}
-      <div class="socket output" data-socket="out" data-node-id="${nodeData.id}" title="Drag to connect to another instance"></div>
+      <div class="socket socket-top" data-socket="top" data-node-id="${nodeData.id}" data-socket-side="top" title="Connect from/to top"></div>
+      <div class="socket socket-right" data-socket="right" data-node-id="${nodeData.id}" data-socket-side="right" title="Connect from/to right"></div>
+      <div class="socket socket-bottom" data-socket="bottom" data-node-id="${nodeData.id}" data-socket-side="bottom" title="Connect from/to bottom"></div>
+      <div class="socket socket-left" data-socket="left" data-node-id="${nodeData.id}" data-socket-side="left" title="Connect from/to left"></div>
     `
     
     // Add event handlers
@@ -210,20 +212,16 @@ export default class extends Controller {
     node.addEventListener('click', () => this.selectNode(nodeData.id))
     
     // Socket handlers for drag connections
-    const outputSocket = node.querySelector('.socket.output')
-    if (outputSocket) {
-      this.setupSocketDrag(outputSocket, nodeData.id, 'output')
-    }
-    
-    const inputSocket = node.querySelector('.socket.input')
-    if (inputSocket) {
-      this.setupSocketDrag(inputSocket, nodeData.id, 'input')
-    }
+    const sockets = node.querySelectorAll('.socket')
+    sockets.forEach(socket => {
+      const side = socket.dataset.socketSide
+      this.setupSocketDrag(socket, nodeData.id, side)
+    })
     
     return node
   }
   
-  setupSocketDrag(socket, nodeId, socketType) {
+  setupSocketDrag(socket, nodeId, socketSide) {
     socket.addEventListener('mousedown', (e) => {
       e.preventDefault()
       e.stopPropagation()
@@ -233,7 +231,7 @@ export default class extends Controller {
       
       this.pendingConnection = { 
         nodeId, 
-        socketType,
+        socketSide,
         startX: rect.left - containerRect.left + rect.width/2,
         startY: rect.top - containerRect.top + rect.height/2
       }
@@ -289,14 +287,35 @@ export default class extends Controller {
     
     if (targetNode) {
       const targetNodeId = parseInt(targetNode.dataset.nodeId)
-      const { nodeId: fromId, socketType: fromType } = this.pendingConnection
+      const { nodeId: fromId, socketSide: fromSide } = this.pendingConnection
       
       if (fromId !== targetNodeId) {
-        // Check if trying to connect to main node (which has no input)
-        if (fromType === 'output' && targetNodeId !== this.mainNodeId) {
-          this.createConnection(fromId, targetNodeId)
-        } else if (fromType === 'input' && fromId !== this.mainNodeId) {
-          this.createConnection(targetNodeId, fromId)
+        // Check if trying to connect to main node (which only has right and bottom sockets)
+        if (targetNodeId === this.mainNodeId) {
+          // Main node can only receive connections - not allowed
+          return
+        }
+        
+        // Find the closest socket on the target node
+        const targetSockets = targetNode.querySelectorAll('.socket:not(.used-as-destination)')
+        let closestSocket = null
+        let minDistance = Infinity
+        
+        targetSockets.forEach(socket => {
+          const rect = socket.getBoundingClientRect()
+          const socketX = rect.left + rect.width / 2
+          const socketY = rect.top + rect.height / 2
+          const distance = Math.sqrt(Math.pow(e.clientX - socketX, 2) + Math.pow(e.clientY - socketY, 2))
+          
+          if (distance < minDistance) {
+            minDistance = distance
+            closestSocket = socket
+          }
+        })
+        
+        if (closestSocket) {
+          const targetSide = closestSocket.dataset.socketSide
+          this.createConnection(fromId, fromSide, targetNodeId, targetSide)
         }
       }
     }
@@ -329,6 +348,24 @@ export default class extends Controller {
   
   hasIncomingConnections(nodeId) {
     return this.connections.some(c => c.to === nodeId)
+  }
+  
+  updateSocketStates() {
+    // Reset all sockets to orange
+    this.viewport.querySelectorAll('.socket').forEach(socket => {
+      socket.classList.remove('used-as-destination')
+    })
+    
+    // Mark destination sockets as gray
+    this.connections.forEach(connection => {
+      const toNode = this.nodes.get(connection.to)
+      if (toNode) {
+        const socket = toNode.element.querySelector(`.socket[data-socket-side="${connection.toSide}"]`)
+        if (socket) {
+          socket.classList.add('used-as-destination')
+        }
+      }
+    })
   }
   
   makeDraggable(element, nodeData) {
@@ -387,13 +424,23 @@ export default class extends Controller {
   }
   
   
-  createConnection(fromId, toId) {
+  createConnection(fromId, fromSide, toId, toSide) {
     // Check if connection already exists
-    const exists = this.connections.some(c => c.from === fromId && c.to === toId)
+    const exists = this.connections.some(c => 
+      c.from === fromId && c.to === toId && c.fromSide === fromSide && c.toSide === toSide
+    )
     if (!exists) {
-      this.connections.push({ from: fromId, to: toId })
+      this.connections.push({ 
+        from: fromId, 
+        fromSide: fromSide,
+        to: toId,
+        toSide: toSide
+      })
       this.updateConnections()
       this.updateYamlPreview()
+      
+      // Mark the destination socket as used
+      this.updateSocketStates()
       
       // Update properties panel if the target node is selected
       if (this.selectedNode && this.selectedNode.data.id === toId) {
@@ -411,11 +458,11 @@ export default class extends Controller {
       const toNode = this.nodes.get(conn.to)
       
       if (fromNode && toNode) {
-        // Get socket positions relative to viewport
-        const fromSocket = fromNode.element.querySelector('.socket.output')
-        const toSocket = toNode.element.querySelector('.socket.input')
+        // Get socket positions based on the connection sides
+        const fromSocket = fromNode.element.querySelector(`.socket[data-socket-side="${conn.fromSide}"]`)
+        const toSocket = toNode.element.querySelector(`.socket[data-socket-side="${conn.toSide}"]`)
         
-        // Skip if sockets don't exist (e.g., main node has no input)
+        // Skip if sockets don't exist
         if (!fromSocket || !toSocket) return
         
         const fromRect = fromSocket.getBoundingClientRect()
@@ -430,8 +477,39 @@ export default class extends Controller {
         
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
         path.dataset.connectionIndex = index
-        const cx = (x1 + x2) / 2
-        const d = `M ${x1} ${y1} Q ${cx} ${y1}, ${cx} ${(y1+y2)/2} T ${x2} ${y2}`
+        
+        // Generate path based on socket sides for better curves
+        let d
+        const dx = x2 - x1
+        const dy = y2 - y1
+        const offset = 50 // Control point offset
+        
+        if (conn.fromSide === 'right' && conn.toSide === 'left') {
+          // Horizontal connection
+          const cx1 = x1 + Math.min(offset, Math.abs(dx) / 3)
+          const cx2 = x2 - Math.min(offset, Math.abs(dx) / 3)
+          d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`
+        } else if (conn.fromSide === 'left' && conn.toSide === 'right') {
+          // Reverse horizontal
+          const cx1 = x1 - Math.min(offset, Math.abs(dx) / 3)
+          const cx2 = x2 + Math.min(offset, Math.abs(dx) / 3)
+          d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`
+        } else if (conn.fromSide === 'bottom' && conn.toSide === 'top') {
+          // Vertical connection
+          const cy1 = y1 + Math.min(offset, Math.abs(dy) / 3)
+          const cy2 = y2 - Math.min(offset, Math.abs(dy) / 3)
+          d = `M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${y2}`
+        } else if (conn.fromSide === 'top' && conn.toSide === 'bottom') {
+          // Reverse vertical
+          const cy1 = y1 - Math.min(offset, Math.abs(dy) / 3)
+          const cy2 = y2 + Math.min(offset, Math.abs(dy) / 3)
+          d = `M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${y2}`
+        } else {
+          // Mixed connections - use adaptive bezier
+          const cx = (x1 + x2) / 2
+          const cy = (y1 + y2) / 2
+          d = `M ${x1} ${y1} Q ${cx} ${cy}, ${x2} ${y2}`
+        }
         
         path.setAttribute('d', d)
         path.setAttribute('stroke', '#f97316')
@@ -450,6 +528,9 @@ export default class extends Controller {
         connectionsGroup.appendChild(path)
       }
     })
+    
+    // Update socket colors after rendering connections
+    this.updateSocketStates()
   }
   
   selectConnection(index) {
@@ -631,7 +712,7 @@ export default class extends Controller {
         oldElement.parentNode.replaceChild(newElement, oldElement)
         newMainNode.element = newElement
         
-        // Remove any connections TO the new main node
+        // Remove any connections TO the new main node (since main can't receive)
         this.connections = this.connections.filter(c => c.to !== nodeId)
       }
       

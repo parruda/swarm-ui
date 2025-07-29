@@ -110,85 +110,24 @@ export default class extends Controller {
       
       if (!templateName) return
       
-      console.log('=== DROP EVENT DEBUG ===')
-      console.log('Node count before adding:', this.nodes.size)
-      console.log('Event target:', e.target)
-      console.log('Event currentTarget:', e.currentTarget)
-      console.log('clientX/Y:', e.clientX, e.clientY)
-      console.log('pageX/Y:', e.pageX, e.pageY)
-      
-      // Get various rect measurements
-      const containerRect = this.container.getBoundingClientRect()
-      const viewportRect = this.viewport.getBoundingClientRect()
-      
-      console.log('Container rect:', {
-        left: containerRect.left,
-        top: containerRect.top,
-        width: containerRect.width,
-        height: containerRect.height
-      })
-      
-      console.log('Viewport rect:', {
-        left: viewportRect.left,
-        top: viewportRect.top,
-        width: viewportRect.width,
-        height: viewportRect.height
-      })
-      
-      // Check container properties
-      console.log('Container scroll:', {
-        scrollLeft: this.container.scrollLeft,
-        scrollTop: this.container.scrollTop,
-        scrollWidth: this.container.scrollWidth,
-        scrollHeight: this.container.scrollHeight
-      })
-      
-      // Check viewport properties and styles
-      console.log('Viewport styles:', {
-        position: this.viewport.style.position,
-        width: this.viewport.style.width,
-        height: this.viewport.style.height,
-        transform: this.viewport.style.transform,
-        transformOrigin: this.viewport.style.transformOrigin
-      })
-      
-      console.log('Current zoom level:', this.zoomLevel)
-      
       // Get mouse position relative to the container
+      const containerRect = this.container.getBoundingClientRect()
       const mouseXInContainer = e.clientX - containerRect.left
       const mouseYInContainer = e.clientY - containerRect.top
-      
-      console.log('Mouse position in container:', {
-        x: mouseXInContainer,
-        y: mouseYInContainer
-      })
       
       // Add the scroll offset to get the actual position in the scrollable area
       const scrolledX = mouseXInContainer + this.container.scrollLeft
       const scrolledY = mouseYInContainer + this.container.scrollTop
       
-      console.log('Position with scroll:', {
-        x: scrolledX,
-        y: scrolledY
-      })
-      
       // Since the viewport has transform: scale(), we need to convert from visual pixels to logical pixels
       const x = scrolledX / this.zoomLevel
       const y = scrolledY / this.zoomLevel
-      
-      console.log('Final calculated position:', { x, y })
-      console.log('=== END DROP EVENT DEBUG ===\n')
       
       await this.addNodeFromTemplate(templateName, templateConfig, { x, y })
     })
   }
   
   async addNodeFromTemplate(name, config, position) {
-    console.log('=== ADD NODE DEBUG ===')
-    console.log('Adding node:', name)
-    console.log('Position received:', position)
-    console.log('Current nodes count:', this.nodes.size)
-    
     // Hide empty state
     if (this.hasEmptyStateTarget) {
       this.emptyStateTarget.classList.add('hidden')
@@ -222,13 +161,6 @@ export default class extends Controller {
       allowed_tools: config.allowed_tools || []
     }
     
-    console.log('Node data created:', {
-      id: nodeData.id,
-      key: nodeData.key,
-      x: nodeData.x,
-      y: nodeData.y
-    })
-    
     // Set first node as main BEFORE creating element
     if (this.nodes.size === 0) {
       this.mainNodeId = nodeId
@@ -244,30 +176,6 @@ export default class extends Controller {
       element: nodeElement
     })
     this.nodeKeyMap.set(nodeId, nodeKey)
-    
-    console.log('Node element created and positioned at:', {
-      left: nodeElement.style.left,
-      top: nodeElement.style.top,
-      actualLeft: nodeElement.offsetLeft,
-      actualTop: nodeElement.offsetTop,
-      offsetParent: nodeElement.offsetParent,
-      parentElement: nodeElement.parentElement,
-      viewportPosition: window.getComputedStyle(this.viewport).position
-    })
-    
-    // Additional debugging
-    const allNodes = Array.from(this.viewport.querySelectorAll('.swarm-node'))
-    console.log('All nodes in viewport:', allNodes.length)
-    allNodes.forEach((n, i) => {
-      console.log(`Node ${i}:`, {
-        left: n.style.left,
-        top: n.style.top,
-        offsetTop: n.offsetTop,
-        offsetLeft: n.offsetLeft
-      })
-    })
-    
-    console.log('=== END ADD NODE DEBUG ===\n')
     
     this.updateYamlPreview()
   }

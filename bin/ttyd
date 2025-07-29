@@ -111,9 +111,9 @@ else
         next if line.empty? || line.start_with?("#")
 
         key, value = line.split("=", 2)
-        if key && value
-          env[key.strip] = value.strip
-        end
+        next unless key && value
+
+        env[key.strip] = value.strip
       end
     end
   end

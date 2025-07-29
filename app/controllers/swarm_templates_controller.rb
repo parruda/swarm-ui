@@ -85,7 +85,7 @@ class SwarmTemplatesController < ApplicationController
       if params[:swarm_template][:instances_data].present?
         create_instances_from_data(params[:swarm_template][:instances_data])
       end
-      
+
       redirect_to(@swarm_template, notice: "Swarm template was successfully created.")
     else
       @instance_templates = InstanceTemplate.ordered
@@ -217,24 +217,22 @@ class SwarmTemplatesController < ApplicationController
   private
 
   def create_instances_from_data(instances_data_json)
-    begin
-      instances_data = JSON.parse(instances_data_json)
-      
-      instances_data.each do |instance_data|
-        # Check if an identical instance template already exists
-        existing_template = find_or_create_instance_template(instance_data)
-        
-        # Create the association with the swarm template
-        @swarm_template.swarm_template_instances.create!(
-          instance_template: existing_template,
-          instance_key: instance_data["key"]
-        )
-      end
-    rescue JSON::ParserError => e
-      Rails.logger.error("Failed to parse instances_data: #{e.message}")
+    instances_data = JSON.parse(instances_data_json)
+
+    instances_data.each do |instance_data|
+      # Check if an identical instance template already exists
+      existing_template = find_or_create_instance_template(instance_data)
+
+      # Create the association with the swarm template
+      @swarm_template.swarm_template_instances.create!(
+        instance_template: existing_template,
+        instance_key: instance_data["key"],
+      )
     end
+  rescue JSON::ParserError => e
+    Rails.logger.error("Failed to parse instances_data: #{e.message}")
   end
-  
+
   def find_or_create_instance_template(instance_data)
     # Build the config hash for the instance template
     config = {
@@ -243,37 +241,37 @@ class SwarmTemplatesController < ApplicationController
       "directory" => instance_data["directory"],
       "system_prompt" => instance_data["system_prompt"],
       "vibe" => instance_data["vibe"],
-      "allowed_tools" => instance_data["allowed_tools"]
+      "allowed_tools" => instance_data["allowed_tools"],
     }
-    
+
     # Add temperature only if present
     config["temperature"] = instance_data["temperature"] if instance_data["temperature"].present?
-    
+
     # For OpenAI, ensure vibe is true and allowed_tools includes all
     if config["provider"] == "openai"
       config["vibe"] = true
       config["allowed_tools"] = InstanceTemplate::AVAILABLE_TOOLS.dup
     end
-    
+
     # Try to find an existing instance template with the same configuration
     existing = InstanceTemplate.find_by(
       name: instance_data["name"],
-      description: instance_data["description"]
+      description: instance_data["description"],
     )
-    
+
     # Check if the existing template has identical configuration
     if existing && existing.config == config
       return existing
     end
-    
+
     # Create a new instance template
     instance_template = InstanceTemplate.new(
       name: instance_data["name"],
       description: instance_data["description"],
       config: config,
-      tags: [] # You can extend this to parse tags from the instance data if needed
+      tags: [], # You can extend this to parse tags from the instance data if needed
     )
-    
+
     # If the name already exists, make it unique
     if !instance_template.valid? && instance_template.errors[:name].present?
       counter = 1
@@ -284,7 +282,7 @@ class SwarmTemplatesController < ApplicationController
         instance_template.valid? # Re-validate to check uniqueness
       end
     end
-    
+
     instance_template.save!
     instance_template
   end

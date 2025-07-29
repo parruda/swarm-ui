@@ -141,6 +141,17 @@ The application uses standard Rails configuration. Key files:
 - `config/database.yml`: Database configuration
 - `config/application.rb`: Application settings
 - `config/environments/`: Environment-specific settings
+- `config/credentials.yml.enc` & `config/master.key`: Rails encrypted credentials
+
+### Credentials Setup
+
+Each installation generates its own unique credentials during setup. The `bin/setup` script automatically:
+- Creates a secure master key (`config/master.key`)
+- Generates encrypted credentials (`config/credentials.yml.enc`) with required keys:
+  - `secret_key_base`: For Rails session security
+  - `active_record_encryption`: Keys for database encryption
+
+**Important**: Never commit your `master.key` file. Both files are gitignored for security.
 
 ## Contributing
 

@@ -27,9 +27,11 @@ class SwarmTemplate < ApplicationRecord
   scope :public_swarms, -> { where(public: true) }
 
   # Class methods
-  def self.all_tags
-    # Get all unique tags from all swarm templates
-    pluck(:tags).flatten.compact.uniq.sort
+  class << self
+    def all_tags
+      # Get all unique tags from all swarm templates
+      pluck(:tags).flatten.compact.uniq.sort
+    end
   end
 
   # Instance methods

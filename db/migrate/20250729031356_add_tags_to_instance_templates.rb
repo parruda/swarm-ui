@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 class AddTagsToInstanceTemplates < ActiveRecord::Migration[8.0]
   def change
-    add_column :instance_templates, :tags, :json, default: []
-    
+    add_column(:instance_templates, :tags, :json, default: [])
+
     # Migrate existing categories to tags
     reversible do |dir|
       dir.up do

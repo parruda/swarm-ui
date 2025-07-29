@@ -9,3 +9,6 @@ AllCops:
   SuggestExtensions: false
   Exclude:
     - ".ruby-lsp/**/*"
+
+Metrics/ParameterLists:
+  Enabled: false

@@ -340,6 +340,49 @@ echo "Installing Ruby dependencies..."
 bundle install
 
 echo
+echo "Setting up credentials..."
+# Generate master key if it doesn't exist
+if [ ! -f "config/master.key" ]; then
+  echo "Generating new master key..."
+  ruby -e "require 'securerandom'; File.write('config/master.key', SecureRandom.hex(16))"
+  chmod 600 config/master.key
+  echo "Master key generated"
+fi
+
+# Generate credentials file if it doesn't exist
+if [ ! -f "config/credentials.yml.enc" ]; then
+  echo "Generating new credentials file..."
+  
+  # Create a temporary file with the credentials content
+  TEMP_FILE=$(mktemp)
+  cat > "$TEMP_FILE" << 'EOF'
+secret_key_base: PLACEHOLDER_SECRET
+
+active_record_encryption:
+  primary_key: PLACEHOLDER_PRIMARY
+  deterministic_key: PLACEHOLDER_DETERMINISTIC
+  key_derivation_salt: PLACEHOLDER_SALT
+EOF
+  
+  # Replace placeholders with actual values
+  ruby -e "
+    require 'securerandom'
+    content = File.read('$TEMP_FILE')
+    content.gsub!('PLACEHOLDER_SECRET', SecureRandom.hex(64))
+    content.gsub!('PLACEHOLDER_PRIMARY', SecureRandom.base64(32))
+    content.gsub!('PLACEHOLDER_DETERMINISTIC', SecureRandom.base64(32))
+    content.gsub!('PLACEHOLDER_SALT', SecureRandom.base64(32))
+    File.write('$TEMP_FILE', content)
+  "
+  
+  # Use rails credentials:edit to encrypt the file
+  EDITOR="cp $TEMP_FILE" bin/rails credentials:edit
+  rm -f "$TEMP_FILE"
+  
+  echo "Credentials file generated with required keys"
+fi
+
+echo
 echo "Setting up the database..."
 bin/rails db:create db:migrate
 

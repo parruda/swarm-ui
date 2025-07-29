@@ -105,10 +105,10 @@ class InstanceTemplatesController < ApplicationController
     # Process config to handle checkbox and special values
     if permitted[:config].present?
       # Convert vibe checkbox value to boolean
-      if permitted[:config][:vibe].present?
-        permitted[:config][:vibe] = permitted[:config][:vibe] == "1"
+      permitted[:config][:vibe] = if permitted[:config][:vibe].present?
+        permitted[:config][:vibe] == "1"
       else
-        permitted[:config][:vibe] = false
+        false
       end
 
       # Handle allowed_tools array (ensure it's an array)
@@ -119,12 +119,12 @@ class InstanceTemplatesController < ApplicationController
       end
 
       # Clear allowed_tools if vibe mode is on or provider is openai
-      if permitted[:config][:vibe] || permitted[:config][:provider] == 'openai'
+      if permitted[:config][:vibe] || permitted[:config][:provider] == "openai"
         permitted[:config][:allowed_tools] = []
       end
 
       # Ensure OpenAI instances always have vibe mode
-      if permitted[:config][:provider] == 'openai'
+      if permitted[:config][:provider] == "openai"
         permitted[:config][:vibe] = true
       end
     end

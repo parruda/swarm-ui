@@ -22,6 +22,48 @@ FileUtils.chdir(APP_ROOT) do
   #   FileUtils.cp "config/database.yml.sample", "config/database.yml"
   # end
 
+  puts "\n== Setting up credentials =="
+  # Generate master key if it doesn't exist
+  unless File.exist?("config/master.key")
+    puts "Generating new master key..."
+    require "securerandom"
+    master_key = SecureRandom.hex(16)
+    File.write("config/master.key", master_key)
+    FileUtils.chmod(0o600, "config/master.key")
+    puts "Master key generated"
+  end
+
+  # Generate credentials file if it doesn't exist
+  unless File.exist?("config/credentials.yml.enc")
+    puts "Generating new credentials file..."
+
+    # Create the credentials content with all required fields
+    require "tempfile"
+    require "yaml"
+    require "securerandom"
+
+    credentials_content = <<~YAML
+      secret_key_base: #{SecureRandom.hex(64)}
+
+      active_record_encryption:
+        primary_key: #{SecureRandom.base64(32)}
+        deterministic_key: #{SecureRandom.base64(32)}
+        key_derivation_salt: #{SecureRandom.base64(32)}
+    YAML
+
+    # Create a temporary file with the credentials content
+    Tempfile.create(["credentials", ".yml"]) do |tmp|
+      tmp.write(credentials_content)
+      tmp.flush
+
+      # Use rails credentials:edit to encrypt the file properly
+      ENV["EDITOR"] = "cp #{tmp.path}"
+      system! "bin/rails credentials:edit"
+    end
+
+    puts "Credentials file generated with required keys"
+  end
+
   puts "\n== Preparing database =="
 
   # Check if PostgreSQL user exists and create if needed

@@ -10,5 +10,3 @@ pin_all_from "app/javascript/controllers", under: "controllers"
 
 # Monaco Editor for diff viewing
 pin "monaco-editor", to: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/+esm"
-
-# Note: Rete.js is loaded via script tags in the view due to ES module compatibility issues

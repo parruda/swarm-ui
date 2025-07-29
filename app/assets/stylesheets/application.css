@@ -153,15 +153,20 @@ iframe::-webkit-scrollbar {
   height: calc(100% - 41px); /* Subtract tab bar height */
 }
 
-/* Rete.js Visual Builder Styles */
+/* Visual Builder Styles */
 .swarm-node {
   background: #ffffff;
   border: 2px solid #e5e7eb;
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-  transition: all 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
   position: relative;
+  cursor: grab;
+}
+
+.swarm-node:active {
+  cursor: grabbing;
 }
 
 .dark .swarm-node {
@@ -176,6 +181,11 @@ iframe::-webkit-scrollbar {
 
 .swarm-node:hover {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.swarm-node.connection-target {
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
 }
 
 .node-header {
@@ -268,6 +278,22 @@ iframe::-webkit-scrollbar {
   transform: translateY(-50%) scale(1.2);
 }
 
+/* Active socket when dragging */
+.socket.connecting {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: translateY(-50%) scale(1);
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4);
+  }
+  50% {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 0 0 5px rgba(249, 115, 22, 0);
+  }
+}
+
 /* Connection Styles */
 .connection {
   cursor: pointer;
@@ -279,25 +305,18 @@ iframe::-webkit-scrollbar {
   stroke-width: 3px;
 }
 
-/* Rete.js Container */
-.rete {
-  position: relative;
-  font-family: Arial, sans-serif;
+/* Visual Builder Container */
+.visual-builder-canvas {
   background-size: 50px 50px;
   background-image: 
     linear-gradient(90deg, transparent 49%, rgba(0, 0, 0, 0.05) 49%, rgba(0, 0, 0, 0.05) 51%, transparent 51%),
     linear-gradient(rgba(0, 0, 0, 0.05) 49%, transparent 49%, transparent 51%, rgba(0, 0, 0, 0.05) 51%);
 }
 
-.dark .rete {
+.dark .visual-builder-canvas {
   background-image: 
     linear-gradient(90deg, transparent 49%, rgba(255, 255, 255, 0.05) 49%, rgba(255, 255, 255, 0.05) 51%, transparent 51%),
     linear-gradient(rgba(255, 255, 255, 0.05) 49%, transparent 49%, transparent 51%, rgba(255, 255, 255, 0.05) 51%);
-}
-
-/* Override default Rete styles */
-.rete-background {
-  position: absolute !important;
 }
 
 .input-sockets,

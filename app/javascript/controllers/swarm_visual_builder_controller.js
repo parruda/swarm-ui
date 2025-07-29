@@ -1,16 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Wait for Rete.js to be loaded globally
-function waitForRete() {
-  return new Promise((resolve) => {
-    if (window.Rete && window.ReteAreaPlugin && window.ReteConnectionPlugin) {
-      resolve()
-    } else {
-      setTimeout(() => waitForRete().then(resolve), 50)
-    }
-  })
-}
-
 export default class extends Controller {
   static targets = [
     "canvas",
@@ -31,15 +20,11 @@ export default class extends Controller {
   ]
   
   async connect() {
-    console.log("Swarm visual builder connected (waiting for Rete.js)")
-    
-    // Wait for Rete.js to load
-    await waitForRete()
-    
-    console.log("Rete.js loaded, initializing...")
+    console.log("Swarm visual builder connected")
     
     this.tags = []
     this.selectedNode = null
+    this.selectedConnection = null
     this.mainNodeId = null
     this.nodeKeyMap = new Map()
     this.nodes = new Map()
@@ -57,7 +42,7 @@ export default class extends Controller {
     container.style.height = '100%'
     container.style.position = 'relative'
     container.style.overflow = 'auto'
-    container.className = 'rete bg-gray-100 dark:bg-gray-900'
+    container.className = 'visual-builder-canvas bg-gray-100 dark:bg-gray-900'
     this.canvasTarget.appendChild(container)
     
     // Create viewport
@@ -82,6 +67,7 @@ export default class extends Controller {
         </marker>
       </defs>
       <g id="connections"></g>
+      <path id="dragPath" stroke="#f97316" stroke-width="2" fill="none" stroke-dasharray="5,5" style="display:none;" />
     `
     this.viewport.appendChild(this.svg)
     
@@ -172,13 +158,14 @@ export default class extends Controller {
   
   createNodeElement(nodeData) {
     const node = document.createElement('div')
-    node.className = 'absolute bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-300 dark:border-gray-600 p-4 cursor-move select-none hover:shadow-xl transition-shadow swarm-node'
+    node.className = 'absolute bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-300 dark:border-gray-600 p-4 select-none hover:shadow-xl transition-shadow swarm-node'
     node.style.left = nodeData.x + 'px'
     node.style.top = nodeData.y + 'px'
     node.style.width = '200px'
     node.dataset.nodeId = nodeData.id
     
     node.innerHTML = `
+      ${this.mainNodeId === nodeData.id ? '<span class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded z-10">Main</span>' : ''}
       <div class="node-header">
         <h4 class="node-title">${nodeData.label}</h4>
       </div>
@@ -189,91 +176,179 @@ export default class extends Controller {
           ${nodeData.provider !== 'claude' ? `<span class="node-tag provider-tag">${nodeData.provider}</span>` : ''}
         </div>
       </div>
-      <div class="socket input" data-socket="in" data-node-id="${nodeData.id}"></div>
-      <div class="socket output" data-socket="out" data-node-id="${nodeData.id}"></div>
+      <div class="socket input" data-socket="in" data-node-id="${nodeData.id}" title="Click to start connection"></div>
+      <div class="socket output" data-socket="out" data-node-id="${nodeData.id}" title="Click to start connection"></div>
     `
     
     // Add event handlers
     this.makeDraggable(node, nodeData)
     node.addEventListener('click', () => this.selectNode(nodeData.id))
     
-    // Socket handlers
+    // Socket handlers for drag connections
     const inputSocket = node.querySelector('.socket.input')
     const outputSocket = node.querySelector('.socket.output')
     
-    inputSocket.addEventListener('click', (e) => {
-      e.stopPropagation()
-      this.handleSocketClick(nodeData.id, 'input')
-    })
-    
-    outputSocket.addEventListener('click', (e) => {
-      e.stopPropagation()
-      this.handleSocketClick(nodeData.id, 'output')
-    })
+    this.setupSocketDrag(outputSocket, nodeData.id, 'output')
+    this.setupSocketDrag(inputSocket, nodeData.id, 'input')
     
     return node
   }
   
-  makeDraggable(element, nodeData) {
-    let isDragging = false
-    let startX = 0
-    let startY = 0
-    let offsetX = 0
-    let offsetY = 0
-    
-    element.addEventListener('mousedown', (e) => {
-      if (e.target.classList.contains('socket')) return
+  setupSocketDrag(socket, nodeId, socketType) {
+    socket.addEventListener('mousedown', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
       
-      isDragging = true
-      startX = e.clientX
-      startY = e.clientY
-      offsetX = nodeData.x
-      offsetY = nodeData.y
-      element.style.zIndex = 1000
-    })
-    
-    document.addEventListener('mousemove', (e) => {
-      if (!isDragging) return
+      const rect = socket.getBoundingClientRect()
+      const containerRect = this.viewport.getBoundingClientRect()
       
-      const dx = (e.clientX - startX) / this.zoomLevel
-      const dy = (e.clientY - startY) / this.zoomLevel
+      this.pendingConnection = { 
+        nodeId, 
+        socketType,
+        startX: rect.left - containerRect.left + rect.width/2 + this.container.scrollLeft,
+        startY: rect.top - containerRect.top + rect.height/2 + this.container.scrollTop
+      }
       
-      nodeData.x = offsetX + dx
-      nodeData.y = offsetY + dy
+      // Add connecting class to socket
+      socket.classList.add('connecting')
       
-      element.style.left = nodeData.x + 'px'
-      element.style.top = nodeData.y + 'px'
+      // Show drag path
+      const dragPath = this.svg.querySelector('#dragPath')
+      dragPath.style.display = 'block'
       
-      this.updateConnections()
-    })
-    
-    document.addEventListener('mouseup', () => {
-      isDragging = false
-      element.style.zIndex = ''
+      this.viewport.classList.add('cursor-crosshair')
+      
+      // Add temporary mousemove and mouseup handlers
+      const handleMouseMove = (e) => this.handleConnectionDragMove(e)
+      const handleMouseUp = (e) => this.handleConnectionDragEnd(e)
+      
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp, { once: true })
+      
+      // Store handlers for cleanup
+      this.dragHandlers = { move: handleMouseMove, up: handleMouseUp }
     })
   }
   
-  handleSocketClick(nodeId, socketType) {
-    if (!this.pendingConnection) {
-      // Start new connection
-      this.pendingConnection = { nodeId, socketType }
-      this.viewport.classList.add('cursor-crosshair')
-    } else {
-      // Complete connection
-      const { nodeId: fromId, socketType: fromType } = this.pendingConnection
+  handleConnectionDragMove(e) {
+    if (this.pendingConnection) {
+      const rect = this.viewport.getBoundingClientRect()
+      const x = e.clientX - rect.left + this.container.scrollLeft
+      const y = e.clientY - rect.top + this.container.scrollTop
       
-      if (fromId !== nodeId && fromType !== socketType) {
-        if (fromType === 'output' && socketType === 'input') {
-          this.createConnection(fromId, nodeId)
-        } else if (fromType === 'input' && socketType === 'output') {
-          this.createConnection(nodeId, fromId)
-        }
-      }
+      const dragPath = this.svg.querySelector('#dragPath')
+      const d = `M ${this.pendingConnection.startX} ${this.pendingConnection.startY} L ${x} ${y}`
+      dragPath.setAttribute('d', d)
       
-      this.pendingConnection = null
-      this.viewport.classList.remove('cursor-crosshair')
+      // Highlight potential target
+      const targetElement = document.elementFromPoint(e.clientX, e.clientY)
+      this.highlightPotentialTarget(targetElement)
     }
   }
+  
+  handleConnectionDragEnd(e) {
+    if (!this.pendingConnection) return
+    
+    // Clean up handlers
+    if (this.dragHandlers) {
+      document.removeEventListener('mousemove', this.dragHandlers.move)
+    }
+    
+    // Find what we dropped on
+    const targetElement = document.elementFromPoint(e.clientX, e.clientY)
+    const targetNode = targetElement?.closest('.swarm-node')
+    
+    if (targetNode) {
+      const targetNodeId = parseInt(targetNode.dataset.nodeId)
+      const { nodeId: fromId, socketType: fromType } = this.pendingConnection
+      
+      if (fromId !== targetNodeId) {
+        if (fromType === 'output') {
+          this.createConnection(fromId, targetNodeId)
+        } else {
+          this.createConnection(targetNodeId, fromId)
+        }
+      }
+    }
+    
+    // Hide drag path and remove connecting class
+    const dragPath = this.svg.querySelector('#dragPath')
+    dragPath.style.display = 'none'
+    
+    // Remove connecting class from all sockets
+    this.viewport.querySelectorAll('.socket.connecting').forEach(s => s.classList.remove('connecting'))
+    
+    // Clear highlight
+    this.viewport.querySelectorAll('.swarm-node.connection-target').forEach(n => n.classList.remove('connection-target'))
+    
+    this.pendingConnection = null
+    this.viewport.classList.remove('cursor-crosshair')
+  }
+  
+  highlightPotentialTarget(element) {
+    // Clear previous highlights
+    this.viewport.querySelectorAll('.swarm-node.connection-target').forEach(n => n.classList.remove('connection-target'))
+    
+    if (!element || !this.pendingConnection) return
+    
+    const targetNode = element.closest('.swarm-node')
+    if (targetNode && parseInt(targetNode.dataset.nodeId) !== this.pendingConnection.nodeId) {
+      targetNode.classList.add('connection-target')
+    }
+  }
+  
+  makeDraggable(element, nodeData) {
+    let isDragging = false
+    let dragMouseX = 0
+    let dragMouseY = 0
+    
+    element.addEventListener('mousedown', (e) => {
+      // Don't drag if clicking on socket or connection-related elements
+      if (e.target.classList.contains('socket')) return
+      
+      e.preventDefault()
+      isDragging = true
+      
+      // Get mouse position relative to the node
+      const rect = element.getBoundingClientRect()
+      dragMouseX = e.clientX - rect.left
+      dragMouseY = e.clientY - rect.top
+      
+      element.style.zIndex = 1000
+      element.style.cursor = 'grabbing'
+      
+      // Create handlers specific to this drag
+      const handleMouseMove = (e) => {
+        if (!isDragging) return
+        
+        // Calculate new position based on viewport
+        const containerRect = this.container.getBoundingClientRect()
+        const newX = (e.clientX - containerRect.left + this.container.scrollLeft - dragMouseX) / this.zoomLevel
+        const newY = (e.clientY - containerRect.top + this.container.scrollTop - dragMouseY) / this.zoomLevel
+        
+        nodeData.x = newX
+        nodeData.y = newY
+        
+        element.style.left = nodeData.x + 'px'
+        element.style.top = nodeData.y + 'px'
+        
+        this.updateConnections()
+      }
+      
+      const handleMouseUp = () => {
+        isDragging = false
+        element.style.zIndex = ''
+        element.style.cursor = ''
+        
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+      
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+    })
+  }
+  
   
   createConnection(fromId, toId) {
     // Check if connection already exists
@@ -294,12 +369,22 @@ export default class extends Controller {
       const toNode = this.nodes.get(conn.to)
       
       if (fromNode && toNode) {
-        const x1 = fromNode.data.x + 200
-        const y1 = fromNode.data.y + 40
-        const x2 = toNode.data.x
-        const y2 = toNode.data.y + 40
+        // Get socket positions relative to viewport
+        const fromSocket = fromNode.element.querySelector('.socket.output')
+        const toSocket = toNode.element.querySelector('.socket.input')
+        
+        const fromRect = fromSocket.getBoundingClientRect()
+        const toRect = toSocket.getBoundingClientRect()
+        const viewportRect = this.viewport.getBoundingClientRect()
+        
+        // Calculate actual positions including scroll offset
+        const x1 = fromRect.left - viewportRect.left + fromRect.width/2 + this.container.scrollLeft
+        const y1 = fromRect.top - viewportRect.top + fromRect.height/2 + this.container.scrollTop
+        const x2 = toRect.left - viewportRect.left + toRect.width/2 + this.container.scrollLeft
+        const y2 = toRect.top - viewportRect.top + toRect.height/2 + this.container.scrollTop
         
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
+        path.dataset.connectionIndex = index
         const cx = (x1 + x2) / 2
         const d = `M ${x1} ${y1} Q ${cx} ${y1}, ${cx} ${(y1+y2)/2} T ${x2} ${y2}`
         
@@ -310,13 +395,11 @@ export default class extends Controller {
         path.setAttribute('marker-end', 'url(#arrow)')
         path.style.pointerEvents = 'stroke'
         path.style.cursor = 'pointer'
+        path.classList.add('connection')
         
-        path.addEventListener('click', () => {
-          if (confirm('Remove this connection?')) {
-            this.connections.splice(index, 1)
-            this.updateConnections()
-            this.updateYamlPreview()
-          }
+        path.addEventListener('click', (e) => {
+          e.stopPropagation()
+          this.selectConnection(index)
         })
         
         connectionsGroup.appendChild(path)
@@ -324,7 +407,31 @@ export default class extends Controller {
     })
   }
   
+  selectConnection(index) {
+    // Clear previous selection
+    this.svg.querySelectorAll('.connection').forEach(path => {
+      path.setAttribute('stroke', '#f97316')
+      path.setAttribute('stroke-width', '2')
+    })
+    
+    // Select new connection
+    const path = this.svg.querySelector(`[data-connection-index="${index}"]`)
+    if (path) {
+      path.setAttribute('stroke', '#ea580c')
+      path.setAttribute('stroke-width', '3')
+      this.selectedConnection = index
+      this.selectedNode = null
+    }
+  }
+  
   selectNode(nodeId) {
+    // Clear connection selection
+    this.selectedConnection = null
+    this.svg.querySelectorAll('.connection').forEach(path => {
+      path.setAttribute('stroke', '#f97316')
+      path.setAttribute('stroke-width', '2')
+    })
+    
     // Update visual selection
     this.nodes.forEach((node, id) => {
       if (id === nodeId) {
@@ -436,7 +543,25 @@ export default class extends Controller {
   setMainNode(event) {
     const nodeId = parseInt(event.target.dataset.nodeId)
     if (event.target.checked) {
+      // Remove main indicator from previous main node
+      if (this.mainNodeId) {
+        const prevMainNode = this.nodes.get(this.mainNodeId)
+        if (prevMainNode) {
+          const mainBadge = prevMainNode.element.querySelector('.absolute.-top-2.-right-2')
+          if (mainBadge) mainBadge.remove()
+        }
+      }
+      
+      // Set new main node
       this.mainNodeId = nodeId
+      
+      // Add main indicator to new main node
+      const newMainNode = this.nodes.get(nodeId)
+      if (newMainNode) {
+        newMainNode.element.insertAdjacentHTML('afterbegin', 
+          '<span class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded z-10">Main</span>'
+        )
+      }
     }
     this.updateYamlPreview()
   }
@@ -688,6 +813,24 @@ export default class extends Controller {
       
       if (e.key === 'Delete' && this.selectedNode) {
         this.deleteNode({ currentTarget: { dataset: { nodeId: this.selectedNode.data.id } } })
+      }
+      
+      if ((e.key === 'Delete' || e.key === 'Backspace') && this.selectedConnection !== null) {
+        e.preventDefault()
+        this.connections.splice(this.selectedConnection, 1)
+        this.selectedConnection = null
+        this.updateConnections()
+        this.updateYamlPreview()
+      }
+      
+      // Cancel connection on Escape
+      if (e.key === 'Escape' && this.pendingConnection) {
+        const dragPath = this.svg.querySelector('#dragPath')
+        dragPath.style.display = 'none'
+        this.pendingConnection = null
+        this.viewport.classList.remove('cursor-crosshair')
+        // Remove connecting class from all sockets
+        this.viewport.querySelectorAll('.socket.connecting').forEach(s => s.classList.remove('connecting'))
       }
     })
   }

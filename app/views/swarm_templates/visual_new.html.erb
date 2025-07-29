@@ -1,9 +1,10 @@
 <% content_for :title, "Swarm Builder" %>
 
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900" data-controller="swarm-visual-builder">
+<% content_for :full_width do %>
+<div class="fixed inset-0 pt-24 flex flex-col bg-gray-50 dark:bg-gray-900" data-controller="swarm-visual-builder">
   <!-- Header -->
-  <div class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-    <div class="px-4 py-4">
+  <div class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+    <div class="px-4 py-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <%= link_to swarm_templates_path, class: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" do %>
@@ -38,7 +39,7 @@
       </div>
       
       <!-- Quick info bar -->
-      <div class="mt-4 flex items-center space-x-6 text-sm">
+      <div class="mt-3 flex items-center space-x-6 text-sm">
         <div class="flex items-center space-x-2">
           <input type="text"
                  id="swarm_template_name"
@@ -61,9 +62,9 @@
   </div>
 
   <!-- Main Layout -->
-  <div class="flex h-[calc(100vh-140px)]">
+  <div class="flex-1 flex min-h-0">
     <!-- Left Panel - Instance Library -->
-    <div class="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+    <div class="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex-shrink-0">
       <div class="p-4">
         <div class="mb-4">
           <input type="text"
@@ -110,7 +111,7 @@
     </div>
 
     <!-- Center - Visual Canvas -->
-    <div class="flex-1 relative">
+    <div class="flex-1 relative min-w-0">
       <div data-swarm-visual-builder-target="canvas" 
            class="absolute inset-0 bg-gray-100 dark:bg-gray-900 overflow-auto">
         <!-- Canvas content will be inserted here -->
@@ -162,7 +163,7 @@
     </div>
 
     <!-- Right Panel - Properties/YAML -->
-    <div class="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
+    <div class="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
       <!-- Tabs -->
       <div class="border-b border-gray-200 dark:border-gray-700">
         <nav class="flex">
@@ -218,3 +219,4 @@
     </symbol>
   </svg>
 </div>
+<% end %>

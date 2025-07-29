@@ -27,8 +27,12 @@
     <%= render 'shared/flash' %>
 
     <!-- Single column content -->
-    <main class="pt-24 container mx-auto px-4 py-6">
-      <%= yield %>
-    </main>
+    <% if content_for?(:full_width) %>
+      <%= yield :full_width %>
+    <% else %>
+      <main class="pt-24 container mx-auto px-4 py-6">
+        <%= yield %>
+      </main>
+    <% end %>
   </body>
 </html>

@@ -352,6 +352,27 @@ export default class extends Controller {
     return this.connections.some(c => c.to === nodeId)
   }
   
+  getNodeConnections(nodeId) {
+    // Get all connections where this node is either the source or destination
+    return this.connections.filter(c => c.from === nodeId || c.to === nodeId)
+  }
+  
+  clearNodeConnections(event) {
+    const nodeId = parseInt(event.currentTarget.dataset.nodeId)
+    
+    // Remove all connections involving this node
+    this.connections = this.connections.filter(c => c.from !== nodeId && c.to !== nodeId)
+    
+    // Update the visual connections
+    this.updateConnections()
+    this.updateYamlPreview()
+    
+    // Refresh the properties panel to show updated connection state
+    if (this.selectedNode && this.selectedNode.data.id === nodeId) {
+      this.showNodeProperties(this.selectedNode.data)
+    }
+  }
+  
   updateSocketStates() {
     // Reset all sockets to orange
     this.viewport.querySelectorAll('.socket').forEach(socket => {
@@ -724,6 +745,26 @@ export default class extends Controller {
               Main Instance
               ${this.hasIncomingConnections(nodeData.id) ? '<span class="text-xs text-gray-500 dark:text-gray-400 block ml-6">Cannot be main (has incoming connections)</span>' : ''}
             </label>
+          </div>
+          
+          <!-- Connections -->
+          <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Connections</h4>
+            ${this.getNodeConnections(nodeData.id).length > 0 ? `
+              <div class="space-y-2 mb-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  This instance has ${this.getNodeConnections(nodeData.id).length} connection(s)
+                </p>
+                <button type="button"
+                        data-action="click->swarm-visual-builder#clearNodeConnections"
+                        data-node-id="${nodeData.id}"
+                        class="w-full px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm transition-colors">
+                  Clear All Connections
+                </button>
+              </div>
+            ` : `
+              <p class="text-xs text-gray-500 dark:text-gray-400 italic">No connections</p>
+            `}
           </div>
           
           <!-- Delete Button -->

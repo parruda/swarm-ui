@@ -103,7 +103,27 @@
         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Customize the behavior of this AI instance</p>
       </div>
       
-      <div class="space-y-2" data-provider-field="allowed-tools" style="<%= instance_template.config['provider'] == 'openai' ? 'display: none;' : '' %>">
+      <!-- Vibe Mode -->
+      <div class="space-y-2" data-provider-field="vibe-mode">
+        <label class="flex items-start cursor-pointer <%= instance_template.config['provider'] == 'openai' ? 'cursor-default' : '' %>">
+          <input type="checkbox"
+                 name="instance_template[config][vibe]"
+                 value="1"
+                 <%= 'checked' if instance_template.config['vibe'] || instance_template.config['provider'] == 'openai' %>
+                 <%= 'disabled' if instance_template.config['provider'] == 'openai' %>
+                 data-action="change->instance-form#toggleVibeMode"
+                 data-instance-form-target="vibeCheckbox"
+                 class="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-0 focus:outline-none <%= instance_template.config['provider'] == 'openai' ? 'opacity-50 cursor-default' : 'cursor-pointer' %>">
+          <div class="ml-3">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Vibe Mode</span>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              <%= instance_template.config['provider'] == 'openai' ? 'OpenAI instances are always in vibe mode with access to all tools' : 'When enabled, this instance skips all permissions and has access to all available tools' %>
+            </p>
+          </div>
+        </label>
+      </div>
+      
+      <div class="space-y-2" data-provider-field="allowed-tools" style="<%= (instance_template.config['provider'] == 'openai' || instance_template.config['vibe']) ? 'display: none;' : '' %>">
         <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">
           Allowed Tools
         </label>

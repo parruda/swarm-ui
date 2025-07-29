@@ -244,6 +244,16 @@ iframe::-webkit-scrollbar {
   color: #f9a8d4;
 }
 
+.node-tag.vibe-tag {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.dark .node-tag.vibe-tag {
+  background-color: #14532d;
+  color: #86efac;
+}
+
 /* Socket Styles */
 .socket {
   width: 16px;

@@ -127,6 +127,40 @@ export default class extends Controller {
     })
   }
   
+  addBlankInstance() {
+    // Calculate center of visible viewport
+    const containerRect = this.container.getBoundingClientRect()
+    const centerX = (containerRect.width / 2 + this.container.scrollLeft) / this.zoomLevel
+    const centerY = (containerRect.height / 2 + this.container.scrollTop) / this.zoomLevel
+    
+    // Create a blank instance with minimal configuration
+    const blankConfig = {
+      description: "",
+      provider: "claude",
+      model: "",
+      directory: ".",
+      system_prompt: "",
+      allowed_tools: []
+    }
+    
+    this.addNodeFromTemplate("", blankConfig, { x: centerX, y: centerY })
+    
+    // Select the newly created node and focus on name field
+    setTimeout(() => {
+      const newNodeId = this.nextNodeId - 1
+      this.selectNode(newNodeId)
+      
+      // Focus on the instance name field
+      setTimeout(() => {
+        const nameInput = this.propertiesPanelTarget.querySelector('[data-property="label"]')
+        if (nameInput) {
+          nameInput.focus()
+          nameInput.select()
+        }
+      }, 50)
+    }, 100)
+  }
+  
   async addNodeFromTemplate(name, config, position) {
     // Hide empty state
     if (this.hasEmptyStateTarget) {
@@ -134,7 +168,7 @@ export default class extends Controller {
     }
     
     // Generate unique key
-    const baseKey = name.toLowerCase().replace(/[^a-z0-9]/g, '_')
+    const baseKey = name ? name.toLowerCase().replace(/[^a-z0-9]/g, '_') : `instance_${this.nextNodeId}`
     let nodeKey = baseKey
     let counter = 1
     
@@ -151,16 +185,18 @@ export default class extends Controller {
     const nodeData = {
       id: nodeId,
       key: nodeKey,
-      label: nodeKey,
+      label: name || "",  // Empty label for blank instances
       x: position.x - nodeWidth / 2,
       y: position.y - nodeHeight / 2,
-      description: config.description || name,
-      model: config.model || "sonnet",
+      description: config.description || "",
+      model: config.model || "",
       provider: config.provider || "claude",
       directory: config.directory || ".",
       system_prompt: config.system_prompt || "",
       temperature: config.temperature || null,
-      allowed_tools: config.allowed_tools || []
+      allowed_tools: config.allowed_tools || [],
+      vibe: config.vibe || (config.provider === 'openai') || false, // OpenAI is always vibe mode
+      saved_allowed_tools: config.allowed_tools || []  // Keep a copy for when vibe is toggled off
     }
     
     // Set first node as main BEFORE creating element
@@ -194,13 +230,14 @@ export default class extends Controller {
     node.innerHTML = `
       ${this.mainNodeId === nodeData.id ? '<span class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded z-10">Main</span>' : ''}
       <div class="node-header">
-        <h4 class="node-title">${nodeData.label}</h4>
+        <h4 class="node-title">${nodeData.label || 'instance_' + nodeData.id}</h4>
       </div>
       <div class="node-content">
-        <p class="node-description">${nodeData.description}</p>
+        <p class="node-description">${nodeData.description || 'No description'}</p>
         <div class="node-tags">
-          <span class="node-tag model-tag">${nodeData.model}</span>
+          ${nodeData.model ? `<span class="node-tag model-tag">${nodeData.model}</span>` : ''}
           ${nodeData.provider !== 'claude' ? `<span class="node-tag provider-tag">${nodeData.provider}</span>` : ''}
+          ${nodeData.vibe ? '<span class="node-tag vibe-tag">Vibe</span>' : ''}
         </div>
       </div>
       <div class="socket socket-top" data-socket="top" data-node-id="${nodeData.id}" data-socket-side="top" title="Connect from/to top"></div>
@@ -634,21 +671,31 @@ export default class extends Controller {
         <div class="space-y-4">
           <!-- Name/Label -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Instance Name</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Instance Name <span class="text-red-500">*</span></label>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">
+              Use only letters, numbers, and underscores (e.g., my_instance)
+            </p>
             <input type="text" 
                    value="${nodeData.label || ''}" 
                    data-property="label"
                    data-node-id="${nodeData.id}"
+                   placeholder="my_instance"
+                   pattern="^[a-zA-Z0-9_]+$"
                    class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm focus:outline-none">
+            <span class="text-xs text-red-500 dark:text-red-400 mt-1 hidden" data-validation-error>
+              Invalid name. Use only letters, numbers, and underscores.
+            </span>
           </div>
           
           <!-- Description -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description <span class="text-red-500">*</span></label>
             <input type="text" 
                    value="${nodeData.description || ''}" 
                    data-property="description"
                    data-node-id="${nodeData.id}"
+                   placeholder="Brief description of this instance's purpose"
+                   required
                    class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm focus:outline-none">
           </div>
           
@@ -710,8 +757,27 @@ export default class extends Controller {
                       class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm focus:outline-none">${nodeData.system_prompt || ''}</textarea>
           </div>
           
-          <!-- Allowed Tools (only for Claude) -->
-          <div id="tools-field" style="display: ${isClaude ? 'block' : 'none'};">
+          <!-- Vibe Mode -->
+          <div id="vibe-mode-field" style="display: ${isClaude || isOpenAI ? 'block' : 'none'};">
+            <label class="flex items-start ${isOpenAI ? 'cursor-default' : 'cursor-pointer'}">
+              <input type="checkbox" 
+                     ${nodeData.vibe || isOpenAI ? 'checked' : ''}
+                     ${isOpenAI ? 'disabled' : ''}
+                     data-property="vibe"
+                     data-node-id="${nodeData.id}"
+                     data-action="change->swarm-visual-builder#toggleVibeMode"
+                     class="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-0 focus:outline-none ${isOpenAI ? 'opacity-50 cursor-default' : 'cursor-pointer'}">
+              <div class="ml-3">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Vibe Mode</span>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  ${isOpenAI ? 'OpenAI instances are always in vibe mode with access to all tools' : 'When enabled, this instance skips all permissions and has access to all available tools'}
+                </p>
+              </div>
+            </label>
+          </div>
+          
+          <!-- Allowed Tools (only for Claude and not in vibe mode) -->
+          <div id="tools-field" style="display: ${isClaude && !nodeData.vibe ? 'block' : 'none'};">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Allowed Tools
               <span class="text-xs text-gray-500 dark:text-gray-400">(OpenAI has access to all tools)</span>
@@ -798,6 +864,23 @@ export default class extends Controller {
     
     const node = this.nodes.get(nodeId)
     if (node) {
+      // Validate instance name
+      if (property === 'label') {
+        const validationError = event.target.parentElement.querySelector('[data-validation-error]')
+        const isValid = /^[a-zA-Z0-9_]+$/.test(value)
+        
+        if (!isValid && value !== '') {
+          event.target.classList.add('ring-red-500', 'dark:ring-red-500')
+          event.target.classList.remove('ring-gray-300', 'dark:ring-gray-600')
+          if (validationError) validationError.classList.remove('hidden')
+          return // Don't update if invalid
+        } else {
+          event.target.classList.remove('ring-red-500', 'dark:ring-red-500')
+          event.target.classList.add('ring-gray-300', 'dark:ring-gray-600')
+          if (validationError) validationError.classList.add('hidden')
+        }
+      }
+      
       node.data[property] = value
       
       // Update visual elements
@@ -806,10 +889,12 @@ export default class extends Controller {
         if (badge) badge.textContent = value
       } else if (property === 'label') {
         const titleEl = node.element.querySelector('.node-title')
-        if (titleEl) titleEl.textContent = value
+        if (titleEl) titleEl.textContent = value || 'instance_' + nodeId
+        // Update the key in nodeKeyMap
+        this.nodeKeyMap.set(nodeId, value || 'instance_' + nodeId)
         // Update the header in properties panel too
         const header = this.propertiesPanelTarget.querySelector('h3')
-        if (header) header.textContent = `Instance: ${value}`
+        if (header) header.textContent = `Instance: ${value || 'instance_' + nodeId}`
       } else if (property === 'description') {
         const descEl = node.element.querySelector('.node-description')
         if (descEl) descEl.textContent = value || 'No description'
@@ -817,19 +902,31 @@ export default class extends Controller {
         // Toggle fields based on provider
         const temperatureField = this.propertiesPanelTarget.querySelector('#temperature-field')
         const toolsField = this.propertiesPanelTarget.querySelector('#tools-field')
+        const vibeModeField = this.propertiesPanelTarget.querySelector('#vibe-mode-field')
         
         if (value === 'openai') {
           if (temperatureField) temperatureField.style.display = 'block'
           if (toolsField) toolsField.style.display = 'none'
+          if (vibeModeField) vibeModeField.style.display = 'block'
           // Set all tools for OpenAI
           node.data.allowed_tools = [
             "Bash", "Edit", "Glob", "Grep", "LS", "MultiEdit", "NotebookEdit", 
             "NotebookRead", "Read", "Task", "TodoWrite", "WebFetch", "WebSearch", "Write"
           ]
-          // Clear temperature for Claude
+          // OpenAI is always vibe mode
+          node.data.vibe = true
+          // Update the checkbox to be checked and disabled
+          const vibeCheckbox = this.propertiesPanelTarget.querySelector('[data-property="vibe"]')
+          if (vibeCheckbox) {
+            vibeCheckbox.checked = true
+            vibeCheckbox.disabled = true
+            vibeCheckbox.classList.add('opacity-50', 'cursor-default')
+          }
         } else {
           if (temperatureField) temperatureField.style.display = 'none'
-          if (toolsField) toolsField.style.display = 'block'
+          if (vibeModeField) vibeModeField.style.display = 'block'
+          // Show tools field only if not in vibe mode
+          if (toolsField) toolsField.style.display = node.data.vibe ? 'none' : 'block'
           // Clear temperature for Claude
           node.data.temperature = null
           const tempInput = this.propertiesPanelTarget.querySelector('[data-property="temperature"]')
@@ -857,6 +954,59 @@ export default class extends Controller {
       })
       
       node.data.allowed_tools = checkedTools
+      // Save for when vibe mode is toggled off
+      node.data.saved_allowed_tools = checkedTools
+      this.updateYamlPreview()
+    }
+  }
+  
+  toggleVibeMode(event) {
+    const nodeId = parseInt(event.target.dataset.nodeId)
+    const node = this.nodes.get(nodeId)
+    const isChecked = event.target.checked
+    
+    if (node) {
+      node.data.vibe = isChecked
+      
+      const toolsField = this.propertiesPanelTarget.querySelector('#tools-field')
+      
+      if (isChecked) {
+        // Hide tools field when vibe is on
+        if (toolsField) toolsField.style.display = 'none'
+        // Save current tools selection before clearing
+        if (node.data.allowed_tools && node.data.allowed_tools.length > 0) {
+          node.data.saved_allowed_tools = [...node.data.allowed_tools]
+        }
+        // Clear allowed tools when in vibe mode
+        node.data.allowed_tools = []
+      } else {
+        // Show tools field when vibe is off
+        if (toolsField) toolsField.style.display = 'block'
+        // Restore previously selected tools
+        if (node.data.saved_allowed_tools && node.data.saved_allowed_tools.length > 0) {
+          node.data.allowed_tools = [...node.data.saved_allowed_tools]
+          // Update checkboxes
+          this.propertiesPanelTarget.querySelectorAll('[data-tool-checkbox]').forEach(checkbox => {
+            checkbox.checked = node.data.allowed_tools.includes(checkbox.value)
+          })
+        }
+      }
+      
+      // Update the vibe tag on the node
+      const tagsContainer = node.element.querySelector('.node-tags')
+      const vibeTag = node.element.querySelector('.vibe-tag')
+      
+      if (isChecked && !vibeTag) {
+        // Add vibe tag
+        const newTag = document.createElement('span')
+        newTag.className = 'node-tag vibe-tag'
+        newTag.textContent = 'Vibe'
+        tagsContainer.appendChild(newTag)
+      } else if (!isChecked && vibeTag) {
+        // Remove vibe tag
+        vibeTag.remove()
+      }
+      
       this.updateYamlPreview()
     }
   }
@@ -995,9 +1145,16 @@ export default class extends Controller {
       if (node.data.provider && node.data.provider !== 'claude') instanceConfig.provider = node.data.provider
       if (node.data.model && node.data.model !== 'sonnet') instanceConfig.model = node.data.model
       if (node.data.directory && node.data.directory !== '.') instanceConfig.directory = node.data.directory
-      if (node.data.system_prompt) instanceConfig.system_prompt = node.data.system_prompt
+      if (node.data.system_prompt) instanceConfig.prompt = node.data.system_prompt
       if (node.data.temperature !== null && node.data.temperature !== undefined) instanceConfig.temperature = node.data.temperature
-      if (node.data.allowed_tools?.length > 0) instanceConfig.allowed_tools = node.data.allowed_tools
+      
+      // Handle vibe mode for Claude instances
+      if (node.data.provider === 'claude' && node.data.vibe) {
+        instanceConfig.vibe = true
+        // Don't include allowed_tools when in vibe mode
+      } else if (node.data.allowed_tools?.length > 0) {
+        instanceConfig.allowed_tools = node.data.allowed_tools
+      }
       
       // Find connections from this node
       const nodeConnections = this.connections.filter(c => c.from === id)
@@ -1211,9 +1368,16 @@ export default class extends Controller {
       if (node.data.provider && node.data.provider !== 'claude') instanceConfig.provider = node.data.provider
       if (node.data.model && node.data.model !== 'sonnet') instanceConfig.model = node.data.model
       if (node.data.directory && node.data.directory !== '.') instanceConfig.directory = node.data.directory
-      if (node.data.system_prompt) instanceConfig.system_prompt = node.data.system_prompt
+      if (node.data.system_prompt) instanceConfig.prompt = node.data.system_prompt
       if (node.data.temperature !== null && node.data.temperature !== undefined) instanceConfig.temperature = node.data.temperature
-      if (node.data.allowed_tools?.length > 0) instanceConfig.allowed_tools = node.data.allowed_tools
+      
+      // Handle vibe mode for Claude instances
+      if (node.data.provider === 'claude' && node.data.vibe) {
+        instanceConfig.vibe = true
+        // Don't include allowed_tools when in vibe mode
+      } else if (node.data.allowed_tools?.length > 0) {
+        instanceConfig.allowed_tools = node.data.allowed_tools
+      }
       
       // Find connections from this node
       const nodeConnections = this.connections.filter(c => c.from === id)

@@ -1508,8 +1508,9 @@ export default class extends Controller {
           }
           
           // Create the node
-          const nodeId = this.nextNodeId
           this.addNodeFromTemplate(key, config, position)
+          // The node ID is nextNodeId - 1 after creation
+          const nodeId = this.nextNodeId - 1
           keyToNodeIdMap.set(key, nodeId)
         })
         
@@ -1524,7 +1525,9 @@ export default class extends Controller {
               if (toNodeId !== undefined) {
                 this.connections.push({
                   from: fromNodeId,
-                  to: toNodeId
+                  fromSide: 'right',
+                  to: toNodeId,
+                  toSide: 'left'
                 })
               }
             })

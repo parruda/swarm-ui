@@ -65,8 +65,11 @@ export default class extends Controller {
     this.svg.style.pointerEvents = 'none'
     this.svg.innerHTML = `
       <defs>
-        <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-          <path d="M0,0 L0,6 L9,3 z" fill="#f97316" />
+        <marker id="arrow" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M 0 0 L 12 6 L 0 12 L 3 6 Z" fill="#f97316" />
+        </marker>
+        <marker id="arrow-selected" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M 0 0 L 12 6 L 0 12 L 3 6 Z" fill="#ea580c" />
         </marker>
       </defs>
       <g id="connections"></g>
@@ -545,31 +548,44 @@ export default class extends Controller {
         const dy = y2 - y1
         const offset = 50 // Control point offset
         
+        // Adjust endpoint to account for arrow size
+        const arrowOffset = 8 // Pixels to stop before the target so arrow tip touches the dot
+        let adjustedX2 = x2
+        let adjustedY2 = y2
+        
         if (conn.fromSide === 'right' && conn.toSide === 'left') {
+          adjustedX2 = x2 - arrowOffset
           // Horizontal connection
           const cx1 = x1 + Math.min(offset, Math.abs(dx) / 3)
-          const cx2 = x2 - Math.min(offset, Math.abs(dx) / 3)
-          d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`
+          const cx2 = adjustedX2 - Math.min(offset, Math.abs(dx) / 3)
+          d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${adjustedY2}, ${adjustedX2} ${adjustedY2}`
         } else if (conn.fromSide === 'left' && conn.toSide === 'right') {
+          adjustedX2 = x2 + arrowOffset
           // Reverse horizontal
           const cx1 = x1 - Math.min(offset, Math.abs(dx) / 3)
-          const cx2 = x2 + Math.min(offset, Math.abs(dx) / 3)
-          d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`
+          const cx2 = adjustedX2 + Math.min(offset, Math.abs(dx) / 3)
+          d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${adjustedY2}, ${adjustedX2} ${adjustedY2}`
         } else if (conn.fromSide === 'bottom' && conn.toSide === 'top') {
+          adjustedY2 = y2 - arrowOffset
           // Vertical connection
           const cy1 = y1 + Math.min(offset, Math.abs(dy) / 3)
-          const cy2 = y2 - Math.min(offset, Math.abs(dy) / 3)
-          d = `M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${y2}`
+          const cy2 = adjustedY2 - Math.min(offset, Math.abs(dy) / 3)
+          d = `M ${x1} ${y1} C ${x1} ${cy1}, ${adjustedX2} ${cy2}, ${adjustedX2} ${adjustedY2}`
         } else if (conn.fromSide === 'top' && conn.toSide === 'bottom') {
+          adjustedY2 = y2 + arrowOffset
           // Reverse vertical
           const cy1 = y1 - Math.min(offset, Math.abs(dy) / 3)
-          const cy2 = y2 + Math.min(offset, Math.abs(dy) / 3)
-          d = `M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${y2}`
+          const cy2 = adjustedY2 + Math.min(offset, Math.abs(dy) / 3)
+          d = `M ${x1} ${y1} C ${x1} ${cy1}, ${adjustedX2} ${cy2}, ${adjustedX2} ${adjustedY2}`
         } else {
           // Mixed connections - use adaptive bezier
-          const cx = (x1 + x2) / 2
-          const cy = (y1 + y2) / 2
-          d = `M ${x1} ${y1} Q ${cx} ${cy}, ${x2} ${y2}`
+          // Calculate angle to adjust endpoint
+          const angle = Math.atan2(dy, dx)
+          adjustedX2 = x2 - Math.cos(angle) * arrowOffset
+          adjustedY2 = y2 - Math.sin(angle) * arrowOffset
+          const cx = (x1 + adjustedX2) / 2
+          const cy = (y1 + adjustedY2) / 2
+          d = `M ${x1} ${y1} Q ${cx} ${cy}, ${adjustedX2} ${adjustedY2}`
         }
         
         path.setAttribute('d', d)
@@ -599,6 +615,7 @@ export default class extends Controller {
     this.svg.querySelectorAll('.connection').forEach(path => {
       path.setAttribute('stroke', '#f97316')
       path.setAttribute('stroke-width', '2')
+      path.setAttribute('marker-end', 'url(#arrow)')
     })
     
     // Select new connection
@@ -606,6 +623,7 @@ export default class extends Controller {
     if (path) {
       path.setAttribute('stroke', '#ea580c')
       path.setAttribute('stroke-width', '3')
+      path.setAttribute('marker-end', 'url(#arrow-selected)')
       this.selectedConnection = index
       this.selectedNode = null
     }
@@ -617,6 +635,7 @@ export default class extends Controller {
     this.svg.querySelectorAll('.connection').forEach(path => {
       path.setAttribute('stroke', '#f97316')
       path.setAttribute('stroke-width', '2')
+      path.setAttribute('marker-end', 'url(#arrow)')
     })
     
     // Deselect nodes
@@ -636,6 +655,7 @@ export default class extends Controller {
     this.svg.querySelectorAll('.connection').forEach(path => {
       path.setAttribute('stroke', '#f97316')
       path.setAttribute('stroke-width', '2')
+      path.setAttribute('marker-end', 'url(#arrow)')
     })
     
     // Update visual selection

@@ -1,89 +1,497 @@
 import { Controller } from "@hotwired/stimulus"
 
+// Wait for Rete.js to be loaded globally
+function waitForRete() {
+  return new Promise((resolve) => {
+    if (window.Rete && window.ReteAreaPlugin && window.ReteConnectionPlugin) {
+      resolve()
+    } else {
+      setTimeout(() => waitForRete().then(resolve), 50)
+    }
+  })
+}
+
 export default class extends Controller {
   static targets = [
-    "canvas", 
-    "instancesPanel", 
+    "canvas",
+    "nameInput", 
+    "tagInput",
+    "tagsContainer",
+    "searchInput",
+    "instanceTemplates",
     "propertiesPanel",
     "yamlPreview",
     "yamlPreviewTab",
     "propertiesTab",
     "propertiesTabButton",
     "yamlTabButton",
-    "searchInput",
-    "instanceTemplates",
-    "tagInput",
-    "tagsContainer",
-    "importInput",
-    "nameInput",
     "zoomLevel",
-    "emptyState"
+    "emptyState",
+    "importInput"
   ]
   
-  static values = {
-    instances: Object,
-    connections: Object,
-    selectedInstance: String,
-    connectionMode: Boolean,
-    connectionStart: String,
-    tags: Array,
-    zoom: Number
-  }
-
-  connect() {
-    console.log("Swarm visual builder connected")
-    this.instances = {}
-    this.connections = {}
-    this.selectedInstance = null
-    this.connectionMode = false
-    this.connectionStart = null
-    this.tags = []
-    this.zoom = 100
+  async connect() {
+    console.log("Swarm visual builder connected (waiting for Rete.js)")
     
-    this.setupCanvas()
+    // Wait for Rete.js to load
+    await waitForRete()
+    
+    console.log("Rete.js loaded, initializing...")
+    
+    this.tags = []
+    this.selectedNode = null
+    this.mainNodeId = null
+    this.nodeKeyMap = new Map()
+    this.nodes = new Map()
+    this.connections = []
+    
+    await this.initializeVisualBuilder()
     this.setupEventListeners()
     this.setupKeyboardShortcuts()
   }
-
-  setupCanvas() {
-    // Create the SVG canvas
-    this.canvasTarget.innerHTML = `
-      <svg class="w-full h-full absolute inset-0" 
-           xmlns="http://www.w3.org/2000/svg"
-           data-action="click->swarm-visual-builder#handleCanvasClick">
-        <defs>
-          <!-- Arrow marker for connections -->
-          <marker id="arrow" markerWidth="10" markerHeight="10" 
-                  refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-            <path d="M0,0 L0,6 L9,3 z" class="fill-orange-500 dark:fill-orange-400" />
-          </marker>
-          <!-- Grid pattern -->
-          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="0.5" class="fill-gray-400 dark:fill-gray-600" opacity="0.5" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
-        <g id="zoom-container" transform="scale(1)">
-          <g id="connections-layer"></g>
-          <g id="instances-layer"></g>
-        </g>
-      </svg>
+  
+  async initializeVisualBuilder() {
+    // Create container
+    const container = document.createElement('div')
+    container.style.width = '100%'
+    container.style.height = '100%'
+    container.style.position = 'relative'
+    container.style.overflow = 'auto'
+    container.className = 'rete bg-gray-100 dark:bg-gray-900'
+    this.canvasTarget.appendChild(container)
+    
+    // Create viewport
+    this.viewport = document.createElement('div')
+    this.viewport.style.position = 'relative'
+    this.viewport.style.width = '4000px'
+    this.viewport.style.height = '4000px'
+    container.appendChild(this.viewport)
+    
+    // Create SVG for connections
+    this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+    this.svg.style.position = 'absolute'
+    this.svg.style.top = '0'
+    this.svg.style.left = '0'
+    this.svg.style.width = '100%'
+    this.svg.style.height = '100%'
+    this.svg.style.pointerEvents = 'none'
+    this.svg.innerHTML = `
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L0,6 L9,3 z" fill="#f97316" />
+        </marker>
+      </defs>
+      <g id="connections"></g>
     `
+    this.viewport.appendChild(this.svg)
+    
+    // Initialize properties
+    this.container = container
+    this.zoomLevel = 1
+    this.nextNodeId = 1
     
     // Setup drag and drop
-    this.canvasTarget.addEventListener('dragover', this.handleDragOver.bind(this))
-    this.canvasTarget.addEventListener('drop', this.handleDrop.bind(this))
+    this.setupDragAndDrop()
   }
-
-  setupEventListeners() {
-    // Instance template cards
-    this.element.querySelectorAll('[data-template-card]').forEach(card => {
-      card.draggable = true
-      card.addEventListener('dragstart', this.handleDragStart.bind(this))
-      card.addEventListener('dragend', this.handleDragEnd.bind(this))
+  
+  setupDragAndDrop() {
+    this.container.addEventListener('dragover', (e) => {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+    })
+    
+    this.container.addEventListener('drop', async (e) => {
+      e.preventDefault()
+      
+      const templateName = e.dataTransfer.getData('templateName')
+      const templateConfig = JSON.parse(e.dataTransfer.getData('templateConfig') || '{}')
+      
+      if (!templateName) return
+      
+      // Calculate position
+      const rect = this.container.getBoundingClientRect()
+      const x = (e.clientX - rect.left + this.container.scrollLeft) / this.zoomLevel
+      const y = (e.clientY - rect.top + this.container.scrollTop) / this.zoomLevel
+      
+      await this.addNodeFromTemplate(templateName, templateConfig, { x, y })
     })
   }
-
+  
+  async addNodeFromTemplate(name, config, position) {
+    console.log('Adding node from template:', name, config, position)
+    
+    // Hide empty state
+    if (this.hasEmptyStateTarget) {
+      this.emptyStateTarget.classList.add('hidden')
+    }
+    
+    // Generate unique key
+    const baseKey = name.toLowerCase().replace(/[^a-z0-9]/g, '_')
+    let nodeKey = baseKey
+    let counter = 1
+    
+    const usedKeys = Array.from(this.nodeKeyMap.values())
+    while (usedKeys.includes(nodeKey)) {
+      nodeKey = `${baseKey}_${counter}`
+      counter++
+    }
+    
+    // Create node data
+    const nodeId = this.nextNodeId++
+    const nodeData = {
+      id: nodeId,
+      key: nodeKey,
+      label: nodeKey,
+      x: position.x - 100,
+      y: position.y - 60,
+      description: config.description || name,
+      model: config.model || "sonnet",
+      provider: config.provider || "claude",
+      directory: config.directory || ".",
+      allowed_tools: config.allowed_tools || []
+    }
+    
+    // Create node element
+    const nodeElement = this.createNodeElement(nodeData)
+    this.viewport.appendChild(nodeElement)
+    
+    // Store node
+    this.nodes.set(nodeId, {
+      data: nodeData,
+      element: nodeElement
+    })
+    this.nodeKeyMap.set(nodeId, nodeKey)
+    
+    // Set first node as main
+    if (this.nodes.size === 1) {
+      this.mainNodeId = nodeId
+    }
+    
+    this.updateYamlPreview()
+  }
+  
+  createNodeElement(nodeData) {
+    const node = document.createElement('div')
+    node.className = 'absolute bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-300 dark:border-gray-600 p-4 cursor-move select-none hover:shadow-xl transition-shadow swarm-node'
+    node.style.left = nodeData.x + 'px'
+    node.style.top = nodeData.y + 'px'
+    node.style.width = '200px'
+    node.dataset.nodeId = nodeData.id
+    
+    node.innerHTML = `
+      <div class="node-header">
+        <h4 class="node-title">${nodeData.label}</h4>
+      </div>
+      <div class="node-content">
+        <p class="node-description">${nodeData.description}</p>
+        <div class="node-tags">
+          <span class="node-tag model-tag">${nodeData.model}</span>
+          ${nodeData.provider !== 'claude' ? `<span class="node-tag provider-tag">${nodeData.provider}</span>` : ''}
+        </div>
+      </div>
+      <div class="socket input" data-socket="in" data-node-id="${nodeData.id}"></div>
+      <div class="socket output" data-socket="out" data-node-id="${nodeData.id}"></div>
+    `
+    
+    // Add event handlers
+    this.makeDraggable(node, nodeData)
+    node.addEventListener('click', () => this.selectNode(nodeData.id))
+    
+    // Socket handlers
+    const inputSocket = node.querySelector('.socket.input')
+    const outputSocket = node.querySelector('.socket.output')
+    
+    inputSocket.addEventListener('click', (e) => {
+      e.stopPropagation()
+      this.handleSocketClick(nodeData.id, 'input')
+    })
+    
+    outputSocket.addEventListener('click', (e) => {
+      e.stopPropagation()
+      this.handleSocketClick(nodeData.id, 'output')
+    })
+    
+    return node
+  }
+  
+  makeDraggable(element, nodeData) {
+    let isDragging = false
+    let startX = 0
+    let startY = 0
+    let offsetX = 0
+    let offsetY = 0
+    
+    element.addEventListener('mousedown', (e) => {
+      if (e.target.classList.contains('socket')) return
+      
+      isDragging = true
+      startX = e.clientX
+      startY = e.clientY
+      offsetX = nodeData.x
+      offsetY = nodeData.y
+      element.style.zIndex = 1000
+    })
+    
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return
+      
+      const dx = (e.clientX - startX) / this.zoomLevel
+      const dy = (e.clientY - startY) / this.zoomLevel
+      
+      nodeData.x = offsetX + dx
+      nodeData.y = offsetY + dy
+      
+      element.style.left = nodeData.x + 'px'
+      element.style.top = nodeData.y + 'px'
+      
+      this.updateConnections()
+    })
+    
+    document.addEventListener('mouseup', () => {
+      isDragging = false
+      element.style.zIndex = ''
+    })
+  }
+  
+  handleSocketClick(nodeId, socketType) {
+    if (!this.pendingConnection) {
+      // Start new connection
+      this.pendingConnection = { nodeId, socketType }
+      this.viewport.classList.add('cursor-crosshair')
+    } else {
+      // Complete connection
+      const { nodeId: fromId, socketType: fromType } = this.pendingConnection
+      
+      if (fromId !== nodeId && fromType !== socketType) {
+        if (fromType === 'output' && socketType === 'input') {
+          this.createConnection(fromId, nodeId)
+        } else if (fromType === 'input' && socketType === 'output') {
+          this.createConnection(nodeId, fromId)
+        }
+      }
+      
+      this.pendingConnection = null
+      this.viewport.classList.remove('cursor-crosshair')
+    }
+  }
+  
+  createConnection(fromId, toId) {
+    // Check if connection already exists
+    const exists = this.connections.some(c => c.from === fromId && c.to === toId)
+    if (!exists) {
+      this.connections.push({ from: fromId, to: toId })
+      this.updateConnections()
+      this.updateYamlPreview()
+    }
+  }
+  
+  updateConnections() {
+    const connectionsGroup = this.svg.querySelector('#connections')
+    connectionsGroup.innerHTML = ''
+    
+    this.connections.forEach((conn, index) => {
+      const fromNode = this.nodes.get(conn.from)
+      const toNode = this.nodes.get(conn.to)
+      
+      if (fromNode && toNode) {
+        const x1 = fromNode.data.x + 200
+        const y1 = fromNode.data.y + 40
+        const x2 = toNode.data.x
+        const y2 = toNode.data.y + 40
+        
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
+        const cx = (x1 + x2) / 2
+        const d = `M ${x1} ${y1} Q ${cx} ${y1}, ${cx} ${(y1+y2)/2} T ${x2} ${y2}`
+        
+        path.setAttribute('d', d)
+        path.setAttribute('stroke', '#f97316')
+        path.setAttribute('stroke-width', '2')
+        path.setAttribute('fill', 'none')
+        path.setAttribute('marker-end', 'url(#arrow)')
+        path.style.pointerEvents = 'stroke'
+        path.style.cursor = 'pointer'
+        
+        path.addEventListener('click', () => {
+          if (confirm('Remove this connection?')) {
+            this.connections.splice(index, 1)
+            this.updateConnections()
+            this.updateYamlPreview()
+          }
+        })
+        
+        connectionsGroup.appendChild(path)
+      }
+    })
+  }
+  
+  selectNode(nodeId) {
+    // Update visual selection
+    this.nodes.forEach((node, id) => {
+      if (id === nodeId) {
+        node.element.classList.add('selected')
+        node.element.style.borderColor = '#f97316'
+      } else {
+        node.element.classList.remove('selected')
+        node.element.style.borderColor = ''
+      }
+    })
+    
+    this.selectedNode = this.nodes.get(nodeId)
+    if (this.selectedNode) {
+      this.showNodeProperties(this.selectedNode.data)
+    }
+  }
+  
+  showNodeProperties(nodeData) {
+    this.propertiesPanelTarget.innerHTML = `
+      <div class="p-4 space-y-4">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Instance: ${nodeData.label}</h3>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+            <input type="text" 
+                   value="${nodeData.description || ''}" 
+                   data-property="description"
+                   data-node-id="${nodeData.id}"
+                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Model</label>
+            <input type="text" 
+                   value="${nodeData.model || 'sonnet'}" 
+                   data-property="model"
+                   data-node-id="${nodeData.id}"
+                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Provider</label>
+            <select data-property="provider" 
+                    data-node-id="${nodeData.id}"
+                    class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm">
+              <option value="claude" ${nodeData.provider === 'claude' ? 'selected' : ''}>Claude</option>
+              <option value="openai" ${nodeData.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Directory</label>
+            <input type="text" 
+                   value="${nodeData.directory || '.'}" 
+                   data-property="directory"
+                   data-node-id="${nodeData.id}"
+                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <input type="checkbox" 
+                     ${this.mainNodeId === nodeData.id ? 'checked' : ''}
+                     data-action="change->swarm-visual-builder#setMainNode"
+                     data-node-id="${nodeData.id}"
+                     class="mr-2">
+              Main Instance
+            </label>
+          </div>
+          
+          <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button type="button"
+                    data-action="click->swarm-visual-builder#deleteNode"
+                    data-node-id="${nodeData.id}"
+                    class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm">
+              Delete Instance
+            </button>
+          </div>
+        </div>
+      </div>
+    `
+    
+    // Add change listeners
+    this.propertiesPanelTarget.querySelectorAll('input:not([type="checkbox"]), select').forEach(input => {
+      input.addEventListener('change', (e) => this.updateNodeProperty(e))
+    })
+  }
+  
+  updateNodeProperty(event) {
+    const nodeId = parseInt(event.target.dataset.nodeId)
+    const property = event.target.dataset.property
+    const value = event.target.value
+    
+    const node = this.nodes.get(nodeId)
+    if (node) {
+      node.data[property] = value
+      
+      // Update visual if needed
+      if (property === 'model') {
+        const badge = node.element.querySelector('.node-tag.model-tag')
+        if (badge) badge.textContent = value
+      }
+      
+      this.updateYamlPreview()
+    }
+  }
+  
+  setMainNode(event) {
+    const nodeId = parseInt(event.target.dataset.nodeId)
+    if (event.target.checked) {
+      this.mainNodeId = nodeId
+    }
+    this.updateYamlPreview()
+  }
+  
+  deleteNode(event) {
+    const nodeId = parseInt(event.currentTarget.dataset.nodeId)
+    const node = this.nodes.get(nodeId)
+    
+    if (node) {
+      // Remove element
+      node.element.remove()
+      
+      // Remove from maps
+      this.nodes.delete(nodeId)
+      this.nodeKeyMap.delete(nodeId)
+      
+      // Remove connections
+      this.connections = this.connections.filter(c => c.from !== nodeId && c.to !== nodeId)
+      
+      // Update main if needed
+      if (this.mainNodeId === nodeId) {
+        const firstNode = this.nodes.keys().next().value
+        this.mainNodeId = firstNode || null
+      }
+      
+      // Clear properties panel
+      this.propertiesPanelTarget.innerHTML = '<div class="p-4 text-center text-gray-500">Select an instance to edit properties</div>'
+      
+      // Show empty state if needed
+      if (this.nodes.size === 0 && this.hasEmptyStateTarget) {
+        this.emptyStateTarget.classList.remove('hidden')
+      }
+      
+      this.updateConnections()
+      this.updateYamlPreview()
+    }
+  }
+  
+  setupEventListeners() {
+    // Make instance template cards draggable
+    const templates = this.instanceTemplatesTarget.querySelectorAll('[data-template-card]')
+    templates.forEach(card => {
+      card.draggable = true
+      card.addEventListener('dragstart', (e) => {
+        e.dataTransfer.effectAllowed = 'copy'
+        e.dataTransfer.setData('templateName', card.dataset.templateName)
+        e.dataTransfer.setData('templateConfig', card.dataset.templateConfig)
+        card.classList.add('opacity-50')
+      })
+      card.addEventListener('dragend', () => {
+        card.classList.remove('opacity-50')
+      })
+    })
+  }
+  
   // Tab switching
   switchToProperties(event) {
     event?.preventDefault()
@@ -96,7 +504,7 @@ export default class extends Controller {
     this.yamlTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
     this.yamlTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
   }
-
+  
   switchToYaml(event) {
     event?.preventDefault()
     this.yamlPreviewTabTarget.classList.remove('hidden')
@@ -110,575 +518,10 @@ export default class extends Controller {
     
     this.updateYamlPreview()
   }
-
-  // Drag and drop handlers
-  handleDragStart(event) {
-    const card = event.target.closest('[data-template-card]')
-    event.dataTransfer.effectAllowed = 'copy'
-    event.dataTransfer.setData('templateId', card.dataset.templateId)
-    event.dataTransfer.setData('templateName', card.dataset.templateName)
-    event.dataTransfer.setData('templateConfig', card.dataset.templateConfig)
-    card.classList.add('opacity-50')
-  }
-
-  handleDragEnd(event) {
-    event.target.closest('[data-template-card]').classList.remove('opacity-50')
-  }
-
-  handleDragOver(event) {
-    event.preventDefault()
-    event.dataTransfer.dropEffect = 'copy'
-  }
-
-  handleDrop(event) {
-    event.preventDefault()
-    
-    const templateId = event.dataTransfer.getData('templateId')
-    const templateName = event.dataTransfer.getData('templateName')
-    const templateConfig = JSON.parse(event.dataTransfer.getData('templateConfig'))
-    
-    // Calculate position relative to canvas
-    const rect = this.canvasTarget.getBoundingClientRect()
-    const x = (event.clientX - rect.left) / (this.zoom / 100)
-    const y = (event.clientY - rect.top) / (this.zoom / 100)
-    
-    // Create unique instance key
-    const baseKey = templateName.toLowerCase().replace(/[^a-z0-9]/g, '_')
-    let instanceKey = baseKey
-    let counter = 1
-    while (this.instances[instanceKey]) {
-      instanceKey = `${baseKey}_${counter}`
-      counter++
-    }
-    
-    // Add instance
-    this.addInstance(instanceKey, {
-      ...templateConfig,
-      templateId: templateId,
-      x: Math.round(x),
-      y: Math.round(y)
-    })
-  }
-
-  // Instance management
-  addInstance(key, config) {
-    this.instances[key] = {
-      ...config,
-      connections: []
-    }
-    
-    console.log('Added instance:', key, this.instances)
-    
-    // Hide empty state
-    if (this.hasEmptyStateTarget) {
-      this.emptyStateTarget.classList.add('hidden')
-    }
-    
-    // Create visual node
-    this.createInstanceNode(key, config)
-    
-    // Update YAML
-    this.updateYamlPreview()
-  }
-
-  createInstanceNode(key, config) {
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-    g.setAttribute('data-instance-key', key)
-    g.setAttribute('transform', `translate(${config.x}, ${config.y})`)
-    g.classList.add('cursor-pointer')
-    
-    // Background rectangle
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-    rect.setAttribute('x', '-75')
-    rect.setAttribute('y', '-35')
-    rect.setAttribute('width', '150')
-    rect.setAttribute('height', '70')
-    rect.setAttribute('rx', '8')
-    rect.setAttribute('fill', 'white')
-    rect.setAttribute('stroke', '#d1d5db')
-    rect.setAttribute('stroke-width', '2')
-    rect.classList.add('hover:stroke-orange-500', 'dark:fill-gray-800', 'dark:stroke-gray-600')
-    
-    // Instance name
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    text.setAttribute('text-anchor', 'middle')
-    text.setAttribute('y', '-5')
-    text.setAttribute('font-size', '14')
-    text.setAttribute('font-weight', '600')
-    text.classList.add('fill-gray-900', 'dark:fill-gray-100')
-    text.textContent = key
-    
-    // Model badge
-    const modelText = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    modelText.setAttribute('text-anchor', 'middle')
-    modelText.setAttribute('y', '15')
-    modelText.setAttribute('font-size', '12')
-    modelText.classList.add('fill-gray-500', 'dark:fill-gray-400')
-    modelText.textContent = config.model || 'sonnet'
-    
-    // Connection port (circle)
-    const port = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    port.setAttribute('cx', '75')
-    port.setAttribute('cy', '0')
-    port.setAttribute('r', '8')
-    port.setAttribute('fill', '#f97316')
-    port.setAttribute('stroke', 'white')
-    port.setAttribute('stroke-width', '2')
-    port.setAttribute('cursor', 'pointer')
-    port.setAttribute('data-port', 'true')
-    port.setAttribute('data-instance-key', key)
-    
-    // Add hover effect manually
-    port.addEventListener('mouseenter', () => {
-      port.setAttribute('r', '10')
-      port.setAttribute('fill', '#ea580c')
-    })
-    port.addEventListener('mouseleave', () => {
-      port.setAttribute('r', '8')
-      port.setAttribute('fill', '#f97316')
-    })
-    
-    // Assemble
-    g.appendChild(rect)
-    g.appendChild(text)
-    g.appendChild(modelText)
-    g.appendChild(port)
-    
-    // Add event listeners
-    g.addEventListener('click', (e) => this.handleInstanceClick(e, key))
-    g.addEventListener('mousedown', (e) => this.startDrag(e, key))
-    
-    // Add to canvas
-    const instancesLayer = this.canvasTarget.querySelector('#instances-layer')
-    instancesLayer.appendChild(g)
-  }
-
-  handleInstanceClick(event, key) {
-    event.stopPropagation()
-    
-    // Check if clicking on connection port
-    if (event.target.dataset.port) {
-      this.handlePortClick(key)
-    } else if (!this.isDragging) {
-      // Select instance
-      this.selectInstance(key)
-    }
-  }
-
-  handlePortClick(key) {
-    console.log('Port clicked:', key)
-    if (!this.connectionMode) {
-      // Start connection mode
-      this.connectionMode = true
-      this.connectionStart = key
-      
-      // Visual feedback
-      this.highlightAvailableTargets(key)
-    } else {
-      // Complete connection
-      if (this.connectionStart !== key && !this.wouldCreateCycle(this.connectionStart, key)) {
-        this.createConnection(this.connectionStart, key)
-      }
-      
-      // Exit connection mode
-      this.connectionMode = false
-      this.connectionStart = null
-      this.unhighlightTargets()
-    }
-  }
-
-  highlightAvailableTargets(excludeKey) {
-    // Add a visual indicator that we're in connection mode
-    this.canvasTarget.style.cursor = 'crosshair'
-    
-    // Highlight the source port
-    this.canvasTarget.querySelector(`[data-instance-key="${excludeKey}"] circle`).setAttribute('fill', '#dc2626')
-    
-    // Highlight available targets
-    this.canvasTarget.querySelectorAll('[data-instance-key]').forEach(node => {
-      const key = node.dataset.instanceKey
-      if (key !== excludeKey) {
-        const circle = node.querySelector('circle')
-        circle.setAttribute('stroke-width', '4')
-        circle.setAttribute('stroke', '#22c55e')
-      }
-    })
-  }
-
-  unhighlightTargets() {
-    // Reset cursor
-    this.canvasTarget.style.cursor = 'auto'
-    
-    // Reset all circles
-    this.canvasTarget.querySelectorAll('[data-port="true"]').forEach(circle => {
-      circle.setAttribute('fill', '#f97316')
-      circle.setAttribute('stroke', 'white')
-      circle.setAttribute('stroke-width', '2')
-    })
-  }
-
-  createConnection(fromKey, toKey) {
-    // Add to connections data
-    if (!this.connections[fromKey]) {
-      this.connections[fromKey] = []
-    }
-    if (!this.connections[fromKey].includes(toKey)) {
-      this.connections[fromKey].push(toKey)
-    }
-    
-    console.log('Created connection:', fromKey, '->', toKey, this.connections)
-    
-    // Draw visual connection
-    this.drawConnection(fromKey, toKey)
-    
-    // Update YAML
-    this.updateYamlPreview()
-  }
-
-  drawConnection(fromKey, toKey) {
-    const fromNode = this.canvasTarget.querySelector(`[data-instance-key="${fromKey}"]`)
-    const toNode = this.canvasTarget.querySelector(`[data-instance-key="${toKey}"]`)
-    
-    if (!fromNode || !toNode) return
-    
-    const fromTransform = fromNode.getAttribute('transform')
-    const toTransform = toNode.getAttribute('transform')
-    
-    const fromMatch = fromTransform.match(/translate\(([^,]+),\s*([^)]+)\)/)
-    const toMatch = toTransform.match(/translate\(([^,]+),\s*([^)]+)\)/)
-    
-    const x1 = parseFloat(fromMatch[1]) + 75 // Port is at x=75
-    const y1 = parseFloat(fromMatch[2])
-    const x2 = parseFloat(toMatch[1]) - 75
-    const y2 = parseFloat(toMatch[2])
-    
-    // Create curved path
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-    const d = `M ${x1} ${y1} C ${x1 + 100} ${y1}, ${x2 - 100} ${y2}, ${x2} ${y2}`
-    path.setAttribute('d', d)
-    path.setAttribute('fill', 'none')
-    path.setAttribute('stroke', '#f97316')
-    path.setAttribute('stroke-width', '2')
-    path.setAttribute('marker-end', 'url(#arrow)')
-    path.setAttribute('data-connection', `${fromKey}-${toKey}`)
-    path.classList.add('hover:stroke-orange-600')
-    
-    const connectionsLayer = this.canvasTarget.querySelector('#connections-layer')
-    connectionsLayer.appendChild(path)
-  }
-
-  selectInstance(key) {
-    this.selectedInstance = key
-    
-    // Update visual selection
-    this.canvasTarget.querySelectorAll('[data-instance-key]').forEach(node => {
-      const rect = node.querySelector('rect')
-      if (node.dataset.instanceKey === key) {
-        rect.setAttribute('stroke', '#f97316')
-        rect.setAttribute('stroke-width', '3')
-      } else {
-        rect.setAttribute('stroke', '#d1d5db')
-        rect.setAttribute('stroke-width', '2')
-      }
-    })
-    
-    // Show properties
-    this.showProperties(key)
-  }
-
-  showProperties(key) {
-    const instance = this.instances[key]
-    if (!instance) return
-    
-    this.propertiesPanelTarget.innerHTML = `
-      <div class="p-4 space-y-4">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Instance: ${key}</h3>
-        
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
-            <input type="text" 
-                   value="${instance.description || ''}" 
-                   data-property="description"
-                   data-key="${key}"
-                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm">
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Model</label>
-            <input type="text" 
-                   value="${instance.model || 'sonnet'}" 
-                   data-property="model"
-                   data-key="${key}"
-                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm">
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Provider</label>
-            <select data-property="provider" 
-                    data-key="${key}"
-                    class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm">
-              <option value="claude" ${instance.provider === 'claude' ? 'selected' : ''}>Claude</option>
-              <option value="openai" ${instance.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
-            </select>
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Directory</label>
-            <input type="text" 
-                   value="${instance.directory || '.'}" 
-                   data-property="directory"
-                   data-key="${key}"
-                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm">
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Connections</label>
-            <div class="mt-1 flex flex-wrap gap-2">
-              ${(this.connections[key] || []).map(target => `
-                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">
-                  ${target}
-                  <button type="button" 
-                          data-action="click->swarm-visual-builder#removeConnection"
-                          data-from="${key}"
-                          data-to="${target}"
-                          class="ml-1 hover:text-red-600">×</button>
-                </span>
-              `).join('')}
-            </div>
-          </div>
-          
-          <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button type="button"
-                    data-action="click->swarm-visual-builder#deleteInstance"
-                    data-key="${key}"
-                    class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm">
-              Delete Instance
-            </button>
-          </div>
-        </div>
-      </div>
-    `
-    
-    // Add change listeners
-    this.propertiesPanelTarget.querySelectorAll('input, select').forEach(input => {
-      input.addEventListener('change', this.updateProperty.bind(this))
-    })
-  }
-
-  updateProperty(event) {
-    const key = event.target.dataset.key
-    const property = event.target.dataset.property
-    const value = event.target.value
-    
-    this.instances[key][property] = value
-    
-    // Update visual if needed
-    if (property === 'model') {
-      const node = this.canvasTarget.querySelector(`[data-instance-key="${key}"]`)
-      const modelText = node.querySelectorAll('text')[1]
-      modelText.textContent = value
-    }
-    
-    this.updateYamlPreview()
-  }
-
-  removeConnection(event) {
-    const from = event.currentTarget.dataset.from
-    const to = event.currentTarget.dataset.to
-    
-    const index = this.connections[from].indexOf(to)
-    if (index > -1) {
-      this.connections[from].splice(index, 1)
-    }
-    
-    // Remove visual connection
-    const path = this.canvasTarget.querySelector(`[data-connection="${from}-${to}"]`)
-    if (path) path.remove()
-    
-    // Refresh properties
-    this.showProperties(from)
-    this.updateYamlPreview()
-  }
-
-  deleteInstance(event) {
-    const key = event.currentTarget.dataset.key
-    
-    // Remove from data
-    delete this.instances[key]
-    delete this.connections[key]
-    
-    // Remove connections to this instance
-    Object.keys(this.connections).forEach(fromKey => {
-      const index = this.connections[fromKey].indexOf(key)
-      if (index > -1) {
-        this.connections[fromKey].splice(index, 1)
-      }
-    })
-    
-    // Remove visual elements
-    const node = this.canvasTarget.querySelector(`[data-instance-key="${key}"]`)
-    if (node) node.remove()
-    
-    this.canvasTarget.querySelectorAll(`[data-connection*="${key}"]`).forEach(path => path.remove())
-    
-    // Clear properties
-    this.propertiesPanelTarget.innerHTML = '<div class="p-4 text-center text-gray-500">Select an instance to edit properties</div>'
-    
-    // Show empty state if needed
-    if (Object.keys(this.instances).length === 0 && this.hasEmptyStateTarget) {
-      this.emptyStateTarget.classList.remove('hidden')
-    }
-    
-    this.updateYamlPreview()
-  }
-
-  // Canvas interactions
-  handleCanvasClick(event) {
-    if (event.target.tagName === 'svg' || event.target.tagName === 'rect' && event.target.getAttribute('fill') === 'url(#grid)') {
-      // Clicked on empty space - deselect
-      this.selectedInstanceValue = null
-      this.canvasTarget.querySelectorAll('rect').forEach(rect => {
-        rect.setAttribute('stroke', '#d1d5db')
-        rect.setAttribute('stroke-width', '2')
-      })
-      this.propertiesPanelTarget.innerHTML = '<div class="p-4 text-center text-gray-500">Select an instance to edit properties</div>'
-      
-      // Exit connection mode if active
-      if (this.connectionMode) {
-        this.connectionMode = false
-        this.connectionStart = null
-        this.unhighlightTargets()
-      }
-    }
-  }
-
-  // Dragging
-  startDrag(event, key) {
-    if (event.target.dataset.port) return // Don't drag when clicking port
-    
-    const node = event.currentTarget
-    const transform = node.getAttribute('transform')
-    const match = transform.match(/translate\(([^,]+),\s*([^)]+)\)/)
-    const startX = parseFloat(match[1])
-    const startY = parseFloat(match[2])
-    
-    const startMouseX = event.clientX
-    const startMouseY = event.clientY
-    
-    this.isDragging = true
-    
-    const handleMouseMove = (e) => {
-      const dx = (e.clientX - startMouseX) / (this.zoom / 100)
-      const dy = (e.clientY - startMouseY) / (this.zoom / 100)
-      const newX = Math.round(startX + dx)
-      const newY = Math.round(startY + dy)
-      
-      node.setAttribute('transform', `translate(${newX}, ${newY})`)
-      this.instances[key].x = newX
-      this.instances[key].y = newY
-      
-      // Update connections
-      this.updateConnections(key)
-    }
-    
-    const handleMouseUp = () => {
-      this.isDragging = false
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      this.updateYamlPreview()
-    }
-    
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }
-
-  updateConnections(key) {
-    // Redraw all connections involving this instance
-    this.canvasTarget.querySelectorAll(`[data-connection*="${key}"]`).forEach(path => {
-      const [from, to] = path.dataset.connection.split('-')
-      path.remove()
-      this.drawConnection(from, to)
-    })
-  }
-
-  // Auto-layout
-  autoLayout() {
-    const nodes = Object.keys(this.instances)
-    if (nodes.length === 0) return
-    
-    // Simple grid layout
-    const columns = Math.ceil(Math.sqrt(nodes.length))
-    const spacing = 200
-    const startX = 100
-    const startY = 100
-    
-    nodes.forEach((key, index) => {
-      const col = index % columns
-      const row = Math.floor(index / columns)
-      const x = startX + col * spacing
-      const y = startY + row * spacing
-      
-      this.instances[key].x = x
-      this.instances[key].y = y
-      
-      const node = this.canvasTarget.querySelector(`[data-instance-key="${key}"]`)
-      node.setAttribute('transform', `translate(${x}, ${y})`)
-    })
-    
-    // Redraw all connections
-    Object.entries(this.connections).forEach(([from, targets]) => {
-      targets.forEach(to => {
-        const path = this.canvasTarget.querySelector(`[data-connection="${from}-${to}"]`)
-        if (path) path.remove()
-        this.drawConnection(from, to)
-      })
-    })
-    
-    this.updateYamlPreview()
-  }
-
-  // Clear all
-  clearAll() {
-    if (!confirm('Are you sure you want to clear all instances?')) return
-    
-    this.instances = {}
-    this.connections = {}
-    this.selectedInstance = null
-    
-    this.canvasTarget.querySelector('#instances-layer').innerHTML = ''
-    this.canvasTarget.querySelector('#connections-layer').innerHTML = ''
-    this.propertiesPanelTarget.innerHTML = '<div class="p-4 text-center text-gray-500">Select an instance to edit properties</div>'
-    
-    if (this.hasEmptyStateTarget) {
-      this.emptyStateTarget.classList.remove('hidden')
-    }
-    
-    this.updateYamlPreview()
-  }
-
-  // Zoom controls
-  zoomIn() {
-    this.zoom = Math.min(200, this.zoom + 25)
-    this.updateZoom()
-  }
-
-  zoomOut() {
-    this.zoom = Math.max(25, this.zoom - 25)
-    this.updateZoom()
-  }
-
-  updateZoom() {
-    const container = this.canvasTarget.querySelector('#zoom-container')
-    container.setAttribute('transform', `scale(${this.zoom / 100})`)
-    this.zoomLevelTarget.textContent = `${this.zoom}%`
-  }
-
+  
   // YAML generation
   updateYamlPreview() {
     const swarmName = this.hasNameInputTarget ? this.nameInputTarget.value : 'My Swarm'
-    
-    console.log('Updating YAML preview:', this.instances)
     
     const config = {
       version: 1,
@@ -688,34 +531,30 @@ export default class extends Controller {
       }
     }
     
-    // Set main instance
-    const instanceKeys = Object.keys(this.instances)
-    if (instanceKeys.length > 0) {
-      config.swarm.main = instanceKeys[0]
-    }
-    
     // Build instances
-    instanceKeys.forEach(key => {
-      const instance = this.instances[key]
-      // Always create instance config, even if empty
+    this.nodes.forEach((node, id) => {
+      const key = this.nodeKeyMap.get(id)
       const instanceConfig = {}
       
-      // Always include description
-      instanceConfig.description = instance.description || `${key} instance`
+      instanceConfig.description = node.data.description || `${key} instance`
       
-      // Include non-default values
-      if (instance.provider && instance.provider !== 'claude') instanceConfig.provider = instance.provider
-      if (instance.model && instance.model !== 'sonnet') instanceConfig.model = instance.model
-      if (instance.directory && instance.directory !== '.') instanceConfig.directory = instance.directory
-      if (instance.allowed_tools?.length > 0) instanceConfig.allowed_tools = instance.allowed_tools
+      if (node.data.provider && node.data.provider !== 'claude') instanceConfig.provider = node.data.provider
+      if (node.data.model && node.data.model !== 'sonnet') instanceConfig.model = node.data.model
+      if (node.data.directory && node.data.directory !== '.') instanceConfig.directory = node.data.directory
+      if (node.data.allowed_tools?.length > 0) instanceConfig.allowed_tools = node.data.allowed_tools
       
-      // Add connections
-      if (this.connections[key]?.length > 0) {
-        instanceConfig.connections = this.connections[key]
+      // Find connections from this node
+      const nodeConnections = this.connections.filter(c => c.from === id)
+      if (nodeConnections.length > 0) {
+        instanceConfig.connections = nodeConnections.map(c => this.nodeKeyMap.get(c.to)).filter(Boolean)
       }
       
       config.swarm.instances[key] = instanceConfig
     })
+    
+    if (this.mainNodeId && this.nodeKeyMap.has(this.mainNodeId)) {
+      config.swarm.main = this.nodeKeyMap.get(this.mainNodeId)
+    }
     
     const yaml = this.toYaml(config)
     
@@ -723,13 +562,15 @@ export default class extends Controller {
       this.yamlPreviewTarget.querySelector('pre').textContent = yaml
     }
   }
-
+  
   toYaml(obj, indent = 0) {
     let yaml = ''
     const spaces = ' '.repeat(indent)
     
     Object.entries(obj).forEach(([key, value]) => {
-      if (value === null || value === undefined || (Array.isArray(value) && value.length === 0) || (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0)) {
+      if (value === null || value === undefined || 
+          (Array.isArray(value) && value.length === 0) || 
+          (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0)) {
         return
       }
       
@@ -748,37 +589,70 @@ export default class extends Controller {
     
     return yaml
   }
-
-  // Helpers
-  wouldCreateCycle(from, to) {
-    // DFS to detect cycles
-    const visited = new Set()
-    const stack = [to]
+  
+  // Controls
+  autoLayout() {
+    const nodeArray = Array.from(this.nodes.values())
+    const cols = Math.ceil(Math.sqrt(nodeArray.length))
     
-    while (stack.length > 0) {
-      const current = stack.pop()
-      if (current === from) return true
-      
-      if (!visited.has(current)) {
-        visited.add(current)
-        const connections = this.connections[current] || []
-        stack.push(...connections)
-      }
+    nodeArray.forEach((node, i) => {
+      const row = Math.floor(i / cols)
+      const col = i % cols
+      node.data.x = 50 + col * 250
+      node.data.y = 50 + row * 150
+      node.element.style.left = node.data.x + 'px'
+      node.element.style.top = node.data.y + 'px'
+    })
+    
+    this.updateConnections()
+  }
+  
+  clearAll() {
+    if (!confirm('Clear all instances?')) return
+    
+    // Remove all nodes
+    this.nodes.forEach(node => node.element.remove())
+    this.nodes.clear()
+    this.nodeKeyMap.clear()
+    this.connections = []
+    this.mainNodeId = null
+    
+    if (this.hasEmptyStateTarget) {
+      this.emptyStateTarget.classList.remove('hidden')
     }
     
-    return false
+    this.propertiesPanelTarget.innerHTML = '<div class="p-4 text-center text-gray-500">Select an instance to edit properties</div>'
+    this.updateConnections()
+    this.updateYamlPreview()
   }
-
-  // Search instances
+  
+  zoomIn() {
+    this.zoomLevel = Math.min(this.zoomLevel * 1.1, 3)
+    this.updateZoom()
+  }
+  
+  zoomOut() {
+    this.zoomLevel = Math.max(this.zoomLevel * 0.9, 0.3)
+    this.updateZoom()
+  }
+  
+  updateZoom() {
+    this.viewport.style.transform = `scale(${this.zoomLevel})`
+    this.viewport.style.transformOrigin = 'top left'
+    if (this.hasZoomLevelTarget) {
+      this.zoomLevelTarget.textContent = `${Math.round(this.zoomLevel * 100)}%`
+    }
+  }
+  
+  // Search
   filterTemplates(event) {
     const query = event.target.value.toLowerCase()
     this.element.querySelectorAll('[data-template-card]').forEach(card => {
       const name = card.dataset.templateName.toLowerCase()
-      const match = name.includes(query)
-      card.style.display = match ? 'block' : 'none'
+      card.style.display = name.includes(query) ? 'block' : 'none'
     })
   }
-
+  
   // Tags
   addTag(event) {
     if (event.key === 'Enter' || event.key === ',') {
@@ -791,13 +665,13 @@ export default class extends Controller {
       }
     }
   }
-
+  
   removeTag(event) {
     const tag = event.currentTarget.dataset.tag
     this.tags = this.tags.filter(t => t !== tag)
     this.renderTags()
   }
-
+  
   renderTags() {
     this.tagsContainerTarget.innerHTML = this.tags.map(tag => `
       <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
@@ -806,23 +680,23 @@ export default class extends Controller {
       </span>
     `).join('')
   }
-
+  
   // Keyboard shortcuts
   setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
       if (e.target.matches('input, textarea, select')) return
       
-      if (e.key === 'Delete' && this.selectedInstance) {
-        this.deleteInstance({ currentTarget: { dataset: { key: this.selectedInstance } } })
+      if (e.key === 'Delete' && this.selectedNode) {
+        this.deleteNode({ currentTarget: { dataset: { nodeId: this.selectedNode.data.id } } })
       }
     })
   }
-
-  // Save swarm
+  
+  // Save/Export
   saveSwarm() {
     const name = this.hasNameInputTarget ? this.nameInputTarget.value : 'My Swarm'
     if (!name) {
-      alert('Please enter a name for your swarm')
+      alert('Please enter a name')
       return
     }
     
@@ -834,41 +708,36 @@ export default class extends Controller {
       }
     }
     
-    // Set main instance
-    const instanceKeys = Object.keys(this.instances)
-    if (instanceKeys.length > 0) {
-      configData.swarm.main = instanceKeys[0]
-    }
-    
-    // Build instances (excluding UI-specific properties)
-    instanceKeys.forEach(key => {
-      const instance = this.instances[key]
+    // Build instances
+    this.nodes.forEach((node, id) => {
+      const key = this.nodeKeyMap.get(id)
       const instanceConfig = {}
       
-      // Always include description
-      instanceConfig.description = instance.description || `${key} instance`
+      instanceConfig.description = node.data.description || `${key} instance`
       
-      // Include non-default values
-      if (instance.provider && instance.provider !== 'claude') instanceConfig.provider = instance.provider
-      if (instance.model && instance.model !== 'sonnet') instanceConfig.model = instance.model
-      if (instance.directory && instance.directory !== '.') instanceConfig.directory = instance.directory
-      if (instance.allowed_tools?.length > 0) instanceConfig.allowed_tools = instance.allowed_tools
+      if (node.data.provider && node.data.provider !== 'claude') instanceConfig.provider = node.data.provider
+      if (node.data.model && node.data.model !== 'sonnet') instanceConfig.model = node.data.model
+      if (node.data.directory && node.data.directory !== '.') instanceConfig.directory = node.data.directory
+      if (node.data.allowed_tools?.length > 0) instanceConfig.allowed_tools = node.data.allowed_tools
       
-      // Add connections
-      if (this.connections[key]?.length > 0) {
-        instanceConfig.connections = this.connections[key]
+      // Find connections from this node
+      const nodeConnections = this.connections.filter(c => c.from === id)
+      if (nodeConnections.length > 0) {
+        instanceConfig.connections = nodeConnections.map(c => this.nodeKeyMap.get(c.to)).filter(Boolean)
       }
       
       configData.swarm.instances[key] = instanceConfig
     })
     
-    // Create form data
+    if (this.mainNodeId && this.nodeKeyMap.has(this.mainNodeId)) {
+      configData.swarm.main = this.nodeKeyMap.get(this.mainNodeId)
+    }
+    
     const formData = new FormData()
     formData.append('swarm_template[name]', name)
     formData.append('swarm_template[tags]', JSON.stringify(this.tags))
     formData.append('swarm_template[config_data]', JSON.stringify(configData))
     
-    // Submit
     fetch('/swarm_templates', {
       method: 'POST',
       headers: {
@@ -880,12 +749,11 @@ export default class extends Controller {
       if (response.ok) {
         window.location.href = '/swarm_templates'
       } else {
-        alert('Failed to save swarm')
+        alert('Failed to save')
       }
     })
   }
-
-  // Export YAML
+  
   exportYaml() {
     const yaml = this.yamlPreviewTarget.querySelector('pre').textContent
     const blob = new Blob([yaml], { type: 'text/yaml' })
@@ -893,29 +761,23 @@ export default class extends Controller {
     const a = document.createElement('a')
     a.href = url
     a.download = `${this.nameInputTarget?.value || 'swarm'}.yaml`
-    a.click()
+    a.click()  
     URL.revokeObjectURL(url)
   }
-
-  // Import YAML
+  
   importYaml() {
     if (this.hasImportInputTarget) {
       this.importInputTarget.click()
     }
   }
-
+  
   handleImportFile(event) {
     const file = event.target.files[0]
     if (!file) return
     
     const reader = new FileReader()
     reader.onload = (e) => {
-      try {
-        // Parse YAML - for now just alert
-        alert('YAML import requires a YAML parser library. This is a placeholder.')
-      } catch (error) {
-        alert('Invalid YAML file')
-      }
+      alert('YAML import not implemented')
     }
     reader.readAsText(file)
   }

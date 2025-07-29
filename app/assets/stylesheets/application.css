@@ -153,3 +153,160 @@ iframe::-webkit-scrollbar {
   height: calc(100% - 41px); /* Subtract tab bar height */
 }
 
+/* Rete.js Visual Builder Styles */
+.swarm-node {
+  background: #ffffff;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.dark .swarm-node {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+.swarm-node.selected {
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.swarm-node:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.node-header {
+  margin-bottom: 8px;
+}
+
+.node-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.dark .node-title {
+  color: #f3f4f6;
+}
+
+.node-description {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.dark .node-description {
+  color: #9ca3af;
+}
+
+.node-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.node-tag {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.node-tag.model-tag {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.dark .node-tag.model-tag {
+  background-color: #1e3a8a;
+  color: #93bbfc;
+}
+
+.node-tag.provider-tag {
+  background-color: #fce7f3;
+  color: #be185d;
+}
+
+.dark .node-tag.provider-tag {
+  background-color: #831843;
+  color: #f9a8d4;
+}
+
+/* Socket Styles */
+.socket {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  position: absolute;
+  cursor: crosshair;
+  transition: all 0.2s ease;
+}
+
+.socket.input {
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #9ca3af;
+  border: 2px solid #ffffff;
+}
+
+.socket.output {
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #f97316;
+  border: 2px solid #ffffff;
+}
+
+.dark .socket {
+  border-color: #1f2937;
+}
+
+.socket:hover {
+  transform: translateY(-50%) scale(1.2);
+}
+
+/* Connection Styles */
+.connection {
+  cursor: pointer;
+  transition: stroke 0.2s ease;
+}
+
+.connection:hover {
+  stroke: #ea580c;
+  stroke-width: 3px;
+}
+
+/* Rete.js Container */
+.rete {
+  position: relative;
+  font-family: Arial, sans-serif;
+  background-size: 50px 50px;
+  background-image: 
+    linear-gradient(90deg, transparent 49%, rgba(0, 0, 0, 0.05) 49%, rgba(0, 0, 0, 0.05) 51%, transparent 51%),
+    linear-gradient(rgba(0, 0, 0, 0.05) 49%, transparent 49%, transparent 51%, rgba(0, 0, 0, 0.05) 51%);
+}
+
+.dark .rete {
+  background-image: 
+    linear-gradient(90deg, transparent 49%, rgba(255, 255, 255, 0.05) 49%, rgba(255, 255, 255, 0.05) 51%, transparent 51%),
+    linear-gradient(rgba(255, 255, 255, 0.05) 49%, transparent 49%, transparent 51%, rgba(255, 255, 255, 0.05) 51%);
+}
+
+/* Override default Rete styles */
+.rete-background {
+  position: absolute !important;
+}
+
+.input-sockets,
+.output-sockets {
+  pointer-events: none;
+}
+
+.input-sockets .socket,
+.output-sockets .socket {
+  pointer-events: all;
+}
+

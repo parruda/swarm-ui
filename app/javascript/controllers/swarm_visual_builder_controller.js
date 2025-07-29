@@ -171,13 +171,14 @@ export default class extends Controller {
       this.emptyStateTarget.classList.add('hidden')
     }
     
-    // Generate unique key
-    const baseKey = name ? name.toLowerCase().replace(/[^a-z0-9]/g, '_') : `instance_${this.nextNodeId}`
-    let nodeKey = baseKey
+    // Generate unique key - convert to lowercase with underscores
+    const baseKey = name ? name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') : `instance_${this.nextNodeId}`
+    let nodeKey = baseKey || `instance_${this.nextNodeId}` // Fallback if name becomes empty after conversion
     let counter = 1
     
-    const usedKeys = Array.from(this.nodeKeyMap.values())
-    while (usedKeys.includes(nodeKey)) {
+    // Check against all existing node labels (not just keys) to ensure uniqueness
+    const usedNames = Array.from(this.nodes.values()).map(node => node.data.label)
+    while (usedNames.includes(nodeKey)) {
       nodeKey = `${baseKey}_${counter}`
       counter++
     }
@@ -189,7 +190,7 @@ export default class extends Controller {
     const nodeData = {
       id: nodeId,
       key: nodeKey,
-      label: name || "",  // Empty label for blank instances
+      label: nodeKey,  // Use the converted key as the label
       x: position.x - nodeWidth / 2,
       y: position.y - nodeHeight / 2,
       description: config.description || "",
@@ -542,11 +543,35 @@ export default class extends Controller {
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
         path.dataset.connectionIndex = index
         
+        // Get all node positions for collision detection
+        const nodeObstacles = []
+        this.nodes.forEach((node, nodeId) => {
+          if (nodeId !== conn.from && nodeId !== conn.to) {
+            const rect = node.element.getBoundingClientRect()
+            nodeObstacles.push({
+              id: nodeId,
+              left: rect.left - viewportRect.left,
+              top: rect.top - viewportRect.top,
+              right: rect.left - viewportRect.left + rect.width,
+              bottom: rect.top - viewportRect.top + rect.height,
+              centerX: rect.left - viewportRect.left + rect.width / 2,
+              centerY: rect.top - viewportRect.top + rect.height / 2
+            })
+          }
+        })
+        
         // Generate path based on socket sides for better curves
         let d
         const dx = x2 - x1
         const dy = y2 - y1
-        const offset = 50 // Control point offset
+        let offset = 50 // Control point offset
+        
+        // Check if direct path would intersect any nodes
+        const hasObstacles = this.checkPathObstacles(x1, y1, x2, y2, nodeObstacles)
+        if (hasObstacles) {
+          // Increase offset to route around obstacles
+          offset = 100
+        }
         
         // Adjust endpoint to account for arrow size
         const arrowOffset = 8 // Pixels to stop before the target so arrow tip touches the dot
@@ -554,29 +579,35 @@ export default class extends Controller {
         let adjustedY2 = y2
         
         if (conn.fromSide === 'right' && conn.toSide === 'left') {
+          // Calculate point slightly before the end for proper arrow orientation
+          const preFinalX = x2 - arrowOffset - 5
           adjustedX2 = x2 - arrowOffset
           // Horizontal connection
           const cx1 = x1 + Math.min(offset, Math.abs(dx) / 3)
-          const cx2 = adjustedX2 - Math.min(offset, Math.abs(dx) / 3)
-          d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${adjustedY2}, ${adjustedX2} ${adjustedY2}`
+          const cx2 = preFinalX - Math.min(offset, Math.abs(dx) / 3)
+          // Add a small straight segment at the end for proper arrow orientation
+          d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${preFinalX} ${y2} L ${adjustedX2} ${adjustedY2}`
         } else if (conn.fromSide === 'left' && conn.toSide === 'right') {
+          const preFinalX = x2 + arrowOffset + 5
           adjustedX2 = x2 + arrowOffset
           // Reverse horizontal
           const cx1 = x1 - Math.min(offset, Math.abs(dx) / 3)
-          const cx2 = adjustedX2 + Math.min(offset, Math.abs(dx) / 3)
-          d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${adjustedY2}, ${adjustedX2} ${adjustedY2}`
+          const cx2 = preFinalX + Math.min(offset, Math.abs(dx) / 3)
+          d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${preFinalX} ${y2} L ${adjustedX2} ${adjustedY2}`
         } else if (conn.fromSide === 'bottom' && conn.toSide === 'top') {
+          const preFinalY = y2 - arrowOffset - 5
           adjustedY2 = y2 - arrowOffset
           // Vertical connection
           const cy1 = y1 + Math.min(offset, Math.abs(dy) / 3)
-          const cy2 = adjustedY2 - Math.min(offset, Math.abs(dy) / 3)
-          d = `M ${x1} ${y1} C ${x1} ${cy1}, ${adjustedX2} ${cy2}, ${adjustedX2} ${adjustedY2}`
+          const cy2 = preFinalY - Math.min(offset, Math.abs(dy) / 3)
+          d = `M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${preFinalY} L ${adjustedX2} ${adjustedY2}`
         } else if (conn.fromSide === 'top' && conn.toSide === 'bottom') {
+          const preFinalY = y2 + arrowOffset + 5
           adjustedY2 = y2 + arrowOffset
           // Reverse vertical
           const cy1 = y1 - Math.min(offset, Math.abs(dy) / 3)
-          const cy2 = adjustedY2 + Math.min(offset, Math.abs(dy) / 3)
-          d = `M ${x1} ${y1} C ${x1} ${cy1}, ${adjustedX2} ${cy2}, ${adjustedX2} ${adjustedY2}`
+          const cy2 = preFinalY + Math.min(offset, Math.abs(dy) / 3)
+          d = `M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${preFinalY} L ${adjustedX2} ${adjustedY2}`
         } else {
           // Mixed connections - use adaptive bezier
           // Calculate angle to adjust endpoint
@@ -608,6 +639,51 @@ export default class extends Controller {
     
     // Update socket colors after rendering connections
     this.updateSocketStates()
+  }
+  
+  checkPathObstacles(x1, y1, x2, y2, obstacles) {
+    // Check if a straight line between two points intersects any obstacle
+    const padding = 20 // Add padding around nodes
+    
+    for (const obstacle of obstacles) {
+      // Expand obstacle bounds by padding
+      const left = obstacle.left - padding
+      const right = obstacle.right + padding
+      const top = obstacle.top - padding
+      const bottom = obstacle.bottom + padding
+      
+      // Check if line segment intersects with expanded rectangle
+      if (this.lineIntersectsRect(x1, y1, x2, y2, left, top, right, bottom)) {
+        return true
+      }
+    }
+    return false
+  }
+  
+  lineIntersectsRect(x1, y1, x2, y2, left, top, right, bottom) {
+    // Check if line segment (x1,y1)-(x2,y2) intersects rectangle
+    // First, check if either endpoint is inside the rectangle
+    if ((x1 >= left && x1 <= right && y1 >= top && y1 <= bottom) ||
+        (x2 >= left && x2 <= right && y2 >= top && y2 <= bottom)) {
+      return true
+    }
+    
+    // Check if line intersects any of the four rectangle edges
+    return this.lineIntersectsLine(x1, y1, x2, y2, left, top, right, top) ||    // Top edge
+           this.lineIntersectsLine(x1, y1, x2, y2, right, top, right, bottom) || // Right edge
+           this.lineIntersectsLine(x1, y1, x2, y2, left, bottom, right, bottom) || // Bottom edge
+           this.lineIntersectsLine(x1, y1, x2, y2, left, top, left, bottom)      // Left edge
+  }
+  
+  lineIntersectsLine(x1, y1, x2, y2, x3, y3, x4, y4) {
+    // Check if two line segments intersect
+    const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    if (Math.abs(denom) < 0.0001) return false // Lines are parallel
+    
+    const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom
+    const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom
+    
+    return t >= 0 && t <= 1 && u >= 0 && u <= 1
   }
   
   selectConnection(index) {
@@ -870,6 +946,10 @@ export default class extends Controller {
     // Add change listeners for regular inputs
     this.propertiesPanelTarget.querySelectorAll('input:not([type="checkbox"]):not([data-tool-checkbox]), select, textarea').forEach(input => {
       input.addEventListener('input', (e) => this.updateNodeProperty(e))
+      // Add blur event for instance name to convert and ensure uniqueness
+      if (input.dataset.property === 'label') {
+        input.addEventListener('blur', (e) => this.updateNodeProperty(e))
+      }
     })
     
     // Add change listeners for tool checkboxes
@@ -881,13 +961,36 @@ export default class extends Controller {
   updateNodeProperty(event) {
     const nodeId = parseInt(event.target.dataset.nodeId)
     const property = event.target.dataset.property
-    const value = event.target.value
+    let value = event.target.value
     
     const node = this.nodes.get(nodeId)
     if (node) {
-      // Validate instance name
+      // Validate and convert instance name
       if (property === 'label') {
         const validationError = event.target.parentElement.querySelector('[data-validation-error]')
+        
+        // Convert to lowercase with underscores on blur
+        if (event.type === 'blur' || event.type === 'change') {
+          // Convert spaces and special chars to underscores, remove leading/trailing underscores
+          const converted = value.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+          
+          // Check for uniqueness
+          const usedNames = Array.from(this.nodes.values())
+            .filter(n => n.data.id !== nodeId)
+            .map(n => n.data.label)
+          
+          let finalName = converted || 'instance'
+          let counter = 1
+          while (usedNames.includes(finalName)) {
+            finalName = `${converted}_${counter}`
+            counter++
+          }
+          
+          value = finalName
+          event.target.value = finalName
+        }
+        
+        // Real-time validation
         const isValid = /^[a-zA-Z0-9_]+$/.test(value)
         
         if (!isValid && value !== '') {
@@ -1543,12 +1646,50 @@ export default class extends Controller {
             instance.connections.forEach(targetKey => {
               const toNodeId = keyToNodeIdMap.get(targetKey)
               if (toNodeId !== undefined) {
-                this.connections.push({
-                  from: fromNodeId,
-                  fromSide: 'right',
-                  to: toNodeId,
-                  toSide: 'left'
-                })
+                // Determine best connection sides based on node positions
+                const fromNode = this.nodes.get(fromNodeId)
+                const toNode = this.nodes.get(toNodeId)
+                
+                if (fromNode && toNode) {
+                  const fromX = fromNode.data.x
+                  const fromY = fromNode.data.y
+                  const toX = toNode.data.x
+                  const toY = toNode.data.y
+                  
+                  // Calculate relative positions
+                  const dx = toX - fromX
+                  const dy = toY - fromY
+                  
+                  let fromSide, toSide
+                  
+                  // Determine connection sides based on relative positions
+                  if (Math.abs(dx) > Math.abs(dy)) {
+                    // Horizontal connection
+                    if (dx > 0) {
+                      fromSide = 'right'
+                      toSide = 'left'
+                    } else {
+                      fromSide = 'left'
+                      toSide = 'right'
+                    }
+                  } else {
+                    // Vertical connection
+                    if (dy > 0) {
+                      fromSide = 'bottom'
+                      toSide = 'top'
+                    } else {
+                      fromSide = 'top'
+                      toSide = 'bottom'
+                    }
+                  }
+                  
+                  this.connections.push({
+                    from: fromNodeId,
+                    fromSide: fromSide,
+                    to: toNodeId,
+                    toSide: toSide
+                  })
+                }
               }
             })
           }

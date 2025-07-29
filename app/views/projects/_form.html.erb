@@ -1,4 +1,5 @@
-<%= simple_form_for project, local: true, wrapper: :tailwind, html: { data: { controller: "project-form filesystem-browser" } } do |f| %>
+<div data-controller="filesystem-browser">
+<%= simple_form_for project, local: true, wrapper: :tailwind, html: { data: { controller: "project-form" } } do |f| %>
   <div class="space-y-6">
     <%= f.input :name,
                 label: "Project Name",
@@ -298,3 +299,6 @@
     </div>
   </div>
 <% end %>
+
+<%= render "filesystem_browser_modal" %>
+</div>

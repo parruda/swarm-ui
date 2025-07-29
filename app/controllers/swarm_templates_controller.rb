@@ -14,7 +14,45 @@ class SwarmTemplatesController < ApplicationController
       SwarmTemplate.includes(:project).ordered
     end
 
+    # Apply search filter for swarms
+    if params[:search].present?
+      search_term = "%#{params[:search]}%"
+      @swarm_templates = @swarm_templates.where(
+        "name LIKE ? OR description LIKE ?",
+        search_term,
+        search_term,
+      )
+    end
+
+    # Apply tag filter
     @swarm_templates = @swarm_templates.with_tag(params[:tag]) if params[:tag].present?
+
+    # Get all unique tags for the filter UI
+    @all_tags = SwarmTemplate.all_tags
+
+    # Always load instance templates for the count
+    @instance_templates = InstanceTemplate.ordered.includes(:swarm_template_instances)
+
+    # Apply search filter for instance templates
+    if params[:instance_search].present?
+      search_term = "%#{params[:instance_search]}%"
+      @instance_templates = @instance_templates.where(
+        "name LIKE ? OR description LIKE ?",
+        search_term,
+        search_term,
+      )
+    end
+
+    # Apply tag filter for instance templates
+    @instance_templates = @instance_templates.with_tag(params[:instance_tag]) if params[:instance_tag].present?
+
+    # Get all unique tags for instance templates filter UI
+    @all_instance_tags = InstanceTemplate.all_tags
+
+    # Show instance templates if tab is selected
+    if params[:tab] == "instance-templates"
+      @instance_templates = @instance_templates.includes(:swarm_template_instances)
+    end
   end
 
   def library

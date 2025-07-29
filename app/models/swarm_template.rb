@@ -26,6 +26,12 @@ class SwarmTemplate < ApplicationRecord
   scope :with_tag, ->(tag) { where("tags LIKE ?", "%#{tag}%") }
   scope :public_swarms, -> { where(public: true) }
 
+  # Class methods
+  def self.all_tags
+    # Get all unique tags from all swarm templates
+    pluck(:tags).flatten.compact.uniq.sort
+  end
+
   # Instance methods
   def swarm_name
     config_data&.dig("swarm", "name") || name

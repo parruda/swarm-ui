@@ -2,218 +2,316 @@
 
 <div class="py-8">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <!-- Header -->
-    <div class="mb-8">
-      <div class="sm:flex sm:items-center sm:justify-between">
-        <div class="sm:flex-auto">
-          <h1 class="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:truncate sm:text-3xl sm:tracking-tight">
-            Swarms
-          </h1>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Build and manage reusable AI agent configurations
-          </p>
-        </div>
-        
-        <div class="mt-4 flex items-center gap-x-3 sm:ml-16 sm:mt-0 sm:flex-none">
-          <% new_path = @project ? new_project_swarm_template_path(@project, visual: true) : new_swarm_template_path(visual: true) %>
-          <%= link_to new_path, class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
-            <%= heroicon "sparkles", variant: :mini, options: { class: "h-5 w-5 mr-1.5" } %>
-            New Swarm
-          <% end %>
-        </div>
+    <div class="sm:flex sm:items-center">
+      <div class="sm:flex-auto">
+        <h1 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100 flex items-center">
+          <%= heroicon "cube", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+          Swarms
+        </h1>
+        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Build and manage reusable AI agent configurations.</p>
       </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="mb-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="px-4 py-5 sm:p-6">
-          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">My Swarms</dt>
-          <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-            <%= @swarm_templates.where(public: false).count %>
-          </dd>
-        </div>
-      </div>
-      
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="px-4 py-5 sm:p-6">
-          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Public Swarms</dt>
-          <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-            <%= SwarmTemplate.public_swarms.count %>
-          </dd>
-        </div>
-      </div>
-      
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="px-4 py-5 sm:p-6">
-          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Instance Templates</dt>
-          <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-            <%= InstanceTemplate.count %>
-          </dd>
-        </div>
-      </div>
-      
-      <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-        <div class="px-4 py-5 sm:p-6">
-          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Uses</dt>
-          <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-            <%= @swarm_templates.sum(:usage_count) %>
-          </dd>
+      <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+        <div class="relative inline-block text-left" data-controller="dropdown">
+          <button type="button" 
+                  data-action="click->dropdown#toggle"
+                  data-dropdown-target="button"
+                  class="inline-flex items-center justify-center gap-x-1.5 rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200">
+            <%= heroicon "plus", variant: :mini, options: { class: "h-5 w-5" } %>
+            New
+            <%= heroicon "chevron-down", variant: :mini, options: { class: "h-4 w-4 -mr-1 ml-1" } %>
+          </button>
+          
+          <div data-dropdown-target="menu" 
+               class="hidden absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-gray-700 focus:outline-none">
+            <div class="py-1" role="none">
+              <% new_swarm_path = @project ? new_project_swarm_template_path(@project, visual: true) : new_swarm_template_path(visual: true) %>
+              <%= link_to new_swarm_path, 
+                  class: "group flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" do %>
+                <%= heroicon "cube", variant: :outline, options: { class: "h-5 w-5 mr-3 text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400" } %>
+                New Swarm
+              <% end %>
+              
+              <%= link_to new_instance_template_path, 
+                  class: "group flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" do %>
+                <%= heroicon "puzzle-piece", variant: :outline, options: { class: "h-5 w-5 mr-3 text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400" } %>
+                New Instance Template
+              <% end %>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Tabs -->
-    <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
-      <nav class="-mb-px flex space-x-8">
-        <a href="#" class="whitespace-nowrap border-b-2 border-orange-500 py-2 px-1 text-sm font-medium text-orange-600 dark:text-orange-400">
-          My Swarms
-        </a>
-        <a href="#" class="whitespace-nowrap border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300">
-          Public Library
-        </a>
-        <a href="#" class="whitespace-nowrap border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300">
-          Instance Templates
-        </a>
-      </nav>
-    </div>
-
-    <!-- Search and Filters -->
-    <div class="mb-6 flex flex-col sm:flex-row gap-4">
-      <div class="flex-1">
-        <input type="text"
-               placeholder="Search swarms..."
-               class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-      </div>
-      
-      <div class="flex gap-2">
-        <% popular_tags = ['development', 'testing', 'automation', 'analysis', 'frontend', 'backend'] %>
-        <% popular_tags.each do |tag| %>
-          <button type="button" 
-                  class="px-3 py-1 text-sm rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
-            <%= tag %>
-          </button>
-        <% end %>
+    <div class="mt-8">
+      <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+          <%= link_to swarm_templates_path(tab: 'swarms'), 
+              class: "#{params[:tab] != 'instance-templates' ? 'border-orange-900 dark:border-orange-500 text-orange-900 dark:text-orange-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200" do %>
+            <%= heroicon "cube", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            My Swarms
+            <span class="ml-2 rounded-full <%= params[:tab] != 'instance-templates' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' %> px-2.5 py-0.5 text-xs font-medium">
+              <%= @swarm_templates.count %>
+            </span>
+          <% end %>
+          
+          <%= link_to swarm_templates_path(tab: 'instance-templates'), 
+              class: "#{params[:tab] == 'instance-templates' ? 'border-orange-900 dark:border-orange-500 text-orange-900 dark:text-orange-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200" do %>
+            <%= heroicon "puzzle-piece", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            Instance Templates
+            <span class="ml-2 rounded-full <%= params[:tab] == 'instance-templates' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' %> px-2.5 py-0.5 text-xs font-medium">
+              <%= @instance_templates.count %>
+            </span>
+          <% end %>
+        </nav>
       </div>
     </div>
 
-    <!-- Swarms Grid -->
-    <% if @swarm_templates.any? %>
-      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <% @swarm_templates.each do |swarm| %>
-          <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 group">
-            <div class="p-6">
-              <div class="flex items-start justify-between">
-                <div class="flex-1 min-w-0">
-                  <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 truncate">
-                    <%= link_to swarm.name, swarm_template_path(swarm), 
-                        class: "group-hover:text-orange-900 dark:group-hover:text-orange-400" %>
-                  </h3>
-                  <% if swarm.description.present? %>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-                      <%= swarm.description %>
-                    </p>
+    <% if params[:tab] == 'instance-templates' %>
+      <!-- Instance Templates Tab Content -->
+      <!-- Search and Filters -->
+      <div class="mt-6">
+        <div class="sm:flex sm:items-end sm:space-x-4">
+          <div class="sm:max-w-xs">
+            <%= form_with url: swarm_templates_path, method: :get, local: true do |f| %>
+              <%= hidden_field_tag :tab, 'instance-templates' %>
+              <%= text_field_tag :instance_search, params[:instance_search], 
+                  placeholder: "Search templates...", 
+                  class: "block w-full rounded-md border-0 py-1.5 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 bg-white dark:bg-gray-700" %>
+            <% end %>
+          </div>
+
+          <% if @all_instance_tags&.any? %>
+            <div class="mt-4 sm:mt-0">
+              <div class="flex flex-wrap gap-2">
+                <% @all_instance_tags.each do |tag| %>
+                  <% active = params[:instance_tag] == tag %>
+                  <%= link_to swarm_templates_path(tab: 'instance-templates', instance_tag: active ? nil : tag, instance_search: params[:instance_search]), 
+                      class: "inline-flex items-center rounded-md #{active ? 'bg-orange-900 dark:bg-orange-900 text-white' : 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30'} px-3 py-1 text-xs font-medium ring-1 ring-inset #{active ? 'ring-orange-900 dark:ring-orange-900' : ''} hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200" do %>
+                    <%= heroicon "tag", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                    <%= tag %>
                   <% end %>
-                </div>
-                
-                <% if swarm.public? %>
-                  <span class="ml-3 inline-flex items-center rounded-full bg-green-100 dark:bg-green-900 px-2 py-0.5 text-xs font-medium text-green-800 dark:text-green-200 flex-shrink-0">
-                    Public
-                  </span>
-                <% elsif swarm.system_template? %>
-                  <span class="ml-3 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900 px-2 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-200 flex-shrink-0">
-                    System
-                  </span>
                 <% end %>
               </div>
-              
-              <!-- Swarm Preview -->
-              <div class="mt-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                <div class="flex items-center gap-4">
-                  <span class="flex items-center">
-                    <%= heroicon "cube", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
-                    <%= pluralize(swarm.instances.count, 'instance') %>
-                  </span>
-                  <% if swarm.usage_count > 0 %>
-                    <span class="flex items-center">
-                      <%= heroicon "rocket-launch", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
-                      Used <%= pluralize(swarm.usage_count, 'time') %>
-                    </span>
-                  <% end %>
-                </div>
-              </div>
-              
-              <!-- Tags -->
-              <% if swarm.tags&.any? %>
-                <div class="mt-3 flex flex-wrap gap-1">
-                  <% swarm.tags.first(3).each do |tag| %>
-                    <span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-medium text-gray-700 dark:text-gray-300">
-                      <%= tag %>
-                    </span>
-                  <% end %>
-                  <% if swarm.tags.size > 3 %>
-                    <span class="text-xs text-gray-500 dark:text-gray-400">+<%= swarm.tags.size - 3 %></span>
-                  <% end %>
-                </div>
-              <% end %>
             </div>
-            
-            <!-- Actions -->
-            <div class="bg-gray-50 dark:bg-gray-900 px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <%= link_to edit_swarm_template_path(swarm), 
-                      class: "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100",
-                      title: "Edit" do %>
-                    <%= heroicon "pencil", variant: :mini, options: { class: "h-4 w-4" } %>
-                  <% end %>
-                  
-                  <%= link_to duplicate_swarm_template_path(swarm), method: :post,
-                      class: "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100",
-                      title: "Duplicate" do %>
-                    <%= heroicon "document-duplicate", variant: :mini, options: { class: "h-4 w-4" } %>
-                  <% end %>
-                  
-                  <button type="button"
-                          data-action="click->swarm-card#export"
-                          data-swarm-id="<%= swarm.id %>"
-                          class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                          title="Export YAML">
-                    <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-4 w-4" } %>
-                  </button>
-                </div>
-                
-                <button type="button"
-                        data-controller="launch-swarm"
-                        data-action="click->launch-swarm#open"
-                        data-launch-swarm-template-id-value="<%= swarm.id %>"
-                        data-launch-swarm-required-vars-value="<%= swarm.required_environment_variables.to_json %>"
-                        class="inline-flex items-center rounded bg-orange-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-orange-700 transition-colors">
-                  <%= heroicon "play", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
-                  Launch
-                </button>
-              </div>
-            </div>
-          </div>
-        <% end %>
-      </div>
-    <% else %>
-      <!-- Empty State -->
-      <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg p-12 text-center border border-gray-200 dark:border-gray-700">
-        <svg class="mx-auto h-16 w-16 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 2l10 5v10l-10 5-10-5V7z M12 7v10 M2 7l10 5 10-5 M7 19.5V9.5l10 5v10" />
-        </svg>
-        <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No swarms yet</h3>
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          Get started by creating your first swarm configuration.
-        </p>
-        <div class="mt-6">
-          <%= link_to new_path, class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
-            <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-            Create Your First Swarm
           <% end %>
         </div>
       </div>
+      
+      <% if @instance_templates.any? %>
+        <div class="mt-8 space-y-4">
+          <% @instance_templates.each do |template| %>
+            <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg p-6 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
+              <div class="flex items-center justify-between">
+                <div class="flex items-start space-x-8 flex-1">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center space-x-3">
+                      <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        <%= link_to template.name, instance_template_path(template), 
+                            class: "hover:text-orange-900 dark:hover:text-orange-400" %>
+                      </h3>
+                      <% if template.system_template? %>
+                        <span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-blue-600/20 dark:ring-blue-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                          <%= heroicon "shield-check", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                          System
+                        </span>
+                      <% end %>
+                    </div>
+                    <% if template.description.present? %>
+                      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <%= template.description %>
+                      </p>
+                    <% end %>
+                    <div class="mt-2 flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
+                      <% if template.model.present? %>
+                        <div class="flex items-center">
+                          <%= heroicon "cpu-chip", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+                          <%= template.model %>
+                        </div>
+                      <% end %>
+                      <% if template.provider.present? %>
+                        <div class="flex items-center">
+                          <%= heroicon "globe-alt", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+                          <%= template.provider.capitalize %>
+                        </div>
+                      <% end %>
+                      <div class="flex items-center">
+                        <%= heroicon "cube", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+                        Used in <%= pluralize(template.swarm_template_instances.count, 'swarm') %>
+                      </div>
+                    </div>
+                    <% if template.tags&.any? %>
+                      <div class="mt-2 flex flex-wrap gap-2">
+                        <% template.tags.each do |tag| %>
+                          <%= link_to tag, swarm_templates_path(tab: 'instance-templates', instance_tag: tag), 
+                              class: "inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset hover:bg-gray-100 dark:hover:bg-gray-800" %>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+
+                <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
+                  <%= link_to edit_instance_template_path(template), 
+                      class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                    <%= heroicon "pencil", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                    Edit
+                  <% end %>
+                  <% unless template.system_template? %>
+                    <%= link_to duplicate_instance_template_path(template), 
+                        data: { turbo_method: :post },
+                        class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                      <%= heroicon "document-duplicate", variant: :mini, options: { class: "h-4 w-4" } %>
+                    <% end %>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="mt-8 text-center">
+          <div class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500">
+            <%= heroicon 'puzzle-piece', variant: :outline, options: { class: "h-12 w-12" } %>
+          </div>
+          <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+            No instance templates
+          </h3>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Create reusable instance configurations for your swarms.
+          </p>
+          <div class="mt-6">
+            <%= link_to new_instance_template_path, 
+                class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+              <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+              Create Instance Template
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <!-- Swarms Tab Content -->
+      <!-- Search and Filters -->
+      <div class="mt-6">
+        <div class="sm:flex sm:items-end sm:space-x-4">
+          <div class="sm:max-w-xs">
+            <%= form_with url: swarm_templates_path, method: :get, local: true do |f| %>
+              <%= text_field_tag :search, params[:search], 
+                  placeholder: "Search swarms...", 
+                  class: "block w-full rounded-md border-0 py-1.5 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 bg-white dark:bg-gray-700" %>
+            <% end %>
+          </div>
+
+          <% if @all_tags&.any? %>
+            <div class="mt-4 sm:mt-0">
+              <div class="flex flex-wrap gap-2">
+                <% @all_tags.each do |tag| %>
+                  <% active = params[:tag] == tag %>
+                  <%= link_to swarm_templates_path(tag: active ? nil : tag, search: params[:search]), 
+                      class: "inline-flex items-center rounded-md #{active ? 'bg-orange-900 dark:bg-orange-900 text-white' : 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30'} px-3 py-1 text-xs font-medium ring-1 ring-inset #{active ? 'ring-orange-900 dark:ring-orange-900' : ''} hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200" do %>
+                    <%= heroicon "tag", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                    <%= tag %>
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      
+      <% if @swarm_templates.any? %>
+        <div class="mt-8 space-y-4">
+          <% @swarm_templates.each do |swarm| %>
+            <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg p-6 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
+              <div class="flex items-center justify-between">
+                <div class="flex items-start space-x-8 flex-1">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center space-x-3">
+                      <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        <%= link_to swarm.name, swarm_template_path(swarm), 
+                            class: "hover:text-orange-900 dark:hover:text-orange-400" %>
+                      </h3>
+                      <% if swarm.system_template? %>
+                        <span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-blue-600/20 dark:ring-blue-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                          System
+                        </span>
+                      <% end %>
+                    </div>
+                    <% if swarm.description.present? %>
+                      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <%= swarm.description %>
+                      </p>
+                    <% end %>
+                    <div class="mt-2 flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
+                      <div class="flex items-center">
+                        <%= heroicon "cube", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+                        <%= pluralize(swarm.instances.count, 'instance') %>
+                      </div>
+                      <% if swarm.usage_count > 0 %>
+                        <div class="flex items-center">
+                          <%= heroicon "rocket-launch", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+                          Used <%= pluralize(swarm.usage_count, 'time') %>
+                        </div>
+                      <% end %>
+                      <% if swarm.updated_at %>
+                        <div>
+                          <span class="font-medium">Last updated:</span> <%= time_ago_in_words(swarm.updated_at) %> ago
+                        </div>
+                      <% end %>
+                    </div>
+                    <% if swarm.tags&.any? %>
+                      <div class="mt-2 flex flex-wrap gap-2">
+                        <% swarm.tags.each do |tag| %>
+                          <%= link_to tag, swarm_templates_path(tag: tag), 
+                              class: "inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset hover:bg-gray-100 dark:hover:bg-gray-800" %>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+
+                <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
+                  <%= link_to launch_session_swarm_template_path(swarm), 
+                      data: { turbo_method: :post },
+                      class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                    <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                    Launch
+                  <% end %>
+                  <%= link_to edit_swarm_template_path(swarm), 
+                      class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                    <%= heroicon "pencil", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                    Edit
+                  <% end %>
+                  <%= link_to export_swarm_template_path(swarm, format: :yaml), 
+                      class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                    <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-4 w-4" } %>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="mt-8 text-center">
+          <div class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500">
+            <%= heroicon 'cube', variant: :outline, options: { class: "h-12 w-12" } %>
+          </div>
+          <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+            No swarms yet
+          </h3>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Get started by creating your first swarm configuration.
+          </p>
+          <div class="mt-6">
+            <% new_swarm_path = @project ? new_project_swarm_template_path(@project, visual: true) : new_swarm_template_path(visual: true) %>
+            <%= link_to new_swarm_path, 
+                class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+              <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+              Create Your First Swarm
+            <% end %>
+          </div>
+        </div>
+      <% end %>
     <% end %>
   </div>
 </div>

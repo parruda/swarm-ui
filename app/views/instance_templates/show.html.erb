@@ -1,0 +1,182 @@
+<% content_for :title, @instance_template.name %>
+
+<div class="py-8">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-8" aria-label="Breadcrumb">
+      <ol role="list" class="flex items-center space-x-4">
+        <li>
+          <div class="flex items-center">
+            <%= link_to swarm_templates_path(tab: 'instance-templates'), class: "text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" do %>
+              Instance Templates
+            <% end %>
+          </div>
+        </li>
+        <li>
+          <div class="flex items-center">
+            <%= heroicon "chevron-right", variant: :mini, options: { class: "h-5 w-5 flex-shrink-0 text-gray-400" } %>
+            <span class="ml-4 text-sm font-medium text-gray-500 dark:text-gray-400"><%= @instance_template.name %></span>
+          </div>
+        </li>
+      </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="sm:flex sm:items-center sm:justify-between">
+        <div class="sm:flex-auto">
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100"><%= @instance_template.name %></h1>
+          <% if @instance_template.description.present? %>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <%= @instance_template.description %>
+            </p>
+          <% end %>
+        </div>
+        
+        <div class="mt-4 flex items-center gap-x-3 sm:ml-16 sm:mt-0 sm:flex-none">
+          <%= link_to edit_instance_template_path(@instance_template), 
+              class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600" do %>
+            <%= heroicon "pencil", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+            Edit
+          <% end %>
+          
+          <%= link_to duplicate_instance_template_path(@instance_template), 
+              method: :post,
+              class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600" do %>
+            <%= heroicon "document-duplicate", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+            Duplicate
+          <% end %>
+          
+          <% unless @instance_template.system_template? || @instance_template.swarm_template_instances.any? %>
+            <%= link_to instance_template_path(@instance_template), 
+                method: :delete,
+                data: { confirm: "Are you sure?" },
+                class: "inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500" do %>
+              <%= heroicon "trash", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+              Delete
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Configuration Details -->
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      <!-- Left: Configuration -->
+      <div class="lg:col-span-2">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Configuration</h3>
+          
+          <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+            <div>
+              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Model</dt>
+              <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <%= @instance_template.model || "Not specified" %>
+              </dd>
+            </div>
+            
+            <div>
+              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Provider</dt>
+              <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <%= @instance_template.provider&.capitalize || "Not specified" %>
+              </dd>
+            </div>
+            
+            <% if @instance_template.tags&.any? %>
+              <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Tags</dt>
+                <dd class="mt-1 flex flex-wrap gap-2">
+                  <% @instance_template.tags.each do |tag| %>
+                    <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-1 ring-inset ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium">
+                      <%= tag %>
+                    </span>
+                  <% end %>
+                </dd>
+              </div>
+            <% end %>
+            
+            <div>
+              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Working Directory</dt>
+              <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <%= @instance_template.config['directory'] || "." %>
+              </dd>
+            </div>
+            
+            <% if @instance_template.config['temperature'].present? %>
+              <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Temperature</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  <%= @instance_template.config['temperature'] %>
+                </dd>
+              </div>
+            <% end %>
+          </dl>
+          
+          <% if @instance_template.config['system_prompt'].present? %>
+            <div class="mt-6">
+              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">System Prompt</dt>
+              <dd class="mt-2 text-sm text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900 rounded-md p-3">
+                <pre class="whitespace-pre-wrap"><%= @instance_template.config['system_prompt'] %></pre>
+              </dd>
+            </div>
+          <% end %>
+          
+          <% if @instance_template.config['allowed_tools'].present? %>
+            <div class="mt-6">
+              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Allowed Tools</dt>
+              <dd class="flex flex-wrap gap-2">
+                <% @instance_template.config['allowed_tools'].each do |tool| %>
+                  <span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-200">
+                    <%= tool %>
+                  </span>
+                <% end %>
+              </dd>
+            </div>
+          <% end %>
+        </div>
+        
+        <!-- Raw Configuration -->
+        <div class="mt-6 bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Raw Configuration</h3>
+          <pre class="text-sm bg-gray-50 dark:bg-gray-900 rounded-md p-4 overflow-x-auto"><%= JSON.pretty_generate(@instance_template.config) %></pre>
+        </div>
+      </div>
+
+      <!-- Right: Usage Stats -->
+      <div class="lg:col-span-1">
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Usage Statistics</h3>
+          
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Used in <%= pluralize(@swarm_templates.count, 'swarm template') %>
+          </p>
+          
+          <% if @swarm_templates.any? %>
+            <div class="space-y-3">
+              <% @swarm_templates.each do |swarm| %>
+                <div class="flex items-center justify-between">
+                  <%= link_to swarm.name, swarm_template_path(swarm), 
+                      class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 truncate" %>
+                  <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                    <%= pluralize(swarm.usage_count, 'use') %>
+                  </span>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              This template is not currently used in any swarms.
+            </p>
+          <% end %>
+        </div>
+        
+        <% if @instance_template.metadata.present? %>
+          <div class="mt-6 bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Metadata</h3>
+            <pre class="text-sm bg-gray-50 dark:bg-gray-900 rounded-md p-4 overflow-x-auto"><%= JSON.pretty_generate(@instance_template.metadata) %></pre>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

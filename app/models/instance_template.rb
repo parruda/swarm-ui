@@ -37,8 +37,10 @@ class InstanceTemplate < ApplicationRecord
   validate :config_structure
   # validate :model_matches_provider # Allow any model name for flexibility
   validate :reasoning_effort_for_o_series_only
+  validate :required_config_fields
 
   # Callbacks
+  before_validation :set_openai_defaults
   after_save :extract_required_variables, if: :saved_change_to_config?
 
   # Scopes
@@ -48,6 +50,15 @@ class InstanceTemplate < ApplicationRecord
   scope :by_category, ->(category) { where(category: category) }
   scope :claude, -> { where("config->>'provider' = ?", "claude") }
   scope :openai, -> { where("config->>'provider' = ?", "openai") }
+  scope :with_tag, ->(tag) { where("tags LIKE ?", "%#{tag}%") }
+
+  # Class methods
+  class << self
+    def all_tags
+      # Get all unique tags from all instance templates
+      pluck(:tags).flatten.compact.uniq.sort
+    end
+  end
 
   # Instance methods
   def provider
@@ -125,6 +136,27 @@ class InstanceTemplate < ApplicationRecord
     new_template
   end
 
+  def add_tag(tag)
+    return if tag.blank?
+
+    normalized_tag = tag.downcase.strip
+    self.tags ||= []
+    self.tags << normalized_tag unless tags.include?(normalized_tag)
+    save
+  end
+
+  def remove_tag(tag)
+    return if tag.blank?
+
+    self.tags ||= []
+    self.tags.delete(tag.downcase.strip)
+    save
+  end
+
+  def tagged_with?(tag)
+    tags&.include?(tag.downcase.strip)
+  end
+
   private
 
   def config_structure
@@ -166,6 +198,29 @@ class InstanceTemplate < ApplicationRecord
     return unless reasoning_effort.present? && !o_series?
 
     errors.add(:config, "reasoning_effort can only be set for o-series models")
+  end
+
+  def required_config_fields
+    return unless config.present?
+
+    # Validate required fields
+    if config["directory"].blank?
+      errors.add(:config, "must include 'directory'")
+    end
+
+    if config["system_prompt"].blank?
+      errors.add(:config, "must include 'system_prompt'")
+    end
+  end
+
+  def set_openai_defaults
+    return unless config.present? && openai?
+
+    # Set all tools for OpenAI
+    config["allowed_tools"] = AVAILABLE_TOOLS.dup
+
+    # Always set vibe to true for OpenAI
+    config["vibe"] = true
   end
 
   def extract_required_variables

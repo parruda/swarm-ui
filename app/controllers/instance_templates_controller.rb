@@ -84,12 +84,24 @@ class InstanceTemplatesController < ApplicationController
   end
 
   def instance_template_params
-    params.require(:instance_template).permit(
+    permitted = params.require(:instance_template).permit(
       :name,
       :description,
       :category,
+      :tags_string,
       config: {},
       metadata: {},
     )
+
+    # Process tags from comma-separated string
+    if permitted[:tags_string].present?
+      permitted[:tags] = permitted[:tags_string].split(",").map(&:strip).map(&:downcase).uniq
+      permitted.delete(:tags_string)
+    elsif permitted[:tags_string] == ""
+      permitted[:tags] = []
+      permitted.delete(:tags_string)
+    end
+
+    permitted
   end
 end

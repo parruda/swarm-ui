@@ -281,6 +281,7 @@ GEM
     nokogiri (1.18.8-x86_64-linux-musl)
       racc (~> 1.4)
     ostruct (0.6.2)
+    pagy (9.3.5)
     parallel (1.27.0)
     parser (3.3.8.0)
       ast (~> 2.4.1)
@@ -515,6 +516,7 @@ DEPENDENCIES
   jbuilder
   minitest
   mocha
+  pagy (~> 9.3)
   propshaft
   puma (>= 5.0)
   rails (~> 8.0.2)

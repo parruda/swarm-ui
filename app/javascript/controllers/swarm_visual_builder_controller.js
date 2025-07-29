@@ -158,6 +158,8 @@ export default class extends Controller {
       model: config.model || "sonnet",
       provider: config.provider || "claude",
       directory: config.directory || ".",
+      system_prompt: config.system_prompt || "",
+      temperature: config.temperature || null,
       allowed_tools: config.allowed_tools || []
     }
     
@@ -595,49 +597,123 @@ export default class extends Controller {
   }
   
   showNodeProperties(nodeData) {
+    const isOpenAI = nodeData.provider === 'openai'
+    const isClaude = !isOpenAI
+    
+    // Get available tools list
+    const availableTools = [
+      "Bash", "Edit", "Glob", "Grep", "LS", "MultiEdit", "NotebookEdit", 
+      "NotebookRead", "Read", "Task", "TodoWrite", "WebFetch", "WebSearch", "Write"
+    ]
+    
     this.propertiesPanelTarget.innerHTML = `
-      <div class="p-4 space-y-4">
+      <div class="p-4 space-y-4 overflow-y-auto">
         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Instance: ${nodeData.label}</h3>
         
         <div class="space-y-4">
+          <!-- Name/Label -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Instance Name</label>
+            <input type="text" 
+                   value="${nodeData.label || ''}" 
+                   data-property="label"
+                   data-node-id="${nodeData.id}"
+                   class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm focus:outline-none">
+          </div>
+          
+          <!-- Description -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
             <input type="text" 
                    value="${nodeData.description || ''}" 
                    data-property="description"
                    data-node-id="${nodeData.id}"
-                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm">
+                   class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm focus:outline-none">
           </div>
           
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Model</label>
-            <input type="text" 
-                   value="${nodeData.model || 'sonnet'}" 
-                   data-property="model"
-                   data-node-id="${nodeData.id}"
-                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm">
-          </div>
-          
+          <!-- Provider -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Provider</label>
             <select data-property="provider" 
                     data-node-id="${nodeData.id}"
-                    class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm">
-              <option value="claude" ${nodeData.provider === 'claude' ? 'selected' : ''}>Claude</option>
-              <option value="openai" ${nodeData.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
+                    data-action="change->swarm-visual-builder#updateNodeProperty"
+                    class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm focus:outline-none">
+              <option value="claude" ${isClaude ? 'selected' : ''}>Claude</option>
+              <option value="openai" ${isOpenAI ? 'selected' : ''}>OpenAI</option>
             </select>
           </div>
           
+          <!-- Model -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Directory</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Model <span class="text-red-500">*</span></label>
+            <input type="text" 
+                   value="${nodeData.model || 'sonnet'}" 
+                   data-property="model"
+                   data-node-id="${nodeData.id}"
+                   placeholder="e.g., claude-3-5-sonnet-20241022"
+                   class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm focus:outline-none">
+          </div>
+          
+          <!-- Directory -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Working Directory <span class="text-red-500">*</span></label>
             <input type="text" 
                    value="${nodeData.directory || '.'}" 
                    data-property="directory"
                    data-node-id="${nodeData.id}"
-                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm">
+                   placeholder="e.g., . or ./frontend"
+                   class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm font-mono focus:outline-none">
           </div>
           
+          <!-- Temperature (only for OpenAI) -->
+          <div id="temperature-field" style="display: ${isOpenAI ? 'block' : 'none'};">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Temperature</label>
+            <input type="number" 
+                   value="${nodeData.temperature || ''}" 
+                   data-property="temperature"
+                   data-node-id="${nodeData.id}"
+                   min="0"
+                   max="2"
+                   step="0.1"
+                   placeholder="e.g., 0.7"
+                   class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm focus:outline-none">
+          </div>
+          
+          <!-- System Prompt -->
           <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">System Prompt <span class="text-red-500">*</span></label>
+            <textarea data-property="system_prompt"
+                      data-node-id="${nodeData.id}"
+                      rows="4"
+                      placeholder="Define the behavior and capabilities of this AI instance..."
+                      class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm focus:outline-none">${nodeData.system_prompt || ''}</textarea>
+          </div>
+          
+          <!-- Allowed Tools (only for Claude) -->
+          <div id="tools-field" style="display: ${isClaude ? 'block' : 'none'};">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Allowed Tools
+              <span class="text-xs text-gray-500 dark:text-gray-400">(OpenAI has access to all tools)</span>
+            </label>
+            <div class="border border-gray-200 dark:border-gray-700 rounded-md p-3 bg-gray-50 dark:bg-gray-800 max-h-48 overflow-y-auto">
+              <div class="grid grid-cols-2 gap-2">
+                ${availableTools.map(tool => `
+                  <label class="flex items-center cursor-pointer hover:text-gray-900 dark:hover:text-gray-100">
+                    <input type="checkbox"
+                           value="${tool}"
+                           ${nodeData.allowed_tools?.includes(tool) ? 'checked' : ''}
+                           data-tool-checkbox
+                           data-node-id="${nodeData.id}"
+                           class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-0 focus:outline-none cursor-pointer">
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">${tool}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Main Instance Toggle -->
+          <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
               <input type="checkbox" 
                      ${this.mainNodeId === nodeData.id ? 'checked' : ''}
@@ -650,11 +726,12 @@ export default class extends Controller {
             </label>
           </div>
           
+          <!-- Delete Button -->
           <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
             <button type="button"
                     data-action="click->swarm-visual-builder#deleteNode"
                     data-node-id="${nodeData.id}"
-                    class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm">
+                    class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm transition-colors">
               Delete Instance
             </button>
           </div>
@@ -662,9 +739,14 @@ export default class extends Controller {
       </div>
     `
     
-    // Add change listeners
-    this.propertiesPanelTarget.querySelectorAll('input:not([type="checkbox"]), select').forEach(input => {
-      input.addEventListener('change', (e) => this.updateNodeProperty(e))
+    // Add change listeners for regular inputs
+    this.propertiesPanelTarget.querySelectorAll('input:not([type="checkbox"]):not([data-tool-checkbox]), select, textarea').forEach(input => {
+      input.addEventListener('input', (e) => this.updateNodeProperty(e))
+    })
+    
+    // Add change listeners for tool checkboxes
+    this.propertiesPanelTarget.querySelectorAll('[data-tool-checkbox]').forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => this.updateAllowedTools(e))
     })
   }
   
@@ -677,12 +759,63 @@ export default class extends Controller {
     if (node) {
       node.data[property] = value
       
-      // Update visual if needed
+      // Update visual elements
       if (property === 'model') {
         const badge = node.element.querySelector('.node-tag.model-tag')
         if (badge) badge.textContent = value
+      } else if (property === 'label') {
+        const titleEl = node.element.querySelector('.node-title')
+        if (titleEl) titleEl.textContent = value
+        // Update the header in properties panel too
+        const header = this.propertiesPanelTarget.querySelector('h3')
+        if (header) header.textContent = `Instance: ${value}`
+      } else if (property === 'description') {
+        const descEl = node.element.querySelector('.node-description')
+        if (descEl) descEl.textContent = value || 'No description'
+      } else if (property === 'provider') {
+        // Toggle fields based on provider
+        const temperatureField = this.propertiesPanelTarget.querySelector('#temperature-field')
+        const toolsField = this.propertiesPanelTarget.querySelector('#tools-field')
+        
+        if (value === 'openai') {
+          if (temperatureField) temperatureField.style.display = 'block'
+          if (toolsField) toolsField.style.display = 'none'
+          // Set all tools for OpenAI
+          node.data.allowed_tools = [
+            "Bash", "Edit", "Glob", "Grep", "LS", "MultiEdit", "NotebookEdit", 
+            "NotebookRead", "Read", "Task", "TodoWrite", "WebFetch", "WebSearch", "Write"
+          ]
+          // Clear temperature for Claude
+        } else {
+          if (temperatureField) temperatureField.style.display = 'none'
+          if (toolsField) toolsField.style.display = 'block'
+          // Clear temperature for Claude
+          node.data.temperature = null
+          const tempInput = this.propertiesPanelTarget.querySelector('[data-property="temperature"]')
+          if (tempInput) tempInput.value = ''
+        }
+        
+        // Update provider badge
+        const providerBadge = node.element.querySelector('.node-tag.provider-tag')
+        if (providerBadge) providerBadge.textContent = value
       }
       
+      this.updateYamlPreview()
+    }
+  }
+  
+  updateAllowedTools(event) {
+    const nodeId = parseInt(event.target.dataset.nodeId)
+    const node = this.nodes.get(nodeId)
+    
+    if (node) {
+      // Get all checked tools
+      const checkedTools = []
+      this.propertiesPanelTarget.querySelectorAll('[data-tool-checkbox]:checked').forEach(checkbox => {
+        checkedTools.push(checkbox.value)
+      })
+      
+      node.data.allowed_tools = checkedTools
       this.updateYamlPreview()
     }
   }
@@ -821,6 +954,8 @@ export default class extends Controller {
       if (node.data.provider && node.data.provider !== 'claude') instanceConfig.provider = node.data.provider
       if (node.data.model && node.data.model !== 'sonnet') instanceConfig.model = node.data.model
       if (node.data.directory && node.data.directory !== '.') instanceConfig.directory = node.data.directory
+      if (node.data.system_prompt) instanceConfig.system_prompt = node.data.system_prompt
+      if (node.data.temperature !== null && node.data.temperature !== undefined) instanceConfig.temperature = node.data.temperature
       if (node.data.allowed_tools?.length > 0) instanceConfig.allowed_tools = node.data.allowed_tools
       
       // Find connections from this node
@@ -1035,6 +1170,8 @@ export default class extends Controller {
       if (node.data.provider && node.data.provider !== 'claude') instanceConfig.provider = node.data.provider
       if (node.data.model && node.data.model !== 'sonnet') instanceConfig.model = node.data.model
       if (node.data.directory && node.data.directory !== '.') instanceConfig.directory = node.data.directory
+      if (node.data.system_prompt) instanceConfig.system_prompt = node.data.system_prompt
+      if (node.data.temperature !== null && node.data.temperature !== undefined) instanceConfig.temperature = node.data.temperature
       if (node.data.allowed_tools?.length > 0) instanceConfig.allowed_tools = node.data.allowed_tools
       
       // Find connections from this node

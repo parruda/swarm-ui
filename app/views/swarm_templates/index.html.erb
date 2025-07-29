@@ -69,34 +69,36 @@
 
     <% if params[:tab] == 'instance-templates' %>
       <!-- Instance Templates Tab Content -->
-      <!-- Search and Filters -->
-      <div class="mt-6">
-        <div class="sm:flex sm:items-end sm:space-x-4">
-          <div class="w-full sm:max-w-md">
-            <%= form_with url: swarm_templates_path, method: :get, local: true do |f| %>
-              <%= hidden_field_tag :tab, 'instance-templates' %>
-              <%= text_field_tag :instance_search, params[:instance_search], 
-                  placeholder: "Search templates...", 
-                  class: "block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 bg-white dark:bg-gray-700 focus:outline-none" %>
+      <% if InstanceTemplate.any? %>
+        <!-- Search and Filters -->
+        <div class="mt-6">
+          <div class="sm:flex sm:items-end sm:space-x-4">
+            <div class="w-full sm:max-w-md">
+              <%= form_with url: swarm_templates_path, method: :get, local: true do |f| %>
+                <%= hidden_field_tag :tab, 'instance-templates' %>
+                <%= text_field_tag :instance_search, params[:instance_search], 
+                    placeholder: "Search templates...", 
+                    class: "block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 bg-white dark:bg-gray-700 focus:outline-none" %>
+              <% end %>
+            </div>
+
+            <% if @all_instance_tags&.any? %>
+              <div class="mt-4 sm:mt-0">
+                <div class="flex flex-wrap gap-2">
+                  <% @all_instance_tags.each do |tag| %>
+                    <% active = params[:instance_tag] == tag %>
+                    <%= link_to swarm_templates_path(tab: 'instance-templates', instance_tag: active ? nil : tag, instance_search: params[:instance_search]), 
+                        class: "inline-flex items-center rounded-md #{active ? 'bg-orange-900 dark:bg-orange-900 text-white' : 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30'} px-3 py-1 text-xs font-medium ring-1 ring-inset #{active ? 'ring-orange-900 dark:ring-orange-900' : ''} hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200" do %>
+                      <%= heroicon "tag", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                      <%= tag %>
+                    <% end %>
+                  <% end %>
+                </div>
+              </div>
             <% end %>
           </div>
-
-          <% if @all_instance_tags&.any? %>
-            <div class="mt-4 sm:mt-0">
-              <div class="flex flex-wrap gap-2">
-                <% @all_instance_tags.each do |tag| %>
-                  <% active = params[:instance_tag] == tag %>
-                  <%= link_to swarm_templates_path(tab: 'instance-templates', instance_tag: active ? nil : tag, instance_search: params[:instance_search]), 
-                      class: "inline-flex items-center rounded-md #{active ? 'bg-orange-900 dark:bg-orange-900 text-white' : 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30'} px-3 py-1 text-xs font-medium ring-1 ring-inset #{active ? 'ring-orange-900 dark:ring-orange-900' : ''} hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200" do %>
-                    <%= heroicon "tag", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
-                    <%= tag %>
-                  <% end %>
-                <% end %>
-              </div>
-            </div>
-          <% end %>
         </div>
-      </div>
+      <% end %>
       
       <% if @instance_templates.any? %>
         <div class="mt-8 space-y-4">
@@ -191,33 +193,35 @@
       <% end %>
     <% else %>
       <!-- Swarms Tab Content -->
-      <!-- Search and Filters -->
-      <div class="mt-6">
-        <div class="sm:flex sm:items-end sm:space-x-4">
-          <div class="w-full sm:max-w-md">
-            <%= form_with url: swarm_templates_path, method: :get, local: true do |f| %>
-              <%= text_field_tag :search, params[:search], 
-                  placeholder: "Search swarms...", 
-                  class: "block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 bg-white dark:bg-gray-700 focus:outline-none" %>
+      <% if SwarmTemplate.any? %>
+        <!-- Search and Filters -->
+        <div class="mt-6">
+          <div class="sm:flex sm:items-end sm:space-x-4">
+            <div class="w-full sm:max-w-md">
+              <%= form_with url: swarm_templates_path, method: :get, local: true do |f| %>
+                <%= text_field_tag :search, params[:search], 
+                    placeholder: "Search swarms...", 
+                    class: "block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 bg-white dark:bg-gray-700 focus:outline-none" %>
+              <% end %>
+            </div>
+
+            <% if @all_tags&.any? %>
+              <div class="mt-4 sm:mt-0">
+                <div class="flex flex-wrap gap-2">
+                  <% @all_tags.each do |tag| %>
+                    <% active = params[:tag] == tag %>
+                    <%= link_to swarm_templates_path(tag: active ? nil : tag, search: params[:search]), 
+                        class: "inline-flex items-center rounded-md #{active ? 'bg-orange-900 dark:bg-orange-900 text-white' : 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30'} px-3 py-1 text-xs font-medium ring-1 ring-inset #{active ? 'ring-orange-900 dark:ring-orange-900' : ''} hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200" do %>
+                      <%= heroicon "tag", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                      <%= tag %>
+                    <% end %>
+                  <% end %>
+                </div>
+              </div>
             <% end %>
           </div>
-
-          <% if @all_tags&.any? %>
-            <div class="mt-4 sm:mt-0">
-              <div class="flex flex-wrap gap-2">
-                <% @all_tags.each do |tag| %>
-                  <% active = params[:tag] == tag %>
-                  <%= link_to swarm_templates_path(tag: active ? nil : tag, search: params[:search]), 
-                      class: "inline-flex items-center rounded-md #{active ? 'bg-orange-900 dark:bg-orange-900 text-white' : 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30'} px-3 py-1 text-xs font-medium ring-1 ring-inset #{active ? 'ring-orange-900 dark:ring-orange-900' : ''} hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200" do %>
-                    <%= heroicon "tag", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
-                    <%= tag %>
-                  <% end %>
-                <% end %>
-              </div>
-            </div>
-          <% end %>
         </div>
-      </div>
+      <% end %>
       
       <% if @swarm_templates.any? %>
         <div class="mt-8 space-y-4">

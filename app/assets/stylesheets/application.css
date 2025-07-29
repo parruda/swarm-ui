@@ -371,3 +371,9 @@ iframe::-webkit-scrollbar {
   animation: fade-in-down 0.2s ease-out;
 }
 
+/* Swarm Visual Builder */
+[data-swarm-visual-builder-target="propertiesPanel"] {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+

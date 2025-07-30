@@ -23,6 +23,7 @@ Rails.application.routes.draw do
       post :create_terminal
       post :kill_terminal
       get :terminals
+      post :refresh_git_status
     end
   end
 

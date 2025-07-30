@@ -6,7 +6,7 @@ require "shellwords"
 require "open3"
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_stage, :git_commit, :git_reset, :send_to_tmux, :create_terminal, :terminals, :kill_terminal]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_stage, :git_commit, :git_reset, :send_to_tmux, :create_terminal, :terminals, :kill_terminal, :refresh_git_status]
 
   def index
     @filter = params[:filter] || "active"
@@ -897,6 +897,36 @@ class SessionsController < ApplicationController
     terminal.update!(status: "stopped", ended_at: Time.current)
 
     render(json: { success: true })
+  end
+
+  def refresh_git_status
+    unless @session.active?
+      head(:unprocessable_entity)
+      return
+    end
+
+    # Force a fresh fetch
+    git_service = OptimizedGitStatusService.new(@session)
+    @git_statuses = git_service.fetch_all_statuses
+
+    # Update cache
+    cache_key = GitStatusMonitorJob.cache_key(@session.id)
+    Rails.cache.write(cache_key, @git_statuses, expires_in: 5.minutes)
+
+    # Also trigger the background job with force update
+    GitStatusMonitorJob.perform_later(@session.id, force_update: true)
+
+    # Respond with Turbo Stream
+    respond_to do |format|
+      format.turbo_stream do
+        render(turbo_stream: turbo_stream.update(
+          "git-status-display",
+          partial: "shared/git_status",
+          locals: { session: @session, git_statuses: @git_statuses },
+        ))
+      end
+      format.html { redirect_to(session_path(@session)) }
+    end
   end
 
   def send_to_tmux

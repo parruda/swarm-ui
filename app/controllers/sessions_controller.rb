@@ -691,25 +691,19 @@ class SessionsController < ApplicationController
       all_changes = "## Unstaged changes:\n#{diff_output}\n\n## Staged changes:\n#{staged_diff}\n\n## Untracked files:\n#{untracked_files}"
 
       # Use Claude to generate commit message
-      claude_prompt = "Generate a concise git commit message for the following changes:\n\n#{all_changes}"
-      Shellwords.escape(claude_prompt)
-
-      # Call Claude CLI to generate commit message
-      commit_message, commit_err, commit_status = Open3.capture3("claude", "-p", claude_prompt)
-
-      unless commit_status.success?
+      begin
+        claude_service = ClaudeService.new(working_directory: directory)
+        commit_message = claude_service.generate_commit_message(all_changes)
+      rescue ClaudeService::ClaudeError => e
         render(
           json: {
             success: false,
-            error: "Failed to generate commit message with Claude: #{commit_err.empty? ? commit_message : commit_err}",
+            error: "Failed to generate commit message with Claude: #{e.message}",
           },
           status: :unprocessable_entity,
         )
         return
       end
-
-      # Clean up the commit message (remove any extra whitespace)
-      commit_message = commit_message.strip
 
       # Stage all changes
       stage_result, stage_err, stage_status = Open3.capture3("git add .", chdir: directory)
@@ -725,7 +719,6 @@ class SessionsController < ApplicationController
       end
 
       # Commit with the generated message
-      Shellwords.escape(commit_message)
       commit_result, commit_err, commit_status = Open3.capture3("git", "commit", "-m", commit_message, chdir: directory)
 
       if commit_status.success?

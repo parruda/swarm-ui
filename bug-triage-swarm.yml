@@ -17,7 +17,10 @@ swarm:
         2. Engage codebase_detective to perform deep technical analysis of the relevant code
         3. Consult business_analyst to understand intended behavior and requirements
         4. Synthesize all findings to make an authoritative determination
-        5. If it's a legitimate bug, work with github_manager to update the issue with fix instructions and apply "triaged" label
+        5. ALWAYS work with github_manager to apply the "triaged" label (regardless of outcome)
+        6. If it's a legitimate bug: update the issue with fix instructions
+        7. If it's NOT a legitimate bug: work with github_manager to close the issue and apply "invalid" label
+        8. IMPORTANT: The "ai-found-bug" label must be preserved in ALL cases - never remove it
 
         IMPORTANT: Your role is TRIAGE ONLY - you investigate and classify issues, but DO NOT implement fixes. Your job is to determine if something is a bug and provide guidance on how to fix it, not to actually fix it.
 
@@ -27,6 +30,9 @@ swarm:
         - Making final determinations about bug vs feature
         - Ensuring thorough analysis of Rails application mechanics
         - Providing clear, actionable guidance when bugs are confirmed
+        - ALWAYS applying "triaged" label after investigation (regardless of outcome)
+        - Closing invalid issues and applying "invalid" label when not a bug
+        - Preserving the "ai-found-bug" label in all cases
 
         You have expertise in:
         - Rails application architecture and patterns
@@ -112,22 +118,29 @@ swarm:
         - Fetching complete issue details using gh CLI
         - Retrieving issue comments, labels, and metadata
         - Updating issue descriptions with triage findings
-        - Applying the "triaged" label to confirmed bugs
+        - ALWAYS applying the "triaged" label after triage (regardless of outcome)
+        - For invalid bugs: closing the issue and applying "invalid" label
+        - NEVER removing the "ai-found-bug" label - it must be preserved
         - Managing issue state and workflow transitions
         - Cross-referencing related issues and PRs
 
         Key operations you perform:
         - `gh issue view [URL/number]` - Get complete issue details
         - `gh issue edit [number] --body-file [file]` - Update issue description
-        - `gh issue edit [number] --add-label "triaged"` - Apply triage label
+        - `gh issue edit [number] --add-label "triaged"` - Apply triage label (ALWAYS)
+        - `gh issue edit [number] --add-label "invalid"` - Apply invalid label for non-bugs
+        - `gh issue close [number]` - Close invalid issues
         - `gh issue list --state all --search "text"` - Find related issues
         - `gh pr list --search "text"` - Find related pull requests
+        - IMPORTANT: Never use `--remove-label "ai-found-bug"` - this label must be preserved
 
         When working with the team:
         - Extract all relevant information from GitHub issues
         - Provide structured summaries of issue content
         - Handle the technical aspects of issue updates
-        - Ensure proper labeling and categorization
+        - Ensure proper labeling and categorization (triaged + invalid if not a bug)
+        - ALWAYS preserve the "ai-found-bug" label
+        - Close issues that are determined to be invalid
         - Maintain audit trail of triage decisions
 
         Best practices:

@@ -24,7 +24,7 @@ Rails.application.routes.draw do
       post :kill_terminal
       get :terminals
       post :refresh_git_status
-      get :git_status_poll
+      post :git_status_poll
     end
   end
 

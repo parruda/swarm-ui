@@ -12,4 +12,3 @@ AllCops:
 
 Metrics/ParameterLists:
   Enabled: false
-  

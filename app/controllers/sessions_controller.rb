@@ -118,23 +118,10 @@ class SessionsController < ApplicationController
       "Claude Swarm"
     end
 
-    # Fetch git status for active sessions
+    # Fetch initial git status for active sessions
     if @session.active?
-      # Try to get cached status first
-      cache_key = GitStatusMonitorJob.cache_key(@session.id)
-      cache_timestamp_key = "#{cache_key}:timestamp"
-
-      @git_statuses = Rails.cache.read(cache_key)
-
-      if @git_statuses.nil?
-        # No cache, fetch fresh
-        git_service = OptimizedGitStatusService.new(@session)
-        @git_statuses = git_service.fetch_all_statuses
-        Rails.cache.write(cache_key, @git_statuses, expires_in: 5.minutes)
-        Rails.cache.write(cache_timestamp_key, Time.current, expires_in: 5.minutes)
-      end
-
-      # NOTE: Background job removed - now using visibility-based polling
+      git_service = OptimizedGitStatusService.new(@session)
+      @git_statuses = git_service.fetch_all_statuses
     end
   end
 
@@ -482,8 +469,8 @@ class SessionsController < ApplicationController
       end
     end # end of lock block
 
-    # Clear cache to force refresh on next poll
-    clear_git_status_cache if operation_success
+    # Trigger status update after successful operation
+    SimpleGitStatusJob.perform_later(@session.id) if operation_success
   rescue => e
     if e.message.include?("Another git operation is in progress")
       render(json: { error: e.message }, status: :conflict)
@@ -580,8 +567,8 @@ class SessionsController < ApplicationController
       end
     end # end of lock block
 
-    # Clear cache to force refresh on next poll
-    clear_git_status_cache if operation_success
+    # Trigger status update after successful operation
+    SimpleGitStatusJob.perform_later(@session.id) if operation_success
   rescue => e
     if e.message.include?("Another git operation is in progress")
       render(json: { error: e.message }, status: :conflict)
@@ -652,8 +639,8 @@ class SessionsController < ApplicationController
       end
     end # end of lock block
 
-    # Trigger git status update with force refresh after staging
-    GitStatusMonitorJob.perform_later(@session.id, force_update: true) if operation_success
+    # Trigger status update after successful operation
+    SimpleGitStatusJob.perform_later(@session.id) if operation_success
   rescue => e
     if e.message.include?("Another git operation is in progress")
       render(json: { error: e.message }, status: :conflict)
@@ -760,8 +747,8 @@ class SessionsController < ApplicationController
       end
     end # end of lock block
 
-    # Clear cache to force refresh on next poll
-    clear_git_status_cache if operation_success
+    # Trigger status update after successful operation
+    SimpleGitStatusJob.perform_later(@session.id) if operation_success
   rescue => e
     if e.message.include?("Another git operation is in progress")
       render(json: { error: e.message }, status: :conflict)
@@ -823,8 +810,8 @@ class SessionsController < ApplicationController
       })
     end
 
-    # Trigger git status update with force refresh after reset
-    GitStatusMonitorJob.perform_later(@session.id, force_update: true) if operation_success
+    # Trigger status update after successful operation
+    SimpleGitStatusJob.perform_later(@session.id) if operation_success
   rescue => e
     Rails.logger.error("Git reset error: #{e.message}")
     render(json: { error: "Failed to reset: #{e.message}" }, status: :internal_server_error)
@@ -907,27 +894,11 @@ class SessionsController < ApplicationController
       return
     end
 
-    # Force a fresh fetch
-    git_service = OptimizedGitStatusService.new(@session)
-    @git_statuses = git_service.fetch_all_statuses
+    # Trigger the job
+    SimpleGitStatusJob.perform_later(@session.id)
 
-    # Update cache with timestamp
-    cache_key = GitStatusMonitorJob.cache_key(@session.id)
-    cache_timestamp_key = "#{cache_key}:timestamp"
-    Rails.cache.write(cache_key, @git_statuses, expires_in: 5.minutes)
-    Rails.cache.write(cache_timestamp_key, Time.current, expires_in: 5.minutes)
-
-    # Respond with Turbo Stream
-    respond_to do |format|
-      format.turbo_stream do
-        render(turbo_stream: turbo_stream.update(
-          "git-status-display",
-          partial: "shared/git_status",
-          locals: { session: @session, git_statuses: @git_statuses },
-        ))
-      end
-      format.html { redirect_to(session_path(@session)) }
-    end
+    # Return success immediately
+    head(:ok)
   end
 
   def git_status_poll
@@ -936,37 +907,11 @@ class SessionsController < ApplicationController
       return
     end
 
-    # Try to get cached status first
-    cache_key = GitStatusMonitorJob.cache_key(@session.id)
-    cache_timestamp_key = "#{cache_key}:timestamp"
+    # Trigger the job
+    SimpleGitStatusJob.perform_later(@session.id)
 
-    cached_status = Rails.cache.read(cache_key)
-    last_cache_time = Rails.cache.read(cache_timestamp_key)
-
-    # Check if cache is stale (older than 10 seconds)
-    if cached_status.nil? || last_cache_time.nil? || (Time.current - last_cache_time > 10.seconds)
-      # Fetch fresh status
-      git_service = OptimizedGitStatusService.new(@session)
-      @git_statuses = git_service.fetch_all_statuses
-
-      # Update cache
-      Rails.cache.write(cache_key, @git_statuses, expires_in: 5.minutes)
-      Rails.cache.write(cache_timestamp_key, Time.current, expires_in: 5.minutes)
-    else
-      @git_statuses = cached_status
-    end
-
-    # Return Turbo Stream update
-    respond_to do |format|
-      format.turbo_stream do
-        render(turbo_stream: turbo_stream.update(
-          "git-status-display",
-          partial: "shared/git_status",
-          locals: { session: @session, git_statuses: @git_statuses },
-        ))
-      end
-      format.html { head(:no_content) }
-    end
+    # Return success immediately
+    head(:ok)
   end
 
   def send_to_tmux
@@ -1021,13 +966,6 @@ class SessionsController < ApplicationController
   end
 
   private
-
-  def clear_git_status_cache
-    cache_key = GitStatusMonitorJob.cache_key(@session.id)
-    cache_timestamp_key = "#{cache_key}:timestamp"
-    Rails.cache.delete(cache_key)
-    Rails.cache.delete(cache_timestamp_key)
-  end
 
   def directory_belongs_to_session?(directory)
     # Collect all directories associated with this session

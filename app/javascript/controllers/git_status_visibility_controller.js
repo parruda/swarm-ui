@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static values = { 
     sessionId: Number,
-    pollInterval: { type: Number, default: 5000 }
+    pollInterval: { type: Number, default: 10000 }  // Changed to 10 seconds
   }
 
   connect() {
@@ -49,14 +49,28 @@ export default class extends Controller {
     }
   }
 
+  resetTimer() {
+    // Clear existing timer
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer)
+      this.pollTimer = null
+    }
+    
+    // Schedule next poll if still active
+    if (this.isPolling && !document.hidden) {
+      this.pollTimer = setTimeout(() => this.poll(), this.pollIntervalValue)
+    }
+  }
+
   async poll() {
     if (!this.isPolling) return
 
     try {
       const response = await fetch(`/sessions/${this.sessionIdValue}/git_status_poll`, {
-        method: "GET",
+        method: "POST",  // Changed to POST
         headers: {
-          "Accept": "text/vnd.turbo-stream.html"
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
         }
       })
       
@@ -67,9 +81,31 @@ export default class extends Controller {
       console.error("[GitStatus] Poll error:", error)
     } finally {
       // Schedule next poll only if still active
-      if (this.isPolling && !document.hidden) {
-        this.pollTimer = setTimeout(() => this.poll(), this.pollIntervalValue)
+      this.resetTimer()
+    }
+  }
+  
+  // Method to manually trigger refresh (called by refresh button)
+  async manualRefresh() {
+    console.log("[GitStatus] Manual refresh triggered")
+    
+    try {
+      const response = await fetch(`/sessions/${this.sessionIdValue}/refresh_git_status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
+        }
+      })
+      
+      if (!response.ok) {
+        console.error("[GitStatus] Manual refresh failed:", response.status)
+      } else {
+        // Reset the timer to prevent duplicate polls
+        this.resetTimer()
       }
+    } catch (error) {
+      console.error("[GitStatus] Manual refresh error:", error)
     }
   }
 }

@@ -5,13 +5,15 @@ require "test_helper"
 class GithubWebhooksControllerTest < ActionDispatch::IntegrationTest
   setup do
     @project = create(:project)
+    # Enable webhook events
+    create(:github_webhook_event, project: @project, event_type: "issue_comment", enabled: true)
   end
 
   test "should receive webhook with valid headers" do
     post github_webhooks_path(project_id: @project.id),
       params: { payload: "test" }.to_json,
       headers: {
-        "X-GitHub-Event" => "push",
+        "X-GitHub-Event" => "issue_comment",
         "X-GitHub-Delivery" => "12345",
         "Content-Type" => "application/json",
       }
@@ -19,7 +21,7 @@ class GithubWebhooksControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     response_body = JSON.parse(response.body)
     assert_equal "received", response_body["status"]
-    assert_equal "push", response_body["event"]
+    assert_equal "issue_comment", response_body["event"]
     assert_equal @project.id, response_body["project_id"]
   end
 

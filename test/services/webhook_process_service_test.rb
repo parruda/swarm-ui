@@ -10,7 +10,7 @@ class WebhookProcessServiceTest < ActiveSupport::TestCase
       github_repo_owner: "test",
       github_repo_name: "repo",
     )
-    create(:github_webhook_event, project: @project, event_type: "push", enabled: true)
+    create(:github_webhook_event, project: @project, event_type: "issue_comment", enabled: true)
 
     # Mock Process.spawn to avoid creating real processes
     Process.stubs(:spawn).returns(12345)

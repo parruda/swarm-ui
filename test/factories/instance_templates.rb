@@ -4,58 +4,130 @@ FactoryBot.define do
   factory :instance_template do
     sequence(:name) { |n| "instance-template-#{n}" }
     description { "A test instance template" }
-    provider { "claude" }
-    model { "sonnet" }
-    prompt { "You are a helpful assistant" }
-
-    trait :claude_opus do
-      provider { "claude" }
-      model { "opus" }
-      prompt { "You are Claude Opus, the most capable model" }
+    category { "general" }
+    system_template { false }
+    usage_count { 0 }
+    tags { [] }
+    required_variables { [] }
+    config do
+      {
+        "provider" => "claude",
+        "model" => "sonnet",
+        "directory" => ".",
+        "system_prompt" => "You are a helpful assistant",
+        "allowed_tools" => [],
+      }
     end
 
-    trait :claude_haiku do
-      provider { "claude" }
-      model { "haiku" }
-      prompt { "You are Claude Haiku, optimized for speed" }
+    trait :with_prompt do
+      config do
+        {
+          "provider" => "claude",
+          "model" => "sonnet",
+          "directory" => ".",
+          "system_prompt" => "You are a helpful assistant",
+          "prompt" => "Help me with coding",
+          "allowed_tools" => [],
+        }
+      end
+    end
+
+    trait :claude_opus do
+      config do
+        {
+          "provider" => "claude",
+          "model" => "opus",
+          "directory" => ".",
+          "system_prompt" => "You are Claude Opus, the most capable model",
+          "allowed_tools" => ["Read", "Write", "Edit"],
+        }
+      end
     end
 
     trait :openai_gpt4 do
-      provider { "openai" }
-      model { "gpt-4o" }
-      api_version { "chat_completion" }
-      temperature { 0.7 }
+      config do
+        {
+          "provider" => "openai",
+          "model" => "gpt-4o",
+          "directory" => ".",
+          "system_prompt" => "You are GPT-4o",
+          "api_version" => "chat_completion",
+          "temperature" => 0.7,
+          "allowed_tools" => InstanceTemplate::AVAILABLE_TOOLS,
+          "vibe" => true,
+        }
+      end
     end
 
     trait :openai_o1 do
-      provider { "openai" }
-      model { "o1" }
-      api_version { "responses" }
-      reasoning_effort { "medium" }
-    end
-
-    trait :with_tools do
-      tools { ["Read", "Edit", "Bash", "WebSearch"] }
-    end
-
-    trait :restricted_tools do
-      tools { ["Read", "Edit", "Bash", "WebSearch"] }
-      allowed_tools { ["Read", "Edit"] }
-    end
-
-    trait :disallowed_tools do
-      tools { ["Read", "Edit", "Bash", "WebSearch"] }
-      disallowed_tools { ["Bash"] }
+      config do
+        {
+          "provider" => "openai",
+          "model" => "o1",
+          "directory" => ".",
+          "system_prompt" => "You are O1 with reasoning",
+          "api_version" => "responses",
+          "reasoning_effort" => "medium",
+          "allowed_tools" => InstanceTemplate::AVAILABLE_TOOLS,
+          "vibe" => true,
+        }
+      end
     end
 
     trait :with_worktree do
-      worktree { true }
-      directory { "/tmp/worktree" }
+      config do
+        {
+          "provider" => "claude",
+          "model" => "sonnet",
+          "directory" => "/tmp/worktree",
+          "system_prompt" => "You are a helpful assistant",
+          "worktree" => true,
+          "allowed_tools" => [],
+        }
+      end
     end
 
     trait :vibe_mode do
-      vibe { true }
-      description { "Dangerous mode with fewer restrictions" }
+      config do
+        {
+          "provider" => "claude",
+          "model" => "sonnet",
+          "directory" => ".",
+          "system_prompt" => "You are in vibe mode",
+          "vibe" => true,
+          "allowed_tools" => InstanceTemplate::AVAILABLE_TOOLS,
+        }
+      end
+    end
+
+    trait :with_variables do
+      config do
+        {
+          "provider" => "claude",
+          "model" => "sonnet",
+          "directory" => "${PROJECT_DIR}/src",
+          "system_prompt" => "You work in ${ENVIRONMENT} environment",
+          "prompt" => "Help with ${TASK_TYPE}",
+          "allowed_tools" => [],
+        }
+      end
+      required_variables { ["ENVIRONMENT", "PROJECT_DIR", "TASK_TYPE"] }
+    end
+
+    trait :system do
+      system_template { true }
+    end
+
+    trait :frontend do
+      category { "frontend" }
+    end
+
+    trait :backend do
+      category { "backend" }
+    end
+
+    trait :with_tags do
+      tags { ["ruby", "testing", "ai"] }
     end
   end
 end

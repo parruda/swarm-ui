@@ -8,6 +8,7 @@ class GithubWebhookProcessTest < ActiveSupport::TestCase
     @process = create(:github_webhook_process, project: @project)
   end
 
+  # Validation tests
   test "should be valid with valid attributes" do
     assert @process.valid?
   end
@@ -16,6 +17,25 @@ class GithubWebhookProcessTest < ActiveSupport::TestCase
     @process.status = "invalid"
     assert_not @process.valid?
     assert_includes @process.errors[:status], "is not included in the list"
+  end
+
+  test "allows all valid statuses" do
+    GithubWebhookProcess::STATUSES.each do |status|
+      @process.status = status
+      assert @process.valid?, "Should allow status: #{status}"
+    end
+  end
+
+  # Association tests
+  test "belongs to project" do
+    assert_respond_to @process, :project
+    assert_equal @project, @process.project
+  end
+
+  test "requires project" do
+    @process.project = nil
+    assert_not @process.valid?
+    assert_includes @process.errors[:project], "must exist"
   end
 
   test "running scope returns only running processes" do
@@ -102,8 +122,39 @@ class GithubWebhookProcessTest < ActiveSupport::TestCase
     assert GithubWebhookProcess.exists?(running.id)
   end
 
+  test "cleanup_old_records with custom days_to_keep" do
+    old = create(:github_webhook_process, project: @project, status: "stopped", stopped_at: 3.days.ago)
+    recent = create(:github_webhook_process, project: @project, status: "stopped", stopped_at: 1.day.ago)
+
+    GithubWebhookProcess.cleanup_old_records(days_to_keep: 2)
+
+    assert_not GithubWebhookProcess.exists?(old.id)
+    assert GithubWebhookProcess.exists?(recent.id)
+  end
+
+  test "cleanup_old_records ignores records without stopped_at" do
+    error_no_stopped_at = create(:github_webhook_process, project: @project, status: "error", stopped_at: nil)
+    GithubWebhookProcess.cleanup_old_records(days_to_keep: 7)
+    assert GithubWebhookProcess.exists?(error_no_stopped_at.id)
+  end
+
   test "stop! calls WebhookProcessService.stop" do
     WebhookProcessService.expects(:stop).with(@process)
     @process.stop!
+  end
+
+  # Scope ordering tests
+  test "recent scope orders by created_at desc" do
+    older = create(:github_webhook_process, project: @project, created_at: 2.days.ago)
+    newer = create(:github_webhook_process, project: @project, created_at: 1.day.ago)
+
+    results = GithubWebhookProcess.recent.where(id: [older.id, newer.id])
+    assert_equal [newer, older], results.to_a
+  end
+
+  # Constant tests
+  test "STATUSES contains expected values" do
+    expected = ["starting", "running", "stopped", "error"]
+    assert_equal expected, GithubWebhookProcess::STATUSES
   end
 end

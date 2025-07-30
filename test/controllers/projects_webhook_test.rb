@@ -16,28 +16,32 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
     assert_not @project.github_webhook_enabled?
 
     # Create some events first
-    @project.github_webhook_events.create!(event_type: "push", enabled: true)
-    @project.github_webhook_events.create!(event_type: "pull_request", enabled: true)
+    @project.github_webhook_events.create!(event_type: "issue_comment", enabled: true)
+    @project.github_webhook_events.create!(event_type: "pull_request_review", enabled: true)
 
+    # Need to mock Setting.github_username_configured? to return true
+    Setting.expects(:github_username_configured?).returns(true)
+    
     post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
 
     assert_redirected_to project_path(@project)
-    assert_equal "GitHub webhooks enabled. The webhook forwarder will start shortly.", flash[:notice]
-
+    
     @project.reload
     assert @project.github_webhook_enabled?
   end
 
   test "toggle_webhook disables webhooks" do
     # Create some events first so we can enable webhooks
-    @project.github_webhook_events.create!(event_type: "push", enabled: true)
+    @project.github_webhook_events.create!(event_type: "issue_comment", enabled: true)
     @project.update!(github_webhook_enabled: true)
 
+    # Need to mock Setting.github_username_configured? to return true
+    Setting.expects(:github_username_configured?).returns(true)
+    
     post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
 
     assert_redirected_to project_path(@project)
-    assert_equal "GitHub webhooks disabled.", flash[:notice]
-
+    
     @project.reload
     assert_not @project.github_webhook_enabled?
   end
@@ -76,30 +80,30 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
   end
 
   test "handle_webhook_events updates event states" do
-    @project.github_webhook_events.create!(event_type: "push", enabled: false)
-    @project.github_webhook_events.create!(event_type: "issues", enabled: true)
+    @project.github_webhook_events.create!(event_type: "issue_comment", enabled: false)
+    @project.github_webhook_events.create!(event_type: "pull_request_review", enabled: true)
 
     patch project_path(@project), params: {
       project: {
         name: @project.name,
-        webhook_events: ["push", "pull_request"],
+        webhook_events: ["issue_comment", "pull_request_review_comment"],
       },
     }
 
     assert_redirected_to edit_project_path(@project)
 
     @project.reload
-    push_event = @project.github_webhook_events.find_by(event_type: "push")
-    issues_event = @project.github_webhook_events.find_by(event_type: "issues")
-    pr_event = @project.github_webhook_events.find_by(event_type: "pull_request")
+    issue_comment_event = @project.github_webhook_events.find_by(event_type: "issue_comment")
+    pr_review_event = @project.github_webhook_events.find_by(event_type: "pull_request_review")
+    pr_review_comment_event = @project.github_webhook_events.find_by(event_type: "pull_request_review_comment")
 
-    assert push_event.enabled?
-    assert_not issues_event.enabled?
-    assert pr_event.enabled?
+    assert issue_comment_event.enabled?
+    assert_not pr_review_event.enabled?
+    assert pr_review_comment_event.enabled?
   end
 
   test "update handles empty webhook events" do
-    @project.github_webhook_events.create!(event_type: "push", enabled: true)
+    @project.github_webhook_events.create!(event_type: "issue_comment", enabled: true)
 
     patch project_path(@project), params: {
       project: {

@@ -4,35 +4,52 @@ FactoryBot.define do
   factory :swarm_template do
     sequence(:name) { |n| "swarm-template-#{n}" }
     description { "A test swarm template" }
-    main_instance { "coordinator" }
+    system_template { false }
+    usage_count { 0 }
+    tags { [] }
+    metadata { {} }
 
-    instance_config do
+    config_data do
       {
-        "instances" => {
-          "coordinator" => {
-            "model" => "opus",
-            "prompt" => "You are the main coordinator",
-            "tools" => ["Read", "Edit", "Bash"],
-          },
-          "developer" => {
-            "model" => "sonnet",
-            "prompt" => "You are a developer",
-            "tools" => ["Read", "Edit", "Bash", "WebSearch"],
-          },
-        },
-        "connections" => [
-          { "from" => "coordinator", "to" => "developer" },
-        ],
-      }
-    end
-
-    trait :simple do
-      instance_config do
-        {
+        "version" => "1.0",
+        "swarm" => {
+          "name" => "Test Swarm",
+          "main" => "coordinator",
           "instances" => {
             "coordinator" => {
               "model" => "opus",
-              "prompt" => "Simple coordinator",
+              "prompt" => "You are the main coordinator",
+              "tools" => ["Read", "Edit", "Bash"],
+              "directory" => ".",
+            },
+            "developer" => {
+              "model" => "sonnet",
+              "prompt" => "You are a developer",
+              "tools" => ["Read", "Edit", "Bash", "WebSearch"],
+              "directory" => ".",
+            },
+          },
+        },
+      }
+    end
+
+    trait :for_project do
+      association :project
+    end
+
+    trait :simple do
+      config_data do
+        {
+          "version" => "1.0",
+          "swarm" => {
+            "name" => "Simple Swarm",
+            "main" => "coordinator",
+            "instances" => {
+              "coordinator" => {
+                "model" => "opus",
+                "prompt" => "Simple coordinator",
+                "directory" => ".",
+              },
             },
           },
         }
@@ -40,60 +57,113 @@ FactoryBot.define do
     end
 
     trait :complex do
-      main_instance { "architect" }
-      instance_config do
+      config_data do
         {
-          "instances" => {
-            "architect" => {
-              "model" => "opus",
-              "prompt" => "You are the system architect",
-            },
-            "backend" => {
-              "model" => "sonnet",
-              "prompt" => "You handle backend development",
-            },
-            "frontend" => {
-              "model" => "sonnet",
-              "prompt" => "You handle frontend development",
-            },
-            "tester" => {
-              "model" => "haiku",
-              "prompt" => "You write and run tests",
+          "version" => "1.0",
+          "swarm" => {
+            "name" => "Complex Development Swarm",
+            "main" => "architect",
+            "instances" => {
+              "architect" => {
+                "model" => "opus",
+                "prompt" => "You are the system architect",
+                "directory" => "${PROJECT_ROOT}",
+              },
+              "backend" => {
+                "model" => "sonnet",
+                "prompt" => "You handle backend development in ${LANGUAGE}",
+                "directory" => "${PROJECT_ROOT}/backend",
+              },
+              "frontend" => {
+                "model" => "sonnet",
+                "prompt" => "You handle frontend development",
+                "directory" => "${PROJECT_ROOT}/frontend",
+              },
+              "tester" => {
+                "model" => "haiku",
+                "prompt" => "You write and run tests",
+                "directory" => ["${PROJECT_ROOT}/test", "${PROJECT_ROOT}/spec"],
+              },
             },
           },
-          "connections" => [
-            { "from" => "architect", "to" => "backend" },
-            { "from" => "architect", "to" => "frontend" },
-            { "from" => "backend", "to" => "tester" },
-            { "from" => "frontend", "to" => "tester" },
-          ],
+        }
+      end
+      metadata do
+        {
+          "required_variables" => ["PROJECT_ROOT", "LANGUAGE"],
         }
       end
     end
 
-    trait :openai_mixed do
-      main_instance { "planner" }
-      instance_config do
+    trait :without_version do
+      config_data do
         {
-          "instances" => {
-            "planner" => {
-              "provider" => "openai",
-              "model" => "o1",
-              "api_version" => "responses",
-              "reasoning_effort" => "high",
-              "prompt" => "You are the strategic planner",
-            },
-            "executor" => {
-              "provider" => "claude",
-              "model" => "sonnet",
-              "prompt" => "You execute the planned tasks",
+          "swarm" => {
+            "name" => "No Version Swarm",
+            "main" => "worker",
+            "instances" => {
+              "worker" => { "model" => "sonnet" },
             },
           },
-          "connections" => [
-            { "from" => "planner", "to" => "executor" },
-          ],
         }
       end
+    end
+
+    trait :without_swarm_key do
+      config_data do
+        {
+          "version" => "1.0",
+          "instances" => {
+            "worker" => { "model" => "sonnet" },
+          },
+        }
+      end
+    end
+
+    trait :without_main do
+      config_data do
+        {
+          "version" => "1.0",
+          "swarm" => {
+            "name" => "No Main Swarm",
+            "instances" => {
+              "worker" => { "model" => "sonnet" },
+            },
+          },
+        }
+      end
+    end
+
+    trait :with_nonexistent_main do
+      config_data do
+        {
+          "version" => "1.0",
+          "swarm" => {
+            "name" => "Bad Main Swarm",
+            "main" => "nonexistent",
+            "instances" => {
+              "worker" => { "model" => "sonnet" },
+            },
+          },
+        }
+      end
+    end
+
+    trait :system do
+      system_template { true }
+    end
+
+    trait :public do
+      public { true }
+    end
+
+    trait :with_tags do
+      tags { ["ruby", "testing", "ai"] }
+    end
+
+    trait :with_yaml_cache do
+      yaml_cache { "version: \"1.0\"\nswarm:\n  name: \"Cached Swarm\"" }
+      yaml_cache_generated_at { Time.current }
     end
   end
 end

@@ -105,14 +105,14 @@ class OptimizedGitStatusService
 
     # Process status
     # Check if status has actual content (not just whitespace/newlines)
-    has_changes = status_output.match?(/\S/)  # true if any non-whitespace character
+    has_changes = status_output.match?(/\S/) # true if any non-whitespace character
     status_lines = status_output.lines
 
     # Git status --porcelain format:
     # XY filename
     # X = index (staging area) status
     # Y = working tree status
-    # 
+    #
     # Characters: ' ' (space), M, T, A, D, R, C, U
     # Special: ?? = untracked, !! = ignored
     #
@@ -123,13 +123,13 @@ class OptimizedGitStatusService
     # "A " = added to index (staged)
     # "AM" = added to index, then modified in working tree
     # "??" = untracked
-    
+
     # Staged: anything with non-space in first position (except ??)
     staged = status_lines.count { |line| line =~ /^[MTADRC]/ }
-    
+
     # Modified in working tree: anything with M, T, or D in second position
     modified = status_lines.count { |line| line =~ /^.[MTD]/ }
-    
+
     # Untracked files
     untracked = status_lines.count { |line| line =~ /^\?\?/ }
 

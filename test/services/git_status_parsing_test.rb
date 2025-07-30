@@ -105,13 +105,13 @@ class GitStatusParsingTest < ActiveSupport::TestCase
     #  M = Modified in working tree only (not staged)
     # A  = Added to index (staged)
     # ?? = Untracked
-    
+
     # Staged: MM (first M), M  (first M), A  (first A) = 3 files
     assert_equal 3, status[:staged], "Should have 3 staged files"
-    
-    # Modified in working tree: MM (second M),  M (second M) = 2 files  
+
+    # Modified in working tree: MM (second M),  M (second M) = 2 files
     assert_equal 2, status[:modified], "Should have 2 modified files in working tree"
-    
+
     # Untracked: ?? = 1 file
     assert_equal 1, status[:untracked], "Should have 1 untracked file"
   end

@@ -11,15 +11,15 @@ class ClaudeService
 
   def generate_commit_message(changes)
     options = ClaudeSDK::ClaudeCodeOptions.new(
-      cwd: @working_directory
+      cwd: @working_directory,
     )
-    
+
     response_text = ""
-    
+
     begin
       ClaudeSDK.query(
         "Generate a concise git commit message for the following changes:\n\n#{changes}",
-        options: options
+        options: options,
       ) do |message|
         case message
         when ::ClaudeSDK::Messages::Assistant
@@ -36,7 +36,7 @@ class ClaudeService
           Rails.logger.debug("[Claude] Query completed in #{message.duration_ms}ms")
         end
       end
-      
+
       response_text.strip
     rescue ClaudeSDK::CLINotFoundError => e
       raise ClaudeError, "Claude CLI not found: #{e.message}"

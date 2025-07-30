@@ -16,7 +16,7 @@ class SimpleGitStatusJob < ApplicationJob
       "session_#{session.id}",
       target: "git-status-display",
       partial: "shared/git_status",
-      locals: { session: session, git_statuses: git_statuses }
+      locals: { session: session, git_statuses: git_statuses },
     )
   end
 end

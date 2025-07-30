@@ -4,18 +4,26 @@ export default class extends Controller {
   static targets = ["container", "row", "keyInput", "textField"]
 
   connect() {
-    // Parse existing environment variables from the hidden text field
-    if (this.hasTextFieldTarget && this.textFieldTarget.value) {
-      this.parseAndDisplayVariables(this.textFieldTarget.value)
-    }
-    
     // Listen for project changes from the filesystem browser controller
     this.projectSelect = document.querySelector('[data-filesystem-browser-target="projectSelect"]')
     if (this.projectSelect) {
       this.projectSelect.addEventListener('change', this.handleProjectChange.bind(this))
       // If project is already selected, fetch its env vars
       if (this.projectSelect.value) {
-        this.fetchProjectEnvVars(this.projectSelect.value)
+        // Store initial values from text field before fetching project vars
+        this.initialTextFieldValue = this.hasTextFieldTarget ? this.textFieldTarget.value : ''
+        this.fetchProjectEnvVars(this.projectSelect.value, true)
+      } else {
+        // Only parse existing variables if no project is selected
+        // (to avoid duplicating project env vars that might be prefilled)
+        if (this.hasTextFieldTarget && this.textFieldTarget.value) {
+          this.parseAndDisplayVariables(this.textFieldTarget.value)
+        }
+      }
+    } else {
+      // No project selector, just parse any existing variables
+      if (this.hasTextFieldTarget && this.textFieldTarget.value) {
+        this.parseAndDisplayVariables(this.textFieldTarget.value)
       }
     }
   }
@@ -31,13 +39,22 @@ export default class extends Controller {
     }
   }
   
-  async fetchProjectEnvVars(projectId) {
+  async fetchProjectEnvVars(projectId, isInitialLoad = false) {
     try {
       const response = await fetch(`/projects/${projectId}/environment_variables`)
       const data = await response.json()
       
       // Save current session-specific variables before clearing
-      const currentSessionVars = this.getCurrentSessionVariables()
+      let currentSessionVars = this.getCurrentSessionVariables()
+      
+      // On initial load, we need to parse existing values and separate project from session vars
+      if (isInitialLoad && this.initialTextFieldValue) {
+        const allVarsFromTextField = this.parseTextToVariables(this.initialTextFieldValue)
+        const projectVarKeys = new Set(Object.keys(data.environment_variables || {}))
+        
+        // Separate session-specific vars from project vars
+        currentSessionVars = allVarsFromTextField.filter(({key}) => !projectVarKeys.has(key))
+      }
       
       // Clear everything
       this.containerTarget.innerHTML = ''
@@ -132,7 +149,7 @@ export default class extends Controller {
           <div class="w-full border-t border-gray-200 dark:border-gray-700"></div>
         </div>
         <div class="relative flex justify-center text-sm">
-          <span class="bg-white dark:bg-gray-800 px-3 text-gray-500 dark:text-gray-400 font-medium">or</span>
+          <span class="bg-white dark:bg-gray-800 px-3 text-gray-500 dark:text-gray-400 font-medium">and</span>
         </div>
       </div>
     `
@@ -158,6 +175,21 @@ export default class extends Controller {
         }
       })
     }
+  }
+  
+  parseTextToVariables(text) {
+    const lines = text.trim().split('\n').filter(line => line.trim())
+    const variables = []
+    
+    lines.forEach(line => {
+      const [key, ...valueParts] = line.split('=')
+      if (key) {
+        const value = valueParts.join('=') // Handle values that contain '='
+        variables.push({ key: key.trim(), value: value.trim() })
+      }
+    })
+    
+    return variables
   }
 
   addVariableRow(key = '', value = '', fromProject = false) {
@@ -265,6 +297,7 @@ export default class extends Controller {
     const variables = []
     
     rows.forEach(row => {
+      // Include ALL variables (both project and session) for submission
       // Get inputs from the flex container within the row
       const inputContainer = row.querySelector('.flex.gap-2')
       const inputs = inputContainer ? inputContainer.querySelectorAll('input[type="text"]') : row.querySelectorAll('input[type="text"]')

@@ -7,6 +7,7 @@ fi
 
 # Default to port 3000 if not specified
 export PORT="${PORT:-3000}"
+export TTYD_PORT="${TTYD_PORT:-8999}"  # ttyd terminal
 
 # Let the debug gem allow remote connections,
 # but avoid loading until `debugger` is called

@@ -47,8 +47,7 @@ class SessionsController < ApplicationController
         @session.project_id = project.id
         @session.configuration_path = project.default_config_path
         @session.use_worktree = project.default_use_worktree
-        # Prefill environment variables from project
-        @session.environment_variables = project.environment_variables.dup if project.environment_variables.present?
+        # Don't prefill project environment variables - they're inherited automatically
         @focus_name_field = true
       end
     end

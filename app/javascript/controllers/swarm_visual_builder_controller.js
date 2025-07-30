@@ -278,7 +278,7 @@ export default class extends Controller {
     })
     
     // Add padding on all sides
-    const padding = 100
+    const padding = 300
     minX -= padding
     minY -= padding
     maxX += padding
@@ -584,9 +584,9 @@ export default class extends Controller {
   
   makeDraggable(element, nodeData) {
     let isDragging = false
-    let dragMouseX = 0
-    let dragMouseY = 0
-    let autoScrollInterval = null
+    let animationFrameId = null
+    let lastMouseX = 0
+    let lastMouseY = 0
     
     element.addEventListener('mousedown', (e) => {
       // Don't drag if clicking on socket or connection-related elements
@@ -606,74 +606,136 @@ export default class extends Controller {
       element.style.zIndex = 1000
       element.style.cursor = 'grabbing'
       
-      // Auto-scroll function
-      const checkAutoScroll = (mouseX, mouseY) => {
+      // Smooth animation frame-based update
+      const updateNodePosition = () => {
+        if (!isDragging) return
+        
+        // Calculate the delta from the start position
+        const deltaX = (lastMouseX - startMouseX) / this.zoomLevel
+        const deltaY = (lastMouseY - startMouseY) / this.zoomLevel
+        
+        // Update node position
+        nodeData.x = startNodeX + deltaX
+        nodeData.y = startNodeY + deltaY
+        
+        // Check if we need to expand canvas
+        const edgePadding = 300 // Much more generous padding
+        const nodeRight = nodeData.x + 200 + this.viewportOffset.x
+        const nodeBottom = nodeData.y + 120 + this.viewportOffset.y
+        const nodeLeft = nodeData.x + this.viewportOffset.x
+        const nodeTop = nodeData.y + this.viewportOffset.y
+        
+        const currentWidth = parseInt(this.viewport.style.width)
+        const currentHeight = parseInt(this.viewport.style.height)
+        
+        let needsExpansion = false
+        let newWidth = currentWidth
+        let newHeight = currentHeight
+        
+        // Expand right
+        if (nodeRight > currentWidth - edgePadding) {
+          newWidth = nodeRight + edgePadding
+          needsExpansion = true
+        }
+        
+        // Expand bottom
+        if (nodeBottom > currentHeight - edgePadding) {
+          newHeight = nodeBottom + edgePadding
+          needsExpansion = true
+        }
+        
+        // Expand left
+        if (nodeLeft < edgePadding) {
+          const expansion = edgePadding - nodeLeft + 100
+          newWidth += expansion
+          this.viewportOffset.x += expansion
+          
+          // Shift all nodes to the right
+          this.nodes.forEach((node) => {
+            const left = parseFloat(node.element.style.left)
+            node.element.style.left = (left + expansion) + 'px'
+          })
+          
+          needsExpansion = true
+        }
+        
+        // Expand top
+        if (nodeTop < edgePadding) {
+          const expansion = edgePadding - nodeTop + 100
+          newHeight += expansion
+          this.viewportOffset.y += expansion
+          
+          // Shift all nodes down
+          this.nodes.forEach((node) => {
+            const top = parseFloat(node.element.style.top)
+            node.element.style.top = (top + expansion) + 'px'
+          })
+          
+          needsExpansion = true
+        }
+        
+        if (needsExpansion) {
+          this.viewport.style.width = newWidth + 'px'
+          this.viewport.style.height = newHeight + 'px'
+        }
+        
+        // Update element position
+        element.style.left = (nodeData.x + this.viewportOffset.x) + 'px'
+        element.style.top = (nodeData.y + this.viewportOffset.y) + 'px'
+        
+        // Update connections
+        this.updateConnections()
+        
+        // Check for auto-scroll with smooth acceleration
         const containerRect = this.container.getBoundingClientRect()
-        const scrollSpeed = 10
-        const edgeSize = 50 // Distance from edge to trigger scroll
+        const edgeSize = 80 // Larger detection zone
+        const maxScrollSpeed = 25
+        
+        const distanceFromLeft = lastMouseX - containerRect.left
+        const distanceFromRight = containerRect.right - lastMouseX
+        const distanceFromTop = lastMouseY - containerRect.top
+        const distanceFromBottom = containerRect.bottom - lastMouseY
         
         let scrollX = 0
         let scrollY = 0
         
-        // Check distance from edges
-        if (mouseX - containerRect.left < edgeSize) {
-          scrollX = -scrollSpeed
-        } else if (containerRect.right - mouseX < edgeSize) {
-          scrollX = scrollSpeed
+        // Smooth quadratic acceleration for more natural feel
+        if (distanceFromLeft < edgeSize) {
+          const factor = 1 - (distanceFromLeft / edgeSize)
+          scrollX = -maxScrollSpeed * factor * factor
+        } else if (distanceFromRight < edgeSize) {
+          const factor = 1 - (distanceFromRight / edgeSize)
+          scrollX = maxScrollSpeed * factor * factor
         }
         
-        if (mouseY - containerRect.top < edgeSize) {
-          scrollY = -scrollSpeed
-        } else if (containerRect.bottom - mouseY < edgeSize) {
-          scrollY = scrollSpeed
+        if (distanceFromTop < edgeSize) {
+          const factor = 1 - (distanceFromTop / edgeSize)
+          scrollY = -maxScrollSpeed * factor * factor
+        } else if (distanceFromBottom < edgeSize) {
+          const factor = 1 - (distanceFromBottom / edgeSize)
+          scrollY = maxScrollSpeed * factor * factor
         }
         
         if (scrollX !== 0 || scrollY !== 0) {
-          if (!autoScrollInterval) {
-            autoScrollInterval = setInterval(() => {
-              this.container.scrollLeft += scrollX
-              this.container.scrollTop += scrollY
-              
-              // Update node position while auto-scrolling
-              const currentDeltaX = (mouseX - startMouseX + scrollX) / this.zoomLevel
-              const currentDeltaY = (mouseY - startMouseY + scrollY) / this.zoomLevel
-              
-              nodeData.x = startNodeX + currentDeltaX
-              nodeData.y = startNodeY + currentDeltaY
-              
-              element.style.left = (nodeData.x + this.viewportOffset.x) + 'px'
-              element.style.top = (nodeData.y + this.viewportOffset.y) + 'px'
-              
-              this.updateConnections()
-            }, 16) // ~60fps
-          }
-        } else {
-          if (autoScrollInterval) {
-            clearInterval(autoScrollInterval)
-            autoScrollInterval = null
-          }
+          this.container.scrollLeft += scrollX
+          this.container.scrollTop += scrollY
         }
+        
+        // Continue animation
+        animationFrameId = requestAnimationFrame(updateNodePosition)
       }
       
       // Create handlers specific to this drag
       const handleMouseMove = (e) => {
         if (!isDragging) return
         
-        // Check for auto-scroll
-        checkAutoScroll(e.clientX, e.clientY)
+        lastMouseX = e.clientX
+        lastMouseY = e.clientY
         
-        // Calculate the delta from the start position
-        const deltaX = (e.clientX - startMouseX) / this.zoomLevel
-        const deltaY = (e.clientY - startMouseY) / this.zoomLevel
-        
-        // Apply the delta to the original position
-        nodeData.x = startNodeX + deltaX
-        nodeData.y = startNodeY + deltaY
-        
-        element.style.left = (nodeData.x + this.viewportOffset.x) + 'px'
-        element.style.top = (nodeData.y + this.viewportOffset.y) + 'px'
-        
-        this.updateConnections()
+        // Start animation if not already running
+        if (!animationFrameId) {
+          animationFrameId = requestAnimationFrame(updateNodePosition)
+        }
       }
       
       const handleMouseUp = () => {
@@ -681,20 +743,27 @@ export default class extends Controller {
         element.style.zIndex = ''
         element.style.cursor = ''
         
-        if (autoScrollInterval) {
-          clearInterval(autoScrollInterval)
-          autoScrollInterval = null
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId)
+          animationFrameId = null
         }
         
-        // Update viewport size after drag is complete
+        // Final viewport size update
         this.updateViewportSize()
         
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
       }
       
+      // Initialize mouse position
+      lastMouseX = e.clientX
+      lastMouseY = e.clientY
+      
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
+      
+      // Start the animation loop
+      animationFrameId = requestAnimationFrame(updateNodePosition)
     })
   }
   

@@ -276,8 +276,8 @@ export default class extends Controller {
       this.pendingConnection = { 
         nodeId, 
         socketSide,
-        startX: rect.left - containerRect.left + rect.width/2,
-        startY: rect.top - containerRect.top + rect.height/2
+        startX: (rect.left - containerRect.left + rect.width/2) / this.zoomLevel,
+        startY: (rect.top - containerRect.top + rect.height/2) / this.zoomLevel
       }
       
       // Add connecting class to socket
@@ -304,8 +304,8 @@ export default class extends Controller {
   handleConnectionDragMove(e) {
     if (this.pendingConnection) {
       const rect = this.viewport.getBoundingClientRect()
-      const x = e.clientX - rect.left
-      const y = e.clientY - rect.top
+      const x = (e.clientX - rect.left) / this.zoomLevel
+      const y = (e.clientY - rect.top) / this.zoomLevel
       
       const dragPath = this.svg.querySelector('#dragPath')
       const d = `M ${this.pendingConnection.startX} ${this.pendingConnection.startY} L ${x} ${y}`
@@ -535,10 +535,11 @@ export default class extends Controller {
         const viewportRect = this.viewport.getBoundingClientRect()
         
         // Calculate actual positions relative to viewport
-        const x1 = fromRect.left - viewportRect.left + fromRect.width/2
-        const y1 = fromRect.top - viewportRect.top + fromRect.height/2
-        const x2 = toRect.left - viewportRect.left + toRect.width/2
-        const y2 = toRect.top - viewportRect.top + toRect.height/2
+        // When zoomed, we need to account for the scale transform
+        const x1 = (fromRect.left - viewportRect.left + fromRect.width/2) / this.zoomLevel
+        const y1 = (fromRect.top - viewportRect.top + fromRect.height/2) / this.zoomLevel
+        const x2 = (toRect.left - viewportRect.left + toRect.width/2) / this.zoomLevel
+        const y2 = (toRect.top - viewportRect.top + toRect.height/2) / this.zoomLevel
         
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
         path.dataset.connectionIndex = index
@@ -550,12 +551,12 @@ export default class extends Controller {
             const rect = node.element.getBoundingClientRect()
             nodeObstacles.push({
               id: nodeId,
-              left: rect.left - viewportRect.left,
-              top: rect.top - viewportRect.top,
-              right: rect.left - viewportRect.left + rect.width,
-              bottom: rect.top - viewportRect.top + rect.height,
-              centerX: rect.left - viewportRect.left + rect.width / 2,
-              centerY: rect.top - viewportRect.top + rect.height / 2
+              left: (rect.left - viewportRect.left) / this.zoomLevel,
+              top: (rect.top - viewportRect.top) / this.zoomLevel,
+              right: (rect.left - viewportRect.left + rect.width) / this.zoomLevel,
+              bottom: (rect.top - viewportRect.top + rect.height) / this.zoomLevel,
+              centerX: (rect.left - viewportRect.left + rect.width / 2) / this.zoomLevel,
+              centerY: (rect.top - viewportRect.top + rect.height / 2) / this.zoomLevel
             })
           }
         })

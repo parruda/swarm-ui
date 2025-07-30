@@ -47,7 +47,7 @@ export default class extends Controller {
     container.className = 'visual-builder-canvas bg-gray-100 dark:bg-gray-900'
     this.canvasTarget.appendChild(container)
     
-    // Create viewport
+    // Create viewport with a transform layer for smooth panning
     this.viewport = document.createElement('div')
     this.viewport.style.position = 'relative'
     this.viewport.style.minWidth = '100%'
@@ -56,6 +56,7 @@ export default class extends Controller {
     // Start with container size, will expand as nodes are added
     this.viewport.style.width = '100%'
     this.viewport.style.height = '100%'
+    this.viewport.style.willChange = 'transform' // Optimize for transform changes
     container.appendChild(this.viewport)
     
     // Create SVG for connections
@@ -84,7 +85,18 @@ export default class extends Controller {
     this.container = container
     this.zoomLevel = 1
     this.nextNodeId = 1
-    this.viewportOffset = { x: 0, y: 0 }
+    
+    // Use a large canvas with origin at center
+    this.canvasSize = 10000 // Large enough for most use cases
+    this.canvasCenter = this.canvasSize / 2
+    this.viewport.style.width = this.canvasSize + 'px'
+    this.viewport.style.height = this.canvasSize + 'px'
+    
+    // Start with view centered
+    setTimeout(() => {
+      this.container.scrollLeft = this.canvasCenter - this.container.clientWidth / 2
+      this.container.scrollTop = this.canvasCenter - this.container.clientHeight / 2
+    }, 0)
     
     // Setup drag and drop
     this.setupDragAndDrop()
@@ -214,18 +226,24 @@ export default class extends Controller {
       const scrolledX = mouseXInContainer + this.container.scrollLeft
       const scrolledY = mouseYInContainer + this.container.scrollTop
       
-      // Since the viewport has transform: scale(), we need to convert from visual pixels to logical pixels
-      const x = scrolledX / this.zoomLevel
-      const y = scrolledY / this.zoomLevel
+      // Convert to node coordinates relative to canvas center
+      const x = (scrolledX - this.canvasCenter) / this.zoomLevel
+      const y = (scrolledY - this.canvasCenter) / this.zoomLevel
       
       await this.addNodeFromTemplate(templateName, templateConfig, { x, y })
     })
   }
   
   addBlankInstance() {
-    // Calculate center of visible viewport
-    const centerX = (this.container.clientWidth / 2 + this.container.scrollLeft) / this.zoomLevel
-    const centerY = (this.container.clientHeight / 2 + this.container.scrollTop) / this.zoomLevel
+    // Calculate center of visible viewport relative to canvas center
+    const scrollX = this.container.scrollLeft
+    const scrollY = this.container.scrollTop
+    const viewCenterX = scrollX + this.container.clientWidth / 2
+    const viewCenterY = scrollY + this.container.clientHeight / 2
+    
+    // Convert to node coordinates (relative to canvas center)
+    const centerX = (viewCenterX - this.canvasCenter) / this.zoomLevel
+    const centerY = (viewCenterY - this.canvasCenter) / this.zoomLevel
     
     // Create a blank instance with minimal configuration
     const blankConfig = {
@@ -256,60 +274,14 @@ export default class extends Controller {
   }
   
   updateViewportSize() {
-    // Find the bounds of all nodes
-    let minX = Infinity
-    let minY = Infinity
-    let maxX = -Infinity
-    let maxY = -Infinity
-    
-    if (this.nodes.size === 0) {
-      // No nodes, just use container size
-      this.viewport.style.width = '100%'
-      this.viewport.style.height = '100%'
-      this.viewportOffset = { x: 0, y: 0 }
-      return
-    }
-    
-    this.nodes.forEach(node => {
-      minX = Math.min(minX, node.data.x)
-      minY = Math.min(minY, node.data.y)
-      maxX = Math.max(maxX, node.data.x + 200) // node width
-      maxY = Math.max(maxY, node.data.y + 120) // node height
-    })
-    
-    // Add padding on all sides
-    const padding = 300
-    minX -= padding
-    minY -= padding
-    maxX += padding
-    maxY += padding
-    
-    // Get container dimensions
-    const containerWidth = this.container.clientWidth
-    const containerHeight = this.container.clientHeight
-    
-    // Calculate total canvas size needed
-    const canvasWidth = maxX - minX
-    const canvasHeight = maxY - minY
-    
-    // Ensure canvas is at least as big as container
-    const viewportWidth = Math.max(containerWidth, canvasWidth)
-    const viewportHeight = Math.max(containerHeight, canvasHeight)
-    
-    // Store offset for coordinate transformation
-    this.viewportOffset = { x: -minX, y: -minY }
-    
-    // Update viewport size
-    this.viewport.style.width = viewportWidth + 'px'
-    this.viewport.style.height = viewportHeight + 'px'
-    
-    // Transform all nodes to account for negative space
+    // With pre-allocated canvas, we don't need to resize
+    // Just update node positions
     this.nodes.forEach((node) => {
-      node.element.style.left = (node.data.x + this.viewportOffset.x) + 'px'
-      node.element.style.top = (node.data.y + this.viewportOffset.y) + 'px'
+      node.element.style.left = (node.data.x + this.canvasCenter) + 'px'
+      node.element.style.top = (node.data.y + this.canvasCenter) + 'px'
     })
     
-    // Update connections after transformation
+    // Update connections after position updates
     this.updateConnections()
   }
   
@@ -368,7 +340,6 @@ export default class extends Controller {
     })
     this.nodeKeyMap.set(nodeId, nodeKey)
     
-    this.updateViewportSize()
     this.updateYamlPreview()
   }
   
@@ -376,8 +347,8 @@ export default class extends Controller {
     const node = document.createElement('div')
     node.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-300 dark:border-gray-600 p-4 select-none hover:shadow-xl transition-shadow swarm-node'
     node.style.position = 'absolute'
-    node.style.left = (nodeData.x + this.viewportOffset.x) + 'px'
-    node.style.top = (nodeData.y + this.viewportOffset.y) + 'px'
+    node.style.left = (nodeData.x + this.canvasCenter) + 'px'
+    node.style.top = (nodeData.y + this.canvasCenter) + 'px'
     node.style.width = '200px'
     node.dataset.nodeId = nodeData.id
     
@@ -595,6 +566,9 @@ export default class extends Controller {
       e.preventDefault()
       isDragging = true
       
+      // Add dragging class to container
+      this.container.classList.add('dragging-node')
+      
       // Store the initial mouse position in client coordinates
       const startMouseX = e.clientX
       const startMouseY = e.clientY
@@ -614,74 +588,13 @@ export default class extends Controller {
         const deltaX = (lastMouseX - startMouseX) / this.zoomLevel
         const deltaY = (lastMouseY - startMouseY) / this.zoomLevel
         
-        // Update node position
+        // Update node position (relative to center)
         nodeData.x = startNodeX + deltaX
         nodeData.y = startNodeY + deltaY
         
-        // Check if we need to expand canvas
-        const edgePadding = 300 // Much more generous padding
-        const nodeRight = nodeData.x + 200 + this.viewportOffset.x
-        const nodeBottom = nodeData.y + 120 + this.viewportOffset.y
-        const nodeLeft = nodeData.x + this.viewportOffset.x
-        const nodeTop = nodeData.y + this.viewportOffset.y
-        
-        const currentWidth = parseInt(this.viewport.style.width)
-        const currentHeight = parseInt(this.viewport.style.height)
-        
-        let needsExpansion = false
-        let newWidth = currentWidth
-        let newHeight = currentHeight
-        
-        // Expand right
-        if (nodeRight > currentWidth - edgePadding) {
-          newWidth = nodeRight + edgePadding
-          needsExpansion = true
-        }
-        
-        // Expand bottom
-        if (nodeBottom > currentHeight - edgePadding) {
-          newHeight = nodeBottom + edgePadding
-          needsExpansion = true
-        }
-        
-        // Expand left
-        if (nodeLeft < edgePadding) {
-          const expansion = edgePadding - nodeLeft + 100
-          newWidth += expansion
-          this.viewportOffset.x += expansion
-          
-          // Shift all nodes to the right
-          this.nodes.forEach((node) => {
-            const left = parseFloat(node.element.style.left)
-            node.element.style.left = (left + expansion) + 'px'
-          })
-          
-          needsExpansion = true
-        }
-        
-        // Expand top
-        if (nodeTop < edgePadding) {
-          const expansion = edgePadding - nodeTop + 100
-          newHeight += expansion
-          this.viewportOffset.y += expansion
-          
-          // Shift all nodes down
-          this.nodes.forEach((node) => {
-            const top = parseFloat(node.element.style.top)
-            node.element.style.top = (top + expansion) + 'px'
-          })
-          
-          needsExpansion = true
-        }
-        
-        if (needsExpansion) {
-          this.viewport.style.width = newWidth + 'px'
-          this.viewport.style.height = newHeight + 'px'
-        }
-        
         // Update element position
-        element.style.left = (nodeData.x + this.viewportOffset.x) + 'px'
-        element.style.top = (nodeData.y + this.viewportOffset.y) + 'px'
+        element.style.left = (nodeData.x + this.canvasCenter) + 'px'
+        element.style.top = (nodeData.y + this.canvasCenter) + 'px'
         
         // Update connections
         this.updateConnections()
@@ -743,13 +656,16 @@ export default class extends Controller {
         element.style.zIndex = ''
         element.style.cursor = ''
         
+        // Remove dragging class
+        this.container.classList.remove('dragging-node')
+        
         if (animationFrameId) {
           cancelAnimationFrame(animationFrameId)
           animationFrameId = null
         }
         
-        // Final viewport size update
-        this.updateViewportSize()
+        // Update connections after drag complete
+        this.updateConnections()
         
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
@@ -1623,7 +1539,6 @@ export default class extends Controller {
     })
     
     this.updateConnections()
-    this.updateViewportSize()
   }
   
   clearAll() {
@@ -1642,7 +1557,6 @@ export default class extends Controller {
     
     this.propertiesPanelTarget.innerHTML = '<div class="p-4 text-center text-gray-500">Select an instance to edit properties</div>'
     this.updateConnections()
-    this.updateViewportSize()
     this.updateYamlPreview()
   }
   
@@ -1997,7 +1911,6 @@ export default class extends Controller {
         
         // Update the display
         this.updateConnections()
-        this.updateViewportSize()
         this.updateYamlPreview()
         
         // Clear file input for future imports
@@ -2014,14 +1927,10 @@ export default class extends Controller {
   calculateImportNodePositions(nodeCount) {
     const positions = []
     
-    // Get visible area dimensions
-    const containerWidth = this.container.clientWidth
-    const containerHeight = this.container.clientHeight
-    
-    // Center nodes in the visible area
-    const centerX = containerWidth / 2 / this.zoomLevel
-    const centerY = containerHeight / 2 / this.zoomLevel
-    const radius = Math.min(200, (Math.min(containerWidth, containerHeight) * 0.3) / this.zoomLevel)
+    // Import at center of current view (0, 0 in node coordinates is center of canvas)
+    const centerX = 0
+    const centerY = 0
+    const radius = 200
     
     if (nodeCount === 1) {
       positions.push({ x: centerX, y: centerY })

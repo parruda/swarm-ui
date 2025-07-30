@@ -397,3 +397,12 @@ iframe::-webkit-scrollbar {
   overflow-y: auto;
 }
 
+/* Smooth canvas expansion - disable transitions during drag for performance */
+.visual-builder-canvas:not(.dragging-node) .swarm-node {
+  transition: none;
+}
+
+.visual-builder-canvas.dragging-node {
+  scroll-behavior: auto !important;
+}
+

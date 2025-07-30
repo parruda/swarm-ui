@@ -71,7 +71,10 @@
         </div>
         
         <!-- Git Status Display -->
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-2" 
+             data-controller="git-status-visibility"
+             data-git-status-visibility-session-id-value="<%= @session.id %>"
+             data-git-status-visibility-poll-interval-value="5000">
           <%= render "shared/git_status", session: @session, git_statuses: @git_statuses %>
           
           <!-- Manual refresh button -->

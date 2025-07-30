@@ -95,8 +95,13 @@ class GitStatusService
     has_changes = !status_output.empty?
 
     # Count different types of changes
-    staged = status_output.lines.count { |line| line =~ /^[MADRC]/ }
-    modified = status_output.lines.count { |line| line =~ /^.M/ }
+    # Git status --porcelain format: XY filename
+    # X = index (staging area) status, Y = working tree status
+    # Staged: non-space in first position (except ??)
+    # Modified: M, T, or D in second position
+    # Untracked: ?? 
+    staged = status_output.lines.count { |line| line =~ /^[MTADRC]/ }
+    modified = status_output.lines.count { |line| line =~ /^.[MTD]/ }
     untracked = status_output.lines.count { |line| line =~ /^\?\?/ }
 
     # Get ahead/behind info

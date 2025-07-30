@@ -98,16 +98,39 @@ class OptimizedGitStatusService
     sections = output.split(/^(BRANCH|STATUS|AHEAD_BEHIND|WORKTREE):$/)
 
     branch = sections[2]&.strip || "unknown"
-    status_output = sections[4]&.strip || ""
+    # Don't strip status_output - spaces are significant in git status!
+    status_output = sections[4] || ""
     ahead_behind = sections[6]&.strip || "0\t0"
     is_worktree = sections[8]&.strip == "true"
 
     # Process status
-    has_changes = !status_output.empty?
+    # Check if status has actual content (not just whitespace/newlines)
+    has_changes = status_output.match?(/\S/)  # true if any non-whitespace character
     status_lines = status_output.lines
 
-    staged = status_lines.count { |line| line =~ /^[MADRC]/ }
-    modified = status_lines.count { |line| line =~ /^.M/ }
+    # Git status --porcelain format:
+    # XY filename
+    # X = index (staging area) status
+    # Y = working tree status
+    # 
+    # Characters: ' ' (space), M, T, A, D, R, C, U
+    # Special: ?? = untracked, !! = ignored
+    #
+    # Examples:
+    # "M " = modified in index (staged), working tree clean
+    # " M" = working tree modified (not staged)
+    # "MM" = modified in index (staged), then modified again in working tree
+    # "A " = added to index (staged)
+    # "AM" = added to index, then modified in working tree
+    # "??" = untracked
+    
+    # Staged: anything with non-space in first position (except ??)
+    staged = status_lines.count { |line| line =~ /^[MTADRC]/ }
+    
+    # Modified in working tree: anything with M, T, or D in second position
+    modified = status_lines.count { |line| line =~ /^.[MTD]/ }
+    
+    # Untracked files
     untracked = status_lines.count { |line| line =~ /^\?\?/ }
 
     # Process ahead/behind

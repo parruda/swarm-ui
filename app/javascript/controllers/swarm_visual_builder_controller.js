@@ -50,9 +50,12 @@ export default class extends Controller {
     // Create viewport
     this.viewport = document.createElement('div')
     this.viewport.style.position = 'relative'
-    this.viewport.style.width = '4000px'
-    this.viewport.style.height = '4000px'
+    this.viewport.style.minWidth = '100%'
+    this.viewport.style.minHeight = '100%'
     this.viewport.style.boxSizing = 'border-box'
+    // Start with container size, will expand as nodes are added
+    this.viewport.style.width = '100%'
+    this.viewport.style.height = '100%'
     container.appendChild(this.viewport)
     
     // Create SVG for connections
@@ -133,9 +136,8 @@ export default class extends Controller {
   
   addBlankInstance() {
     // Calculate center of visible viewport
-    const containerRect = this.container.getBoundingClientRect()
-    const centerX = (containerRect.width / 2 + this.container.scrollLeft) / this.zoomLevel
-    const centerY = (containerRect.height / 2 + this.container.scrollTop) / this.zoomLevel
+    const centerX = (this.container.clientWidth / 2 + this.container.scrollLeft) / this.zoomLevel
+    const centerY = (this.container.clientHeight / 2 + this.container.scrollTop) / this.zoomLevel
     
     // Create a blank instance with minimal configuration
     const blankConfig = {
@@ -163,6 +165,31 @@ export default class extends Controller {
         }
       }, 50)
     }, 100)
+  }
+  
+  updateViewportSize() {
+    // Find the bounds of all nodes
+    let maxX = 0
+    let maxY = 0
+    
+    this.nodes.forEach(node => {
+      const rightEdge = node.data.x + 200 + 50 // node x + width + padding
+      const bottomEdge = node.data.y + 120 + 50 // node y + height + padding
+      
+      maxX = Math.max(maxX, rightEdge)
+      maxY = Math.max(maxY, bottomEdge)
+    })
+    
+    // Get container dimensions
+    const containerWidth = this.container.clientWidth
+    const containerHeight = this.container.clientHeight
+    
+    // Set viewport to at least container size, or larger if nodes extend beyond
+    const viewportWidth = Math.max(containerWidth, maxX)
+    const viewportHeight = Math.max(containerHeight, maxY)
+    
+    this.viewport.style.width = viewportWidth + 'px'
+    this.viewport.style.height = viewportHeight + 'px'
   }
   
   async addNodeFromTemplate(name, config, position) {
@@ -220,6 +247,7 @@ export default class extends Controller {
     })
     this.nodeKeyMap.set(nodeId, nodeKey)
     
+    this.updateViewportSize()
     this.updateYamlPreview()
   }
   
@@ -472,6 +500,7 @@ export default class extends Controller {
         element.style.top = nodeData.y + 'px'
         
         this.updateConnections()
+        this.updateViewportSize()
       }
       
       const handleMouseUp = () => {
@@ -1200,6 +1229,7 @@ export default class extends Controller {
       }
       
       this.updateConnections()
+      this.updateViewportSize()
       this.updateYamlPreview()
     }
   }
@@ -1343,6 +1373,7 @@ export default class extends Controller {
     })
     
     this.updateConnections()
+    this.updateViewportSize()
   }
   
   clearAll() {
@@ -1361,6 +1392,7 @@ export default class extends Controller {
     
     this.propertiesPanelTarget.innerHTML = '<div class="p-4 text-center text-gray-500">Select an instance to edit properties</div>'
     this.updateConnections()
+    this.updateViewportSize()
     this.updateYamlPreview()
   }
   
@@ -1703,6 +1735,7 @@ export default class extends Controller {
         
         // Update the display
         this.updateConnections()
+        this.updateViewportSize()
         this.updateYamlPreview()
         
         // Clear file input for future imports
@@ -1718,9 +1751,15 @@ export default class extends Controller {
   
   calculateImportNodePositions(nodeCount) {
     const positions = []
-    const centerX = 400
-    const centerY = 300
-    const radius = 200
+    
+    // Get visible area dimensions
+    const containerWidth = this.container.clientWidth
+    const containerHeight = this.container.clientHeight
+    
+    // Center nodes in the visible area
+    const centerX = containerWidth / 2 / this.zoomLevel
+    const centerY = containerHeight / 2 / this.zoomLevel
+    const radius = Math.min(200, (Math.min(containerWidth, containerHeight) * 0.3) / this.zoomLevel)
     
     if (nodeCount === 1) {
       positions.push({ x: centerX, y: centerY })
@@ -1737,14 +1776,17 @@ export default class extends Controller {
       // Grid layout for many nodes
       const cols = Math.ceil(Math.sqrt(nodeCount))
       const spacing = 250
+      const rows = Math.ceil(nodeCount / cols)
+      
       const startX = centerX - (cols - 1) * spacing / 2
+      const startY = centerY - (rows - 1) * spacing / 2
       
       for (let i = 0; i < nodeCount; i++) {
         const row = Math.floor(i / cols)
         const col = i % cols
         positions.push({
           x: startX + col * spacing,
-          y: 100 + row * spacing
+          y: startY + row * spacing
         })
       }
     }

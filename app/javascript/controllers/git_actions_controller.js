@@ -240,6 +240,11 @@ export default class extends Controller {
     // Add to DOM
     document.body.appendChild(notification)
     
+    // Trigger manual git status refresh for success operations
+    if (type === 'success') {
+      this.triggerGitStatusRefresh()
+    }
+    
     // Animate in with bounce effect
     requestAnimationFrame(() => {
       notification.classList.remove('translate-x-full')
@@ -559,5 +564,18 @@ export default class extends Controller {
     return `<svg class="${className}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       ${icons[name] || ''}
     </svg>`
+  }
+  
+  triggerGitStatusRefresh() {
+    // Find the git status visibility controller and trigger a manual refresh
+    const gitStatusController = document.querySelector('[data-controller~="git-status-visibility"]')
+    if (gitStatusController) {
+      // Get the Stimulus controller instance
+      const controller = this.application.getControllerForElementAndIdentifier(gitStatusController, 'git-status-visibility')
+      if (controller && controller.manualRefresh) {
+        console.log('[GitActions] Triggering git status refresh after successful operation')
+        controller.manualRefresh()
+      }
+    }
   }
 }

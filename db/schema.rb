@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_29_033214) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_30_000948) do
   create_table "github_webhook_events", force: :cascade do |t|
     t.bigint("project_id", null: false)
     t.string("event_type")
@@ -115,6 +115,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_29_033214) do
     t.index(["project_id", "github_pr_number"], name: "index_sessions_on_project_id_and_github_pr_number")
     t.index(["project_id"], name: "index_sessions_on_project_id")
     t.index(["session_id"], name: "index_sessions_on_session_id", unique: true)
+    t.index(["status", "updated_at"], name: "index_sessions_on_status_and_updated_at")
   end
 
   create_table "settings", force: :cascade do |t|

@@ -120,11 +120,19 @@ class SessionsController < ApplicationController
 
     # Fetch git status for active sessions
     if @session.active?
-      git_service = GitStatusService.new(@session)
-      @git_statuses = git_service.fetch_all_statuses
+      # Try to get cached status first
+      cache_key = GitStatusMonitorJob.cache_key(@session.id)
+      @git_statuses = Rails.cache.read(cache_key)
 
-      # Start the background job for real-time updates
-      GitStatusUpdateJob.perform_later(@session.id)
+      if @git_statuses.nil?
+        # No cache, fetch fresh
+        git_service = OptimizedGitStatusService.new(@session)
+        @git_statuses = git_service.fetch_all_statuses
+        Rails.cache.write(cache_key, @git_statuses, expires_in: 5.minutes)
+      end
+
+      # Start the background monitoring job
+      GitStatusMonitorJob.perform_later(@session.id)
     end
   end
 
@@ -472,8 +480,8 @@ class SessionsController < ApplicationController
       end
     end # end of lock block
 
-    # Trigger git status update after chdir block completes
-    GitStatusUpdateJob.perform_later(@session.id) if operation_success
+    # Trigger git status update with force refresh after operation
+    GitStatusMonitorJob.perform_later(@session.id, force_update: true) if operation_success
   rescue => e
     if e.message.include?("Another git operation is in progress")
       render(json: { error: e.message }, status: :conflict)
@@ -570,8 +578,8 @@ class SessionsController < ApplicationController
       end
     end # end of lock block
 
-    # Trigger git status update after chdir block completes
-    GitStatusUpdateJob.perform_later(@session.id) if operation_success
+    # Trigger git status update with force refresh after operation
+    GitStatusMonitorJob.perform_later(@session.id, force_update: true) if operation_success
   rescue => e
     if e.message.include?("Another git operation is in progress")
       render(json: { error: e.message }, status: :conflict)
@@ -642,8 +650,8 @@ class SessionsController < ApplicationController
       end
     end # end of lock block
 
-    # Trigger git status update after staging completes
-    GitStatusUpdateJob.perform_later(@session.id) if operation_success
+    # Trigger git status update with force refresh after staging
+    GitStatusMonitorJob.perform_later(@session.id, force_update: true) if operation_success
   rescue => e
     if e.message.include?("Another git operation is in progress")
       render(json: { error: e.message }, status: :conflict)
@@ -750,8 +758,8 @@ class SessionsController < ApplicationController
       end
     end # end of lock block
 
-    # Trigger git status update after chdir block completes
-    GitStatusUpdateJob.perform_later(@session.id) if operation_success
+    # Trigger git status update with force refresh after operation
+    GitStatusMonitorJob.perform_later(@session.id, force_update: true) if operation_success
   rescue => e
     if e.message.include?("Another git operation is in progress")
       render(json: { error: e.message }, status: :conflict)
@@ -813,8 +821,8 @@ class SessionsController < ApplicationController
       })
     end
 
-    # Trigger git status update after reset completes
-    GitStatusUpdateJob.perform_later(@session.id) if operation_success
+    # Trigger git status update with force refresh after reset
+    GitStatusMonitorJob.perform_later(@session.id, force_update: true) if operation_success
   rescue => e
     Rails.logger.error("Git reset error: #{e.message}")
     render(json: { error: "Failed to reset: #{e.message}" }, status: :internal_server_error)

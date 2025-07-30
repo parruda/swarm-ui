@@ -347,12 +347,22 @@ iframe::-webkit-scrollbar {
   background-image: 
     linear-gradient(90deg, transparent 49%, rgba(0, 0, 0, 0.05) 49%, rgba(0, 0, 0, 0.05) 51%, transparent 51%),
     linear-gradient(rgba(0, 0, 0, 0.05) 49%, transparent 49%, transparent 51%, rgba(0, 0, 0, 0.05) 51%);
+  cursor: default;
 }
 
 .dark .visual-builder-canvas {
   background-image: 
     linear-gradient(90deg, transparent 49%, rgba(255, 255, 255, 0.05) 49%, rgba(255, 255, 255, 0.05) 51%, transparent 51%),
     linear-gradient(rgba(255, 255, 255, 0.05) 49%, transparent 49%, transparent 51%, rgba(255, 255, 255, 0.05) 51%);
+}
+
+/* Canvas states */
+.visual-builder-canvas.shift-pressed {
+  cursor: grab !important;
+}
+
+.visual-builder-canvas.panning {
+  cursor: grabbing !important;
 }
 
 .input-sockets,

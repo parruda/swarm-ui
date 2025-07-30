@@ -84,15 +84,103 @@ export default class extends Controller {
     this.container = container
     this.zoomLevel = 1
     this.nextNodeId = 1
+    this.viewportOffset = { x: 0, y: 0 }
     
     // Setup drag and drop
     this.setupDragAndDrop()
+    
+    // Setup canvas panning
+    this.setupCanvasPanning()
+    
+    // Setup zoom with mouse wheel
+    this.setupMouseWheelZoom()
     
     // Click on viewport to deselect
     this.viewport.addEventListener('click', (e) => {
       if (e.target === this.viewport || e.target === this.svg) {
         this.deselectAll()
       }
+    })
+  }
+  
+  setupMouseWheelZoom() {
+    this.container.addEventListener('wheel', (e) => {
+      // Only zoom with ctrl/cmd + wheel
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        
+        const delta = e.deltaY > 0 ? 0.9 : 1.1
+        const oldZoom = this.zoomLevel
+        
+        // Calculate new zoom
+        this.zoomLevel = Math.min(Math.max(this.zoomLevel * delta, 0.1), 5)
+        
+        if (this.zoomLevel !== oldZoom) {
+          // Get mouse position relative to container
+          const rect = this.container.getBoundingClientRect()
+          const x = e.clientX - rect.left
+          const y = e.clientY - rect.top
+          
+          // Calculate scroll adjustment to zoom toward mouse position
+          const scrollX = this.container.scrollLeft
+          const scrollY = this.container.scrollTop
+          
+          const newScrollX = (scrollX + x) * (this.zoomLevel / oldZoom) - x
+          const newScrollY = (scrollY + y) * (this.zoomLevel / oldZoom) - y
+          
+          this.updateZoom()
+          
+          // Adjust scroll to keep mouse position stable
+          this.container.scrollLeft = newScrollX
+          this.container.scrollTop = newScrollY
+        }
+      }
+    })
+  }
+  
+  setupCanvasPanning() {
+    let isPanning = false
+    let startX = 0
+    let startY = 0
+    let scrollLeft = 0
+    let scrollTop = 0
+    
+    // Use mousedown on viewport for panning
+    this.viewport.addEventListener('mousedown', (e) => {
+      // Only pan with middle mouse or left mouse + space/shift
+      if (e.button === 1 || (e.button === 0 && (e.shiftKey || e.target === this.viewport || e.target === this.svg))) {
+        // Don't pan if clicking on a node or socket
+        if (e.target.closest('.swarm-node') || e.target.closest('.socket')) return
+        
+        e.preventDefault()
+        isPanning = true
+        this.container.classList.add('panning')
+        
+        startX = e.pageX - this.container.offsetLeft
+        startY = e.pageY - this.container.offsetTop
+        scrollLeft = this.container.scrollLeft
+        scrollTop = this.container.scrollTop
+      }
+    })
+    
+    document.addEventListener('mouseup', () => {
+      if (isPanning) {
+        isPanning = false
+        this.container.classList.remove('panning')
+      }
+    })
+    
+    document.addEventListener('mousemove', (e) => {
+      if (!isPanning) return
+      
+      e.preventDefault()
+      const x = e.pageX - this.container.offsetLeft
+      const y = e.pageY - this.container.offsetTop
+      const walkX = (x - startX) * 1.5 // Increase pan speed
+      const walkY = (y - startY) * 1.5
+      
+      this.container.scrollLeft = scrollLeft - walkX
+      this.container.scrollTop = scrollTop - walkY
     })
   }
   
@@ -169,27 +257,60 @@ export default class extends Controller {
   
   updateViewportSize() {
     // Find the bounds of all nodes
-    let maxX = 0
-    let maxY = 0
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    
+    if (this.nodes.size === 0) {
+      // No nodes, just use container size
+      this.viewport.style.width = '100%'
+      this.viewport.style.height = '100%'
+      this.viewportOffset = { x: 0, y: 0 }
+      return
+    }
     
     this.nodes.forEach(node => {
-      const rightEdge = node.data.x + 200 + 50 // node x + width + padding
-      const bottomEdge = node.data.y + 120 + 50 // node y + height + padding
-      
-      maxX = Math.max(maxX, rightEdge)
-      maxY = Math.max(maxY, bottomEdge)
+      minX = Math.min(minX, node.data.x)
+      minY = Math.min(minY, node.data.y)
+      maxX = Math.max(maxX, node.data.x + 200) // node width
+      maxY = Math.max(maxY, node.data.y + 120) // node height
     })
+    
+    // Add padding on all sides
+    const padding = 100
+    minX -= padding
+    minY -= padding
+    maxX += padding
+    maxY += padding
     
     // Get container dimensions
     const containerWidth = this.container.clientWidth
     const containerHeight = this.container.clientHeight
     
-    // Set viewport to at least container size, or larger if nodes extend beyond
-    const viewportWidth = Math.max(containerWidth, maxX)
-    const viewportHeight = Math.max(containerHeight, maxY)
+    // Calculate total canvas size needed
+    const canvasWidth = maxX - minX
+    const canvasHeight = maxY - minY
     
+    // Ensure canvas is at least as big as container
+    const viewportWidth = Math.max(containerWidth, canvasWidth)
+    const viewportHeight = Math.max(containerHeight, canvasHeight)
+    
+    // Store offset for coordinate transformation
+    this.viewportOffset = { x: -minX, y: -minY }
+    
+    // Update viewport size
     this.viewport.style.width = viewportWidth + 'px'
     this.viewport.style.height = viewportHeight + 'px'
+    
+    // Transform all nodes to account for negative space
+    this.nodes.forEach((node) => {
+      node.element.style.left = (node.data.x + this.viewportOffset.x) + 'px'
+      node.element.style.top = (node.data.y + this.viewportOffset.y) + 'px'
+    })
+    
+    // Update connections after transformation
+    this.updateConnections()
   }
   
   async addNodeFromTemplate(name, config, position) {
@@ -255,8 +376,8 @@ export default class extends Controller {
     const node = document.createElement('div')
     node.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-gray-300 dark:border-gray-600 p-4 select-none hover:shadow-xl transition-shadow swarm-node'
     node.style.position = 'absolute'
-    node.style.left = nodeData.x + 'px'
-    node.style.top = nodeData.y + 'px'
+    node.style.left = (nodeData.x + this.viewportOffset.x) + 'px'
+    node.style.top = (nodeData.y + this.viewportOffset.y) + 'px'
     node.style.width = '200px'
     node.dataset.nodeId = nodeData.id
     
@@ -465,6 +586,7 @@ export default class extends Controller {
     let isDragging = false
     let dragMouseX = 0
     let dragMouseY = 0
+    let autoScrollInterval = null
     
     element.addEventListener('mousedown', (e) => {
       // Don't drag if clicking on socket or connection-related elements
@@ -484,9 +606,61 @@ export default class extends Controller {
       element.style.zIndex = 1000
       element.style.cursor = 'grabbing'
       
+      // Auto-scroll function
+      const checkAutoScroll = (mouseX, mouseY) => {
+        const containerRect = this.container.getBoundingClientRect()
+        const scrollSpeed = 10
+        const edgeSize = 50 // Distance from edge to trigger scroll
+        
+        let scrollX = 0
+        let scrollY = 0
+        
+        // Check distance from edges
+        if (mouseX - containerRect.left < edgeSize) {
+          scrollX = -scrollSpeed
+        } else if (containerRect.right - mouseX < edgeSize) {
+          scrollX = scrollSpeed
+        }
+        
+        if (mouseY - containerRect.top < edgeSize) {
+          scrollY = -scrollSpeed
+        } else if (containerRect.bottom - mouseY < edgeSize) {
+          scrollY = scrollSpeed
+        }
+        
+        if (scrollX !== 0 || scrollY !== 0) {
+          if (!autoScrollInterval) {
+            autoScrollInterval = setInterval(() => {
+              this.container.scrollLeft += scrollX
+              this.container.scrollTop += scrollY
+              
+              // Update node position while auto-scrolling
+              const currentDeltaX = (mouseX - startMouseX + scrollX) / this.zoomLevel
+              const currentDeltaY = (mouseY - startMouseY + scrollY) / this.zoomLevel
+              
+              nodeData.x = startNodeX + currentDeltaX
+              nodeData.y = startNodeY + currentDeltaY
+              
+              element.style.left = (nodeData.x + this.viewportOffset.x) + 'px'
+              element.style.top = (nodeData.y + this.viewportOffset.y) + 'px'
+              
+              this.updateConnections()
+            }, 16) // ~60fps
+          }
+        } else {
+          if (autoScrollInterval) {
+            clearInterval(autoScrollInterval)
+            autoScrollInterval = null
+          }
+        }
+      }
+      
       // Create handlers specific to this drag
       const handleMouseMove = (e) => {
         if (!isDragging) return
+        
+        // Check for auto-scroll
+        checkAutoScroll(e.clientX, e.clientY)
         
         // Calculate the delta from the start position
         const deltaX = (e.clientX - startMouseX) / this.zoomLevel
@@ -496,17 +670,24 @@ export default class extends Controller {
         nodeData.x = startNodeX + deltaX
         nodeData.y = startNodeY + deltaY
         
-        element.style.left = nodeData.x + 'px'
-        element.style.top = nodeData.y + 'px'
+        element.style.left = (nodeData.x + this.viewportOffset.x) + 'px'
+        element.style.top = (nodeData.y + this.viewportOffset.y) + 'px'
         
         this.updateConnections()
-        this.updateViewportSize()
       }
       
       const handleMouseUp = () => {
         isDragging = false
         element.style.zIndex = ''
         element.style.cursor = ''
+        
+        if (autoScrollInterval) {
+          clearInterval(autoScrollInterval)
+          autoScrollInterval = null
+        }
+        
+        // Update viewport size after drag is complete
+        this.updateViewportSize()
         
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
@@ -1467,6 +1648,11 @@ export default class extends Controller {
     document.addEventListener('keydown', (e) => {
       if (e.target.matches('input, textarea, select')) return
       
+      // Show pan cursor when shift is pressed
+      if (e.key === 'Shift' && !e.repeat) {
+        this.container.classList.add('shift-pressed')
+      }
+      
       // Delete or Backspace for selected node
       if ((e.key === 'Delete' || e.key === 'Backspace') && this.selectedNode) {
         e.preventDefault()
@@ -1495,6 +1681,13 @@ export default class extends Controller {
         this.viewport.classList.remove('cursor-crosshair')
         // Remove connecting class from all sockets
         this.viewport.querySelectorAll('.socket.connecting').forEach(s => s.classList.remove('connecting'))
+      }
+    })
+    
+    document.addEventListener('keyup', (e) => {
+      // Remove pan cursor when shift is released
+      if (e.key === 'Shift') {
+        this.container.classList.remove('shift-pressed')
       }
     })
   }

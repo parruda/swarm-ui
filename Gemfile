@@ -61,12 +61,6 @@ group :development, :test do
   gem "rubocop-performance", require: false
   gem "rubocop-minitest", require: false
   gem "rubocop-rake", require: false
-  if ENV["DEV_SWARM"]
-    gem "claude_swarm", "~> 0.3.0", require: false, path: "~/src/github.com/parruda/claude-swarm"
-  else
-    gem "claude_swarm", "~> 0.3.0", require: false
-  end
-  gem "headless_browser_tool", require: false
 end
 
 group :development do
@@ -89,3 +83,12 @@ end
 
 gem "dotenv-rails"
 gem "heroicon"
+
+if ENV["DEV_SWARM"]
+  gem "claude_swarm", "~> 0.3.0", require: false, path: "~/src/github.com/parruda/claude-swarm"
+else
+  gem "claude_swarm", "~> 0.3.0", require: false
+end
+
+gem "headless_browser_tool", require: false
+gem "claude-code-sdk-ruby"

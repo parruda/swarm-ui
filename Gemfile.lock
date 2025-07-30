@@ -505,6 +505,7 @@ DEPENDENCIES
   bootsnap
   brakeman
   capybara
+  claude-code-sdk-ruby
   claude_swarm (~> 0.3.0)
   connection_pool (~> 2.4)
   debug

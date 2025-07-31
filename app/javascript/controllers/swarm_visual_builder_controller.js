@@ -1506,6 +1506,42 @@ export default class extends Controller {
     URL.revokeObjectURL(url)
   }
   
+  async copyYaml() {
+    const yaml = this.yamlPreviewTarget.querySelector('pre').textContent
+    
+    try {
+      await navigator.clipboard.writeText(yaml)
+      
+      // Update button text temporarily to show success
+      const button = this.yamlPreviewTabTarget.querySelector('[data-action="click->swarm-visual-builder#copyYaml"]')
+      const originalHTML = button.innerHTML
+      button.innerHTML = `
+        <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        Copied!
+      `
+      button.classList.add('text-green-600', 'dark:text-green-400')
+      
+      // Reset after 2 seconds
+      setTimeout(() => {
+        button.innerHTML = originalHTML
+        button.classList.remove('text-green-600', 'dark:text-green-400')
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to copy text: ', err)
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea')
+      textArea.value = yaml
+      textArea.style.position = 'fixed'
+      textArea.style.opacity = '0'
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+    }
+  }
+  
   async saveSwarm() {
     const swarmData = this.buildSwarmData()
     const yaml = jsyaml.dump(swarmData)

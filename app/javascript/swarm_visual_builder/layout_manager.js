@@ -50,7 +50,6 @@ export default class LayoutManager {
   radialLayout(hubNode, nodes, connections) {
     const nodeWidth = 250
     const nodeHeight = 120
-    const minRadius = 400
     
     // Place hub in center
     hubNode.data.x = 0
@@ -58,36 +57,139 @@ export default class LayoutManager {
     
     // Get all nodes connected from hub
     const connectedNodes = []
-    connections.forEach(conn => {
-      if (conn.from === hubNode.id) {
-        const node = nodes.find(n => n.id === conn.to)
-        if (node) connectedNodes.push(node)
+    const hubConnections = connections.filter(conn => conn.from === hubNode.id)
+    
+    hubConnections.forEach(conn => {
+      const node = nodes.find(n => n.id === conn.to)
+      if (node) {
+        connectedNodes.push({ node, connection: conn })
       }
     })
     
-    // Calculate radius based on number of nodes
-    const radius = Math.max(minRadius, connectedNodes.length * 40)
+    // Calculate optimal radius based on number of nodes
+    // We want nodes to not overlap, so calculate based on circumference
+    const nodeSpacing = nodeWidth + 100 // Node width plus gap
+    const minCircumference = connectedNodes.length * nodeSpacing
+    const radius = Math.max(400, minCircumference / (2 * Math.PI))
     
-    // Distribute connected nodes in a circle
-    connectedNodes.forEach((node, index) => {
-      const angle = (index * 2 * Math.PI) / connectedNodes.length - Math.PI / 2
+    // Group nodes by their connections' socket sides for better organization
+    const socketGroups = {
+      top: [],
+      right: [],
+      bottom: [],
+      left: []
+    }
+    
+    // First pass: distribute nodes evenly around the circle
+    connectedNodes.forEach(({ node, connection }, index) => {
+      // Calculate angle for even distribution
+      const angleStep = (2 * Math.PI) / connectedNodes.length
+      const angle = index * angleStep - Math.PI / 2 // Start from top
+      
+      // Position node
       node.data.x = Math.cos(angle) * radius
       node.data.y = Math.sin(angle) * radius
+      
+      // Determine which socket to use based on angle
+      const angleDegrees = (angle * 180 / Math.PI + 360) % 360
+      let targetSocket
+      
+      if (angleDegrees >= 315 || angleDegrees < 45) {
+        targetSocket = 'top'
+      } else if (angleDegrees >= 45 && angleDegrees < 135) {
+        targetSocket = 'right'
+      } else if (angleDegrees >= 135 && angleDegrees < 225) {
+        targetSocket = 'bottom'
+      } else {
+        targetSocket = 'left'
+      }
+      
+      // Update connection to use optimal sockets
+      const fromSocket = this.getRadialSocket(0, 0, node.data.x, node.data.y)
+      connection.fromSide = fromSocket
+      connection.toSide = this.getOppositeSocket(fromSocket)
     })
     
-    // Place any unconnected nodes further out
+    // Place any unconnected nodes in outer layers
     const unconnectedNodes = nodes.filter(n => 
-      n.id !== hubNode.id && !connectedNodes.includes(n)
+      n.id !== hubNode.id && !connectedNodes.find(cn => cn.node.id === n.id)
     )
     
     if (unconnectedNodes.length > 0) {
-      const outerRadius = radius + 300
-      unconnectedNodes.forEach((node, index) => {
-        const angle = (index * 2 * Math.PI) / unconnectedNodes.length
-        node.data.x = Math.cos(angle) * outerRadius  
-        node.data.y = Math.sin(angle) * outerRadius
+      // Check if these are second-degree connections
+      const secondDegreeNodes = []
+      const remainingNodes = []
+      
+      unconnectedNodes.forEach(node => {
+        const hasConnectionToFirstDegree = connections.some(conn => {
+          if (conn.from === node.id) {
+            return connectedNodes.find(cn => cn.node.id === conn.to)
+          }
+          if (conn.to === node.id) {
+            return connectedNodes.find(cn => cn.node.id === conn.from)
+          }
+          return false
+        })
+        
+        if (hasConnectionToFirstDegree) {
+          secondDegreeNodes.push(node)
+        } else {
+          remainingNodes.push(node)
+        }
       })
+      
+      // Place second-degree nodes
+      if (secondDegreeNodes.length > 0) {
+        const outerRadius = radius * 1.8
+        secondDegreeNodes.forEach((node, index) => {
+          const angleStep = (2 * Math.PI) / secondDegreeNodes.length
+          const angle = index * angleStep
+          node.data.x = Math.cos(angle) * outerRadius
+          node.data.y = Math.sin(angle) * outerRadius
+        })
+      }
+      
+      // Place remaining nodes even further out
+      if (remainingNodes.length > 0) {
+        const outerRadius = radius * 2.5
+        remainingNodes.forEach((node, index) => {
+          const angleStep = (2 * Math.PI) / remainingNodes.length
+          const angle = index * angleStep + Math.PI / remainingNodes.length // Offset for visual balance
+          node.data.x = Math.cos(angle) * outerRadius
+          node.data.y = Math.sin(angle) * outerRadius
+        })
+      }
     }
+  }
+  
+  getRadialSocket(fromX, fromY, toX, toY) {
+    const dx = toX - fromX
+    const dy = toY - fromY
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI
+    
+    // Normalize angle to 0-360
+    const normalizedAngle = (angle + 360) % 360
+    
+    // Return socket based on angle quadrant
+    if (normalizedAngle >= 315 || normalizedAngle < 45) {
+      return 'right'
+    } else if (normalizedAngle >= 45 && normalizedAngle < 135) {
+      return 'bottom'
+    } else if (normalizedAngle >= 135 && normalizedAngle < 225) {
+      return 'left'
+    } else {
+      return 'top'
+    }
+  }
+  
+  getOppositeSocket(socket) {
+    const opposites = {
+      'top': 'bottom',
+      'bottom': 'top',
+      'left': 'right',
+      'right': 'left'
+    }
+    return opposites[socket]
   }
   
   hierarchicalLayout(nodes, connections) {

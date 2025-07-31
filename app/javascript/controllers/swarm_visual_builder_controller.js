@@ -363,7 +363,10 @@ export default class extends Controller {
     // Add double-click handler for main node
     nodeEl.addEventListener('dblclick', (e) => {
       e.stopPropagation()
-      this.setMainNode(node.id)
+      // Only allow setting as main if no incoming connections
+      if (!this.connectionManager.hasIncomingConnections(node.id)) {
+        this.setMainNode(node.id)
+      }
     })
     
     return nodeEl

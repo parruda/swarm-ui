@@ -4,14 +4,97 @@ export default class LayoutManager {
     this.controller = controller
   }
   
-  // Auto-layout nodes using hierarchical layout
+  // Auto-layout nodes using appropriate layout algorithm
   autoLayout(nodes, connections) {
     if (nodes.length === 0) return
     
+    // Detect if this is a hub-and-spoke pattern
+    const hubNode = this.detectHubNode(nodes, connections)
+    
+    if (hubNode && this.isHubAndSpoke(hubNode, nodes, connections)) {
+      // Use radial layout for hub-and-spoke
+      this.radialLayout(hubNode, nodes, connections)
+    } else {
+      // Use hierarchical layout for other patterns  
+      this.hierarchicalLayout(nodes, connections)
+    }
+    
+    // Center the layout
+    this.centerLayout(nodes)
+  }
+  
+  detectHubNode(nodes, connections) {
+    // Find node with the most outgoing connections
+    let maxOutgoing = 0
+    let hubNode = null
+    
+    nodes.forEach(node => {
+      const outgoing = connections.filter(c => c.from === node.id).length
+      if (outgoing > maxOutgoing) {
+        maxOutgoing = outgoing
+        hubNode = node
+      }
+    })
+    
+    // Consider it a hub if it has connections to more than 30% of other nodes
+    return maxOutgoing > Math.max(3, (nodes.length - 1) * 0.3) ? hubNode : null
+  }
+  
+  isHubAndSpoke(hubNode, nodes, connections) {
+    // Check if most connections originate from the hub
+    const hubConnections = connections.filter(c => c.from === hubNode.id).length
+    const totalConnections = connections.length
+    return hubConnections > totalConnections * 0.5
+  }
+  
+  radialLayout(hubNode, nodes, connections) {
     const nodeWidth = 250
     const nodeHeight = 120
-    const horizontalSpacing = 100
-    const verticalSpacing = 80
+    const minRadius = 400
+    
+    // Place hub in center
+    hubNode.data.x = 0
+    hubNode.data.y = 0
+    
+    // Get all nodes connected from hub
+    const connectedNodes = []
+    connections.forEach(conn => {
+      if (conn.from === hubNode.id) {
+        const node = nodes.find(n => n.id === conn.to)
+        if (node) connectedNodes.push(node)
+      }
+    })
+    
+    // Calculate radius based on number of nodes
+    const radius = Math.max(minRadius, connectedNodes.length * 40)
+    
+    // Distribute connected nodes in a circle
+    connectedNodes.forEach((node, index) => {
+      const angle = (index * 2 * Math.PI) / connectedNodes.length - Math.PI / 2
+      node.data.x = Math.cos(angle) * radius
+      node.data.y = Math.sin(angle) * radius
+    })
+    
+    // Place any unconnected nodes further out
+    const unconnectedNodes = nodes.filter(n => 
+      n.id !== hubNode.id && !connectedNodes.includes(n)
+    )
+    
+    if (unconnectedNodes.length > 0) {
+      const outerRadius = radius + 300
+      unconnectedNodes.forEach((node, index) => {
+        const angle = (index * 2 * Math.PI) / unconnectedNodes.length
+        node.data.x = Math.cos(angle) * outerRadius  
+        node.data.y = Math.sin(angle) * outerRadius
+      })
+    }
+  }
+  
+  hierarchicalLayout(nodes, connections) {
+    const nodeWidth = 250
+    const nodeHeight = 120
+    const horizontalSpacing = 150
+    const verticalSpacing = 150
     
     // Build adjacency lists
     const graph = this.buildGraph(nodes, connections)
@@ -39,7 +122,7 @@ export default class LayoutManager {
     }
     
     // Position nodes
-    let currentY = -this.controller.canvasCenter + 50
+    let currentY = 0
     
     // Sort levels
     const sortedLevels = Array.from(nodesByLevel.keys()).sort((a, b) => a - b)
@@ -70,9 +153,6 @@ export default class LayoutManager {
       
       currentY += nodeHeight + verticalSpacing
     })
-    
-    // Center the layout
-    this.centerLayout(nodes)
   }
   
   buildGraph(nodes, connections) {

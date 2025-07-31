@@ -1009,17 +1009,21 @@ export default class extends Controller {
     if (!node) return
     
     this.draggedNode = node
-    const rect = nodeEl.getBoundingClientRect()
-    const viewportRect = this.viewport.getBoundingClientRect()
     
-    this.dragOffset = {
-      x: (e.clientX - rect.left) / this.zoomLevel,
-      y: (e.clientY - rect.top) / this.zoomLevel
-    }
+    // Store initial positions
+    this.dragStartMouseX = e.clientX
+    this.dragStartMouseY = e.clientY
+    this.dragStartNodeX = node.data.x
+    this.dragStartNodeY = node.data.y
+    
+    // Animation state
+    this.lastMouseX = e.clientX
+    this.lastMouseY = e.clientY
+    this.animationFrameId = null
     
     nodeEl.style.zIndex = '1000'
     nodeEl.style.cursor = 'grabbing'
-    this.viewport.classList.add('dragging-node')
+    this.container.classList.add('dragging-node')
     
     e.preventDefault()
   }
@@ -1027,26 +1031,87 @@ export default class extends Controller {
   continueNodeDrag(e) {
     if (!this.draggedNode) return
     
-    const viewportRect = this.viewport.getBoundingClientRect()
-    const x = (e.clientX - viewportRect.left) / this.zoomLevel - this.dragOffset.x - this.canvasCenter
-    const y = (e.clientY - viewportRect.top) / this.zoomLevel - this.dragOffset.y - this.canvasCenter
+    this.lastMouseX = e.clientX
+    this.lastMouseY = e.clientY
+    
+    // Start animation if not already running
+    if (!this.animationFrameId) {
+      this.animationFrameId = requestAnimationFrame(() => this.updateNodePosition())
+    }
+  }
+  
+  updateNodePosition() {
+    if (!this.draggedNode) return
+    
+    // Calculate the delta from the start position
+    const deltaX = (this.lastMouseX - this.dragStartMouseX) / this.zoomLevel
+    const deltaY = (this.lastMouseY - this.dragStartMouseY) / this.zoomLevel
+    
+    // Update node position (relative to center)
+    const x = this.dragStartNodeX + deltaX
+    const y = this.dragStartNodeY + deltaY
     
     this.nodeManager.updateNodePosition(this.draggedNode.id, x, y)
     
+    // Update element position
     this.draggedNode.element.style.left = `${x + this.canvasCenter}px`
     this.draggedNode.element.style.top = `${y + this.canvasCenter}px`
     
+    // Update connections
     this.updateConnections()
+    
+    // Check for auto-scroll with smooth acceleration
+    const containerRect = this.container.getBoundingClientRect()
+    const edgeSize = 80 // Larger detection zone
+    const maxScrollSpeed = 25
+    
+    const distanceFromLeft = this.lastMouseX - containerRect.left
+    const distanceFromRight = containerRect.right - this.lastMouseX
+    const distanceFromTop = this.lastMouseY - containerRect.top
+    const distanceFromBottom = containerRect.bottom - this.lastMouseY
+    
+    let scrollX = 0
+    let scrollY = 0
+    
+    // Smooth quadratic acceleration for more natural feel
+    if (distanceFromLeft < edgeSize) {
+      const factor = 1 - (distanceFromLeft / edgeSize)
+      scrollX = -maxScrollSpeed * factor * factor
+    } else if (distanceFromRight < edgeSize) {
+      const factor = 1 - (distanceFromRight / edgeSize)
+      scrollX = maxScrollSpeed * factor * factor
+    }
+    
+    if (distanceFromTop < edgeSize) {
+      const factor = 1 - (distanceFromTop / edgeSize)
+      scrollY = -maxScrollSpeed * factor * factor
+    } else if (distanceFromBottom < edgeSize) {
+      const factor = 1 - (distanceFromBottom / edgeSize)
+      scrollY = maxScrollSpeed * factor * factor
+    }
+    
+    if (scrollX !== 0 || scrollY !== 0) {
+      this.container.scrollLeft += scrollX
+      this.container.scrollTop += scrollY
+    }
+    
+    // Continue animation
+    this.animationFrameId = requestAnimationFrame(() => this.updateNodePosition())
   }
   
   endNodeDrag() {
     if (!this.draggedNode) return
     
+    // Cancel animation
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId)
+      this.animationFrameId = null
+    }
+    
     this.draggedNode.element.style.zIndex = ''
     this.draggedNode.element.style.cursor = ''
-    this.viewport.classList.remove('dragging-node')
+    this.container.classList.remove('dragging-node')
     this.draggedNode = null
-    this.dragOffset = null
     
     this.updateYamlPreview()
   }
@@ -1245,18 +1310,18 @@ export default class extends Controller {
       instances[key] = instance
     })
     
-    // Build connections
+    // Build connections - connections go on the source node listing destinations
     this.connectionManager.getConnections().forEach(conn => {
       const fromKey = this.nodeKeyMap.get(conn.from)
       const toKey = this.nodeKeyMap.get(conn.to)
       
       if (fromKey && toKey) {
-        if (!instances[toKey].connections) {
-          instances[toKey].connections = []
+        if (!instances[fromKey].connections) {
+          instances[fromKey].connections = []
         }
         // Avoid duplicates
-        if (!instances[toKey].connections.includes(fromKey)) {
-          instances[toKey].connections.push(fromKey)
+        if (!instances[fromKey].connections.includes(toKey)) {
+          instances[fromKey].connections.push(toKey)
         }
       }
     })
@@ -1358,17 +1423,17 @@ export default class extends Controller {
       // Create connections
       Object.entries(swarmData.instances).forEach(([instanceKey, instanceData]) => {
         if (instanceData.connections) {
-          const toNode = importedNodes.find(n => 
+          const fromNode = importedNodes.find(n => 
             n.data.name.toLowerCase().replace(/\s+/g, '_') === instanceKey
           )
           
-          if (toNode) {
-            instanceData.connections.forEach(fromKey => {
-              const fromNode = importedNodes.find(n => 
-                n.data.name.toLowerCase().replace(/\s+/g, '_') === fromKey
+          if (fromNode) {
+            instanceData.connections.forEach(toKey => {
+              const toNode = importedNodes.find(n => 
+                n.data.name.toLowerCase().replace(/\s+/g, '_') === toKey
               )
               
-              if (fromNode) {
+              if (toNode) {
                 const { fromSide, toSide } = this.connectionManager.findBestSocketPair(fromNode, toNode)
                 this.connectionManager.createConnection(fromNode.id, fromSide, toNode.id, toSide)
                 

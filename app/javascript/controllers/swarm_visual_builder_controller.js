@@ -1015,6 +1015,8 @@ export default class extends Controller {
     this.dragStartMouseY = e.clientY
     this.dragStartNodeX = node.data.x
     this.dragStartNodeY = node.data.y
+    this.dragStartScrollLeft = this.container.scrollLeft
+    this.dragStartScrollTop = this.container.scrollTop
     
     // Animation state
     this.lastMouseX = e.clientX
@@ -1043,11 +1045,19 @@ export default class extends Controller {
   updateNodePosition() {
     if (!this.draggedNode) return
     
-    // Calculate the delta from the start position
-    const deltaX = (this.lastMouseX - this.dragStartMouseX) / this.zoomLevel
-    const deltaY = (this.lastMouseY - this.dragStartMouseY) / this.zoomLevel
+    // Calculate mouse delta
+    const deltaMouseX = this.lastMouseX - this.dragStartMouseX
+    const deltaMouseY = this.lastMouseY - this.dragStartMouseY
     
-    // Update node position (relative to center)
+    // Calculate scroll delta
+    const deltaScrollX = this.container.scrollLeft - this.dragStartScrollLeft
+    const deltaScrollY = this.container.scrollTop - this.dragStartScrollTop
+    
+    // Calculate final position accounting for both mouse movement and scroll
+    const deltaX = (deltaMouseX + deltaScrollX) / this.zoomLevel
+    const deltaY = (deltaMouseY + deltaScrollY) / this.zoomLevel
+    
+    // Update node position
     const x = this.dragStartNodeX + deltaX
     const y = this.dragStartNodeY + deltaY
     

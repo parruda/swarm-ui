@@ -406,3 +406,19 @@ iframe::-webkit-scrollbar {
   scroll-behavior: auto !important;
 }
 
+/* Smooth path drawing animation */
+@keyframes draw-path {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Connection hover effects */
+.connection {
+  transition: stroke-width 0.2s ease, stroke 0.2s ease;
+}
+
+.connection:hover {
+  stroke-width: 4 !important;
+}
+

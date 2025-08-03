@@ -51,6 +51,11 @@ export default class extends Controller {
       this.modal.removeEventListener("click", this.boundCloseOnClickOutside)
     }
     this.disposeMonacoInstances()
+    
+    // Clean up resize event listeners
+    if (this.resizeCleanup) {
+      this.resizeCleanup()
+    }
   }
 
   async open(event) {
@@ -206,15 +211,24 @@ export default class extends Controller {
           left: calc(100% + 20px);
           white-space: nowrap;
         }
+        
+        .resize-handle:hover .resize-line,
+        .resize-handle.resizing .resize-line {
+          background: #3b82f6 !important;
+        }
+        
+        .resize-handle.resizing {
+          background: rgba(59, 130, 246, 0.1) !important;
+        }
       `
       document.head.appendChild(style)
     }
     
     // Create the main content structure with full height
     this.contentEl.innerHTML = `
-      <div class="flex" style="height: 100%;">
+      <div class="flex" style="height: 100%; position: relative;">
         <!-- File list sidebar -->
-        <div class="w-64 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0" style="height: 100%; overflow-y: auto;" data-git-diff-modal-target="fileList">
+        <div class="file-list-sidebar border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0" style="width: 256px; height: 100%; overflow-y: auto; position: relative;" data-git-diff-modal-target="fileList">
           <div class="p-4">
             <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3">
               Changed Files (${data.files.length})
@@ -247,6 +261,29 @@ export default class extends Controller {
               `).join('')}
             </div>
           </div>
+        </div>
+        
+        <!-- Resize handle -->
+        <div class="resize-handle" style="
+          position: absolute;
+          left: 256px;
+          top: 0;
+          bottom: 0;
+          width: 4px;
+          background: transparent;
+          cursor: col-resize;
+          z-index: 10;
+          margin-left: -2px;
+        " data-git-diff-modal-target="resizeHandle">
+          <div style="
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: transparent;
+            transition: background 0.2s;
+          " class="resize-line"></div>
         </div>
         
         <!-- Monaco diff container -->
@@ -301,6 +338,73 @@ export default class extends Controller {
     
     // Update request changes button state after content is loaded
     this.updateRequestChangesButton()
+    
+    // Setup resize functionality
+    this.setupResizeHandle()
+  }
+  
+  setupResizeHandle() {
+    const resizeHandle = this.contentEl.querySelector('.resize-handle')
+    const fileListSidebar = this.contentEl.querySelector('.file-list-sidebar')
+    
+    if (!resizeHandle || !fileListSidebar) return
+    
+    let isResizing = false
+    let startX = 0
+    let startWidth = 0
+    const minWidth = 200
+    const maxWidth = 500
+    
+    const startResize = (e) => {
+      isResizing = true
+      startX = e.pageX
+      startWidth = parseInt(fileListSidebar.style.width, 10)
+      
+      resizeHandle.classList.add('resizing')
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+      
+      e.preventDefault()
+    }
+    
+    const doResize = (e) => {
+      if (!isResizing) return
+      
+      const currentX = e.pageX
+      const deltaX = currentX - startX
+      let newWidth = startWidth + deltaX
+      
+      // Constrain width
+      newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth))
+      
+      // Update sidebar width
+      fileListSidebar.style.width = `${newWidth}px`
+      
+      // Update resize handle position
+      resizeHandle.style.left = `${newWidth}px`
+      
+      e.preventDefault()
+    }
+    
+    const stopResize = () => {
+      if (!isResizing) return
+      
+      isResizing = false
+      resizeHandle.classList.remove('resizing')
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    
+    // Add event listeners
+    resizeHandle.addEventListener('mousedown', startResize)
+    document.addEventListener('mousemove', doResize)
+    document.addEventListener('mouseup', stopResize)
+    
+    // Clean up on disconnect
+    this.resizeCleanup = () => {
+      document.removeEventListener('mousemove', doResize)
+      document.removeEventListener('mouseup', stopResize)
+    }
   }
 
   async loadMonaco() {

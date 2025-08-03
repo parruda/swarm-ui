@@ -21,11 +21,11 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
 
     # Need to mock Setting.github_username_configured? to return true
     Setting.expects(:github_username_configured?).returns(true)
-    
+
     post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
 
     assert_redirected_to project_path(@project)
-    
+
     @project.reload
     assert @project.github_webhook_enabled?
   end
@@ -37,11 +37,11 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
 
     # Need to mock Setting.github_username_configured? to return true
     Setting.expects(:github_username_configured?).returns(true)
-    
+
     post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
 
     assert_redirected_to project_path(@project)
-    
+
     @project.reload
     assert_not @project.github_webhook_enabled?
   end

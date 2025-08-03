@@ -76,7 +76,7 @@ class ThemeControllerTest < ActionDispatch::IntegrationTest
 
   test "only accepts PUT requests" do
     skip "Rails test framework doesn't properly raise RoutingError for undefined routes in integration tests"
-    
+
     # In a real application, GET/PATCH requests to /theme would return 404
     # because these routes are not defined. However, the Rails test framework
     # handles this differently in integration tests vs real requests.

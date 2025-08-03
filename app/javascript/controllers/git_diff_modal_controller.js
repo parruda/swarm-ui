@@ -224,9 +224,9 @@ export default class extends Controller {
       document.head.appendChild(style)
     }
     
-    // Create the main content structure with full height
+    // Create the main content structure with absolute positioning to ensure proper height
     this.contentEl.innerHTML = `
-      <div class="flex" style="height: 100%; position: relative;">
+      <div class="flex" style="position: absolute; inset: 0;">
         <!-- File list sidebar -->
         <div class="file-list-sidebar border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0" style="width: 256px; height: 100%; overflow-y: auto; position: relative;" data-git-diff-modal-target="fileList">
           <div class="p-4">

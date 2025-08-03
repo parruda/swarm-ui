@@ -57,12 +57,12 @@ class GitOperationLockServiceTest < ActiveSupport::TestCase
   test "waits for lock when already held" do
     # Start with lock already held by another process
     Rails.cache.write(@lock_key, 999, expires_in: 30.seconds)
-    
+
     # Track retries and sleeps
     sleep_count = 0
     sleep_times = []
-    lock_key = @lock_key  # Capture in local variable for closure
-    
+    lock_key = @lock_key # Capture in local variable for closure
+
     # Mock the class to stub sleep
     GitOperationLockService.singleton_class.send(:define_method, :sleep) do |time|
       sleep_count += 1
@@ -70,17 +70,17 @@ class GitOperationLockServiceTest < ActiveSupport::TestCase
       # Release lock after 3 retries so the test can succeed
       Rails.cache.delete(lock_key) if sleep_count == 3
     end
-    
+
     begin
       result = GitOperationLockService.with_lock(@session_id, @directory) do
         "success"
       end
-      
-      assert_equal "success", result
-      assert_equal 3, sleep_count, "Should have slept 3 times before acquiring lock"
-      assert_equal 0.2, sleep_times[0], "First retry should sleep 0.2s"
-      assert_equal 0.4, sleep_times[1], "Second retry should sleep 0.4s"
-      assert_equal 0.8, sleep_times[2], "Third retry should sleep 0.8s"
+
+      assert_equal("success", result)
+      assert_equal(3, sleep_count, "Should have slept 3 times before acquiring lock")
+      assert_equal(0.2, sleep_times[0], "First retry should sleep 0.2s")
+      assert_equal(0.4, sleep_times[1], "Second retry should sleep 0.4s")
+      assert_equal(0.8, sleep_times[2], "Third retry should sleep 0.8s")
     ensure
       # Restore original sleep method
       GitOperationLockService.singleton_class.send(:remove_method, :sleep)
@@ -113,7 +113,7 @@ class GitOperationLockServiceTest < ActiveSupport::TestCase
     error = assert_raises(RuntimeError) do
       GitOperationLockService.with_lock(@session_id, @directory) { "test" }
     end
-    
+
     assert_equal "Another git operation is in progress. Please try again.", error.message
 
     # Later sleep calls should be capped at 2 seconds
@@ -156,13 +156,13 @@ class GitOperationLockServiceTest < ActiveSupport::TestCase
     # Allow any debug messages
     Rails.logger.stubs(:debug)
     # Expect at least one logger call about retries and one about failure
-    Rails.logger.expects(:debug).with(regexp_matches(/Lock busy, waiting.*retry \d+\/10/)).at_least_once
+    Rails.logger.expects(:debug).with(regexp_matches(%r{Lock busy, waiting.*retry \d+/10})).at_least_once
     Rails.logger.expects(:error).with(regexp_matches(/Failed to acquire lock after 10 retries/))
 
     error = assert_raises(RuntimeError) do
       GitOperationLockService.with_lock(@session_id, @directory) { "test" }
     end
-    
+
     assert_equal "Another git operation is in progress. Please try again.", error.message
   end
 

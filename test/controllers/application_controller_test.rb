@@ -68,7 +68,7 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
 
   test "shows update notification when update is available" do
     skip "Update notification UI not implemented in views - feature not complete"
-    
+
     version_checker = VersionChecker.instance
     SwarmUI.stubs(:version).returns("1.0.0")
     version_checker.update!(remote_version: "1.1.0", checked_at: Time.current)
@@ -95,7 +95,7 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
   # Active sessions helper test
   test "active sessions are available in views" do
     skip "Active sessions sidebar not shown on projects page - implementation issue"
-    
+
     active_session = create(:session, project: @project, status: "active")
     archived_session = create(:session, project: @project, status: "archived")
 

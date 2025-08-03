@@ -197,7 +197,7 @@ class GitImportServiceTest < ActiveSupport::TestCase
   # same_repository? tests
   test "identifies same repository with matching URL" do
     skip "GitImportService#normalize_url has a bug - doesn't properly chain gsub operations"
-    
+
     service = GitImportService.new(@https_url)
     path = "/some/path"
 
@@ -210,7 +210,7 @@ class GitImportServiceTest < ActiveSupport::TestCase
 
   test "identifies same repository with different URL formats" do
     skip "GitImportService#normalize_url has a bug - doesn't properly chain gsub operations"
-    
+
     service = GitImportService.new(@https_url)
     path = "/some/path"
 
@@ -255,7 +255,7 @@ class GitImportServiceTest < ActiveSupport::TestCase
   # normalize_url tests
   test "normalizes URLs for comparison" do
     skip "GitImportService#normalize_url has a bug - doesn't properly chain gsub operations, returns wrong results for some URL formats"
-    
+
     service = GitImportService.new(@https_url)
 
     # All these should normalize to the same value

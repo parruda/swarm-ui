@@ -29,15 +29,15 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     get projects_url
     assert_response :success
     assert_match @project.name, @response.body
-    
+
     # Active tab should show active project count
     assert_select "span.text-xs.font-medium", text: "1"
-    
+
     # Check archived projects tab
     get projects_url(filter: "archived")
     assert_response :success
     assert_match @archived_project.name, @response.body
-    
+
     # Archived projects should be shown on the archived tab
     assert_select ".bg-white, .bg-gray-800", minimum: 1
   end

@@ -30,7 +30,7 @@ class ClaudeServiceTest < ActiveSupport::TestCase
         duration_api_ms: 100,
         is_error: false,
         num_turns: 1,
-        session_id: "test-session-123"
+        session_id: "test-session-123",
       ),
     ]
 
@@ -64,7 +64,7 @@ class ClaudeServiceTest < ActiveSupport::TestCase
     ClaudeSDK.expects(:query).with(
       anything,
       options: anything,
-    ) do |query, options_hash|
+    ) do |_query, options_hash|
       actual_options = options_hash[:options]
       true
     end.yields(
@@ -74,7 +74,7 @@ class ClaudeServiceTest < ActiveSupport::TestCase
     )
 
     result = service.generate_commit_message(@changes)
-    
+
     assert_equal "Response", result
     assert_instance_of ClaudeSDK::ClaudeCodeOptions, actual_options
     assert_equal "/custom/dir", actual_options.cwd
@@ -114,12 +114,12 @@ class ClaudeServiceTest < ActiveSupport::TestCase
 
   test "handles system messages" do
     skip "Service implementation only captures text from first yielded message - doesn't process multiple yields correctly"
-    
+
     # System messages should be logged but not affect the result
     mock_responses = [
       ClaudeSDK::Messages::System.new(
         subtype: "thinking",
-        data: {}
+        data: {},
       ),
       ClaudeSDK::Messages::Assistant.new(
         content: [ClaudeSDK::ContentBlock::Text.new(text: "Commit message")],
@@ -130,7 +130,7 @@ class ClaudeServiceTest < ActiveSupport::TestCase
         duration_api_ms: 80,
         is_error: false,
         num_turns: 1,
-        session_id: "test-session-124"
+        session_id: "test-session-124",
       ),
     ]
 
@@ -146,7 +146,7 @@ class ClaudeServiceTest < ActiveSupport::TestCase
 
   test "logs result message with duration" do
     skip "Service implementation only processes first yielded message - doesn't process subsequent Result messages"
-    
+
     mock_responses = [
       ClaudeSDK::Messages::Assistant.new(
         content: [ClaudeSDK::ContentBlock::Text.new(text: "Message")],
@@ -157,7 +157,7 @@ class ClaudeServiceTest < ActiveSupport::TestCase
         duration_api_ms: 200,
         is_error: false,
         num_turns: 1,
-        session_id: "test-session-125"
+        session_id: "test-session-125",
       ),
     ]
 

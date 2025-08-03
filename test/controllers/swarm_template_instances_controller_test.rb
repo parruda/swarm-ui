@@ -24,7 +24,7 @@ class SwarmTemplateInstancesControllerTest < ActionDispatch::IntegrationTest
   # Index tests
   test "should get index" do
     skip "SwarmTemplateInstances views are missing - the controller expects views but app/views/swarm_template_instances/ directory doesn't exist"
-    
+
     get swarm_template_instances_url(@swarm_template)
     assert_response :success
 
@@ -35,7 +35,7 @@ class SwarmTemplateInstancesControllerTest < ActionDispatch::IntegrationTest
 
   test "index includes instance template details" do
     skip "SwarmTemplateInstances views are missing"
-    
+
     get swarm_template_instances_url(@swarm_template)
     assert_response :success
 
@@ -46,7 +46,7 @@ class SwarmTemplateInstancesControllerTest < ActionDispatch::IntegrationTest
   # Show tests
   test "should show swarm template instance" do
     skip "SwarmTemplateInstances views are missing"
-    
+
     get swarm_template_instance_url(@swarm_template, @instance)
     assert_response :success
 
@@ -56,7 +56,7 @@ class SwarmTemplateInstancesControllerTest < ActionDispatch::IntegrationTest
   # New tests
   test "should get new" do
     skip "SwarmTemplateInstances views are missing"
-    
+
     get new_swarm_template_instance_url(@swarm_template)
     assert_response :success
 
@@ -69,7 +69,7 @@ class SwarmTemplateInstancesControllerTest < ActionDispatch::IntegrationTest
 
   test "new includes all instance templates" do
     skip "SwarmTemplateInstances views are missing"
-    
+
     template1 = create(:instance_template, name: "Template One")
     template2 = create(:instance_template, name: "Template Two")
 
@@ -142,7 +142,7 @@ class SwarmTemplateInstancesControllerTest < ActionDispatch::IntegrationTest
 
   test "create with invalid attributes" do
     skip "SwarmTemplateInstances views are missing - Controller tries to render :new view on validation errors"
-    
+
     assert_no_difference("SwarmTemplateInstance.count") do
       post swarm_template_instances_url(@swarm_template), params: {
         swarm_template_instance: {
@@ -175,7 +175,7 @@ class SwarmTemplateInstancesControllerTest < ActionDispatch::IntegrationTest
   # Edit tests
   test "should get edit" do
     skip "SwarmTemplateInstances views are missing"
-    
+
     get edit_swarm_template_instance_url(@swarm_template, @instance)
     assert_response :success
 
@@ -217,7 +217,7 @@ class SwarmTemplateInstancesControllerTest < ActionDispatch::IntegrationTest
 
   test "update with invalid attributes" do
     skip "SwarmTemplateInstances views are missing - Controller tries to render :edit view on validation errors"
-    
+
     patch swarm_template_instance_url(@swarm_template, @instance), params: {
       swarm_template_instance: {
         instance_key: "", # Invalid
@@ -286,11 +286,11 @@ class SwarmTemplateInstancesControllerTest < ActionDispatch::IntegrationTest
 
   test "update connections handles empty connections" do
     skip "Controller receives [''] instead of [] for empty connections - app implementation issue"
-    
+
     # The form sends [""] when all checkboxes are unchecked, not []
     # The controller should handle this by filtering out empty strings
     # but it doesn't, so connections becomes [""] instead of []
-    
+
     @instance.update!(overrides: { "connections" => ["coordinator", "other"] })
 
     post update_connections_swarm_template_instance_url(@swarm_template, @instance),

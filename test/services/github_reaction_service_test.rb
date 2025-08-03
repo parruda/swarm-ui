@@ -32,9 +32,9 @@ class GithubReactionServiceTest < ActiveSupport::TestCase
 
   test "extracts comment ID from URL correctly" do
     skip "The service's comment ID extraction logic doesn't handle anchor URLs correctly - it should extract 'issuecomment-888' from 'issues/1#issuecomment-888' but extracts '1#issuecomment-888' instead"
-    
+
     # The service uses comment_url.split("/").last which doesn't handle URLs with anchors
-    # For example, "https://github.com/owner/repo/issues/1#issuecomment-888" 
+    # For example, "https://github.com/owner/repo/issues/1#issuecomment-888"
     # results in "1#issuecomment-888" instead of just "issuecomment-888"
     #
     # A fix would be to improve the comment ID extraction logic in the service to handle:

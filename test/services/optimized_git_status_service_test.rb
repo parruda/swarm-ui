@@ -11,7 +11,7 @@ class OptimizedGitStatusServiceTest < ActiveSupport::TestCase
 
   test "fetches git status for all directories in parallel" do
     skip "Test expectations don't match implementation - staged count calculation differs"
-    
+
     # Mock instance directories
     directories = {
       "instance1" => ["/tmp/test-project/dir1"],
@@ -75,7 +75,7 @@ class OptimizedGitStatusServiceTest < ActiveSupport::TestCase
 
   test "deduplicates directories across instances" do
     skip "Implementation doesn't properly deduplicate directories - executes git command for each occurrence"
-    
+
     # Same directory used by multiple instances
     shared_dir = "/tmp/test-project/shared"
     directories = {

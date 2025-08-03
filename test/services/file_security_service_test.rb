@@ -38,8 +38,8 @@ class FileSecurityServiceTest < ActiveSupport::TestCase
   end
 
   test "validates path with current directory reference" do
-    skip "FileSecurityService DANGEROUS_PATTERNS regex \.git/ matches any path containing a dot, not just .git directories"
-    
+    skip "FileSecurityService DANGEROUS_PATTERNS regex .git/ matches any path containing a dot, not just .git directories"
+
     path = FileSecurityService.validate_path(@base_dir, "./file.txt")
 
     assert_equal File.expand_path("file.txt", @base_dir), path
@@ -136,8 +136,8 @@ class FileSecurityServiceTest < ActiveSupport::TestCase
   end
 
   test "allows non-existent files" do
-    skip "FileSecurityService DANGEROUS_PATTERNS regex \.git/ matches any path containing a dot, not just .git directories"
-    
+    skip "FileSecurityService DANGEROUS_PATTERNS regex .git/ matches any path containing a dot, not just .git directories"
+
     # Non-existent files pass validation (for write operations)
     path = FileSecurityService.validate_path(@test_dir, "new_file.txt")
 
@@ -227,8 +227,8 @@ class FileSecurityServiceTest < ActiveSupport::TestCase
   end
 
   test "handles nil-like paths" do
-    skip "FileSecurityService DANGEROUS_PATTERNS regex \.git/ matches any path containing a dot, not just .git directories"
-    
+    skip "FileSecurityService DANGEROUS_PATTERNS regex .git/ matches any path containing a dot, not just .git directories"
+
     # Ruby will convert nil to empty string in File methods
     path = FileSecurityService.validate_path(@base_dir, ".")
 
@@ -236,8 +236,8 @@ class FileSecurityServiceTest < ActiveSupport::TestCase
   end
 
   test "normalizes paths with multiple slashes" do
-    skip "FileSecurityService DANGEROUS_PATTERNS regex \.git/ matches any path containing a dot, not just .git directories"
-    
+    skip "FileSecurityService DANGEROUS_PATTERNS regex .git/ matches any path containing a dot, not just .git directories"
+
     path = FileSecurityService.validate_path(@base_dir, "folder//subfolder///file.txt")
 
     assert_equal File.join(@base_dir, "folder", "subfolder", "file.txt"), path

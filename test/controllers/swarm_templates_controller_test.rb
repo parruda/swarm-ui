@@ -103,7 +103,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
   # Library tests
   test "should get library" do
     skip "View file missing - app/views/swarm_templates/library.html.erb doesn't exist"
-    
+
     get library_swarm_templates_url
     assert_response :success
 
@@ -119,7 +119,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
   # Show tests
   test "should show swarm template" do
     skip "View file missing - app/views/swarm_templates/show.html.erb doesn't exist"
-    
+
     get swarm_template_url(@swarm_template)
     assert_response :success
 
@@ -133,7 +133,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
   # New tests
   test "should get new" do
     skip "View expects @project to be set but controller doesn't set it without project_id - app/views/swarm_templates/new.html.erb:12 calls @project.name"
-    
+
     get new_swarm_template_url
     assert_response :success
 
@@ -214,7 +214,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
 
   test "create with instances_data creates instance templates" do
     skip "View expects @project to be set but controller doesn't set it without project_id - app/views/swarm_templates/new.html.erb:12 calls @project.name"
-    
+
     instances_data = [
       {
         "key" => "analyzer",
@@ -255,7 +255,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
 
   test "create with invalid attributes" do
     skip "View expects @project to be set but controller doesn't set it without project_id - app/views/swarm_templates/new.html.erb:12 calls @project.name"
-    
+
     assert_no_difference("SwarmTemplate.count") do
       post swarm_templates_url, params: {
         swarm_template: {
@@ -271,7 +271,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
 
   test "create handles malformed JSON" do
     skip "Controller rescues JSON parse error and creates with empty config - implementation doesn't validate JSON"
-    
+
     assert_no_difference("SwarmTemplate.count") do
       post swarm_templates_url, params: {
         swarm_template: {
@@ -314,7 +314,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
 
   test "update with invalid attributes" do
     skip "View doesn't display validation errors - implementation issue"
-    
+
     patch swarm_template_url(@swarm_template), params: {
       swarm_template: {
         name: "", # Invalid
@@ -386,7 +386,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
 
   test "preview yaml as text" do
     skip "Controller returns text/html instead of text/plain for format.text - implementation issue"
-    
+
     get preview_yaml_swarm_template_url(@swarm_template), as: :text
     assert_response :success
 
@@ -428,7 +428,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
     post launch_session_swarm_template_url(@swarm_template)
 
     # Should redirect to new session
-    assert_redirected_to(/sessions\/new/)
+    assert_redirected_to(%r{sessions/new})
 
     # Should increment usage count
     @swarm_template.reload
@@ -460,14 +460,14 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
 
   test "launch session applies environment variables" do
     skip "Cannot reliably test temp file content - temp files may not persist between controller and test"
-    
+
     post launch_session_swarm_template_url(@swarm_template), params: {
       environment_variables: {
         "CUSTOM_VAR" => "custom_value",
       },
     }
 
-    assert_redirected_to(/sessions\/new/)
+    assert_redirected_to(%r{sessions/new})
 
     # Check temp file contains substituted variables
     temp_file = Dir[Rails.root.join("tmp", "swarm_templates", "*.yaml")].first
@@ -480,7 +480,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
 
   test "launch session with initial prompt" do
     skip "File.write fails with Invalid argument error - possible file path or permissions issue in test environment"
-    
+
     post launch_session_swarm_template_url(@swarm_template), params: {
       initial_prompt: "Help me build a feature",
     }
@@ -499,7 +499,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
   # Complex instance creation tests
   test "create handles duplicate instance template names" do
     skip "View expects @project to be set but controller doesn't set it without project_id - app/views/swarm_templates/new.html.erb:12 calls @project.name"
-    
+
     create(:instance_template, name: "Existing Template")
 
     instances_data = [
@@ -535,7 +535,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
 
   test "create reuses existing identical instance template" do
     skip "View expects @project to be set but controller doesn't set it without project_id - app/views/swarm_templates/new.html.erb:12 calls @project.name"
-    
+
     existing = create(
       :instance_template,
       name: "Existing",
@@ -581,7 +581,7 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
 
   test "create forces openai settings for instance templates" do
     skip "View expects @project to be set but controller doesn't set it without project_id - app/views/swarm_templates/new.html.erb:12 calls @project.name"
-    
+
     instances_data = [
       {
         "key" => "ai",

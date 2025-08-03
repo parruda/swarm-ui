@@ -145,21 +145,25 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
 
   test "formats comment with user info and timestamp" do
     # We'll use a sequence to ensure both calls happen in order
-    call_sequence = sequence('tmux_calls')
-    
+    call_sequence = sequence("tmux_calls")
+
     # First call sends the formatted text
     Open3.expects(:capture3).with(
-      "tmux", "send-keys", "-t", anything, "-l", 
-      regexp_matches(/\n\[GitHub Comment from @testuser at \d{2}:\d{2}:\d{2}\]: Test comment\n/)
+      "tmux",
+      "send-keys",
+      "-t",
+      anything,
+      "-l",
+      regexp_matches(/\n\[GitHub Comment from @testuser at \d{2}:\d{2}:\d{2}\]: Test comment\n/),
     ).in_sequence(call_sequence).returns(["", "", stub(success?: true)])
-    
+
     # Second call sends Enter
     Open3.expects(:capture3).with(
       "tmux", "send-keys", "-t", anything, "Enter"
     ).in_sequence(call_sequence).returns(["", "", stub(success?: true)])
 
     result = BackgroundSessionService.send_comment_to_session(@existing_session, "Test comment", user_login: "testuser")
-    
+
     assert result, "Expected comment to be sent successfully"
   end
 

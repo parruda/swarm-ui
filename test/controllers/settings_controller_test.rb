@@ -68,10 +68,10 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
 
   test "update handles empty values" do
     skip "Controller saves empty strings instead of nil - app implementation issue"
-    
+
     # The controller should convert empty strings to nil before saving
     # but it doesn't, so empty form fields result in "" being saved instead of nil
-    
+
     @setting.update!(
       openai_api_key: "existing-key",
       github_username: "existinguser",
@@ -93,10 +93,10 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
 
   test "update with invalid attributes" do
     skip "Settings form doesn't display error messages - view doesn't include error display"
-    
+
     # The controller correctly renders the edit view with unprocessable_entity status
     # when validation fails, but the view doesn't include code to display @setting.errors
-    
+
     # Force a validation error
     Setting.any_instance.stubs(:update).returns(false)
     Setting.any_instance.stubs(:errors).returns(
@@ -105,7 +105,7 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
 
     patch settings_url, params: {
       setting: {
-        openai_api_key: "test",  
+        openai_api_key: "test",
       },
     }
 

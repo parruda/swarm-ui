@@ -142,7 +142,7 @@ class LogTailerTest < ActiveSupport::TestCase
 
   test "waits for new data when reaching end of file" do
     skip "Threading test is flaky - timing dependent and doesn't reliably verify sleep behavior"
-    
+
     File.write(@log_file_path, "")
 
     sleep_calls = []

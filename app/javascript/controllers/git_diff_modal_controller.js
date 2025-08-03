@@ -181,6 +181,35 @@ export default class extends Controller {
   }
 
   async showDiffContent(data) {
+    // Add marquee animation styles
+    const styleId = 'git-diff-marquee-styles'
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style')
+      style.id = styleId
+      style.textContent = `
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(calc(-100% - 20px)); }
+        }
+        
+        .file-item .marquee-animate {
+          animation: marquee linear infinite;
+        }
+        
+        .file-item .marquee-container {
+          position: relative;
+        }
+        
+        .file-item .marquee-animate::after {
+          content: attr(data-text);
+          position: absolute;
+          left: calc(100% + 20px);
+          white-space: nowrap;
+        }
+      `
+      document.head.appendChild(style)
+    }
+    
     // Create the main content structure with full height
     this.contentEl.innerHTML = `
       <div class="flex" style="height: 100%;">
@@ -196,18 +225,22 @@ export default class extends Controller {
                      data-file-path="${file.path}"
                      data-file-index="${index}">
                   <div class="flex items-center justify-between mb-1">
-                    <span class="text-sm text-gray-700 dark:text-gray-300 truncate" title="${file.path}">
-                      ${file.path.split('/').pop()}
-                    </span>
-                    <div class="flex items-center space-x-1 text-xs">
+                    <div class="file-name-container overflow-hidden flex-1 mr-2">
+                      <span class="file-name-text text-sm text-gray-700 dark:text-gray-300 inline-block whitespace-nowrap" title="${file.path}">
+                        ${file.path.split('/').pop()}
+                      </span>
+                    </div>
+                    <div class="flex items-center space-x-1 text-xs flex-shrink-0">
                       <span class="text-green-600 dark:text-green-400">+${file.additions}</span>
                       <span class="text-red-600 dark:text-red-400">-${file.deletions}</span>
                     </div>
                   </div>
                   <div class="flex items-center justify-between">
-                    <span class="text-xs text-gray-500 dark:text-gray-400 truncate" title="${file.path}">
-                      ${file.path}
-                    </span>
+                    <div class="file-path-container overflow-hidden flex-1 mr-2">
+                      <span class="file-path-text text-xs text-gray-500 dark:text-gray-400 inline-block whitespace-nowrap" title="${file.path}">
+                        ${file.path}
+                      </span>
+                    </div>
                     ${this.getStatusBadge(file.status)}
                   </div>
                 </div>
@@ -260,6 +293,9 @@ export default class extends Controller {
           // Then show the file
           await this.showFile(index)
         })
+        
+        // Add marquee animation on hover for text that overflows
+        this.setupMarqueeAnimation(item)
       })
     }
     
@@ -523,6 +559,57 @@ export default class extends Controller {
       'untracked': '<span class="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">untracked</span>'
     }
     return badges[status] || ''
+  }
+  
+  setupMarqueeAnimation(fileItem) {
+    const nameContainer = fileItem.querySelector('.file-name-container')
+    const nameText = fileItem.querySelector('.file-name-text')
+    const pathContainer = fileItem.querySelector('.file-path-container')
+    const pathText = fileItem.querySelector('.file-path-text')
+    
+    // Helper function to setup marquee for a text element
+    const setupTextMarquee = (container, textElement) => {
+      if (!container || !textElement) return
+      
+      const startMarquee = () => {
+        // Check if text overflows
+        const containerWidth = container.offsetWidth
+        const textWidth = textElement.scrollWidth
+        
+        if (textWidth > containerWidth) {
+          // Calculate animation duration based on text length (slower for longer text)
+          const duration = Math.max(5, (textWidth / 50)) // 50 pixels per second
+          
+          // Add data attribute for the ::after pseudo element
+          textElement.setAttribute('data-text', textElement.textContent)
+          
+          // Apply animation
+          textElement.classList.add('marquee-animate')
+          textElement.style.animationDuration = `${duration}s`
+          
+          // Add some padding for the repeat
+          container.classList.add('marquee-container')
+        }
+      }
+      
+      const stopMarquee = () => {
+        textElement.classList.remove('marquee-animate')
+        textElement.style.animationDuration = ''
+        container.classList.remove('marquee-container')
+      }
+      
+      // Add hover listeners to the entire file item
+      fileItem.addEventListener('mouseenter', () => {
+        // Start animation immediately
+        startMarquee()
+      })
+      
+      fileItem.addEventListener('mouseleave', stopMarquee)
+    }
+    
+    // Setup marquee for both file name and path
+    setupTextMarquee(nameContainer, nameText)
+    setupTextMarquee(pathContainer, pathText)
   }
 
   disposeMonacoInstances() {

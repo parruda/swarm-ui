@@ -8,11 +8,14 @@
         <span class="text-xs text-gray-500 dark:text-gray-400">Loading git status...</span>
       </div>
     <% elsif git_statuses.any? %>
-      <div class="relative group" data-controller="dropdown-hover" data-dropdown-hover-has-items-value="true">
+      <div class="relative group" data-controller="dropdown-smart-position" 
+           data-dropdown-smart-position-has-items-value="true"
+           data-dropdown-smart-position-menu-width-value="750"
+           data-action="resize@window->dropdown-smart-position#resize">
         <!-- Compact summary button -->
         <button class="flex items-center space-x-2 px-3 py-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-                data-dropdown-hover-target="trigger"
-                data-action="mouseenter->dropdown-hover#show mouseleave->dropdown-hover#hide">
+                data-dropdown-smart-position-target="trigger"
+                data-action="mouseenter->dropdown-smart-position#show mouseleave->dropdown-smart-position#hide">
           <%= heroicon "folder-open", variant: :mini, options: { class: "h-4 w-4 text-gray-500 dark:text-gray-400" } %>
           
           <!-- Summary of all repos -->
@@ -43,9 +46,9 @@
         </button>
         
         <!-- Detailed dropdown -->
-        <div class="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 hidden z-50 w-[750px] max-h-[600px] overflow-y-auto"
-             data-dropdown-hover-target="menu"
-             data-action="mouseenter->dropdown-hover#menuEnter mouseleave->dropdown-hover#menuLeave">
+        <div class="absolute top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 hidden z-50 w-[750px] max-h-[600px] overflow-y-auto"
+             data-dropdown-smart-position-target="menu"
+             data-action="mouseenter->dropdown-smart-position#menuEnter mouseleave->dropdown-smart-position#menuLeave">
           <div class="p-4">
             <% git_statuses.each do |instance_name, statuses| %>
               <div class="mb-6 last:mb-0">

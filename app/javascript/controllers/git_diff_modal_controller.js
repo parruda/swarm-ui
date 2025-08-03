@@ -1,6 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
+  static targets = ["modal", "loading", "content", "subtitle", "approveButton", "rejectButton", "requestChangesButton"]
+  
   connect() {
     this.boundCloseOnEscape = this.closeOnEscape.bind(this)
     this.boundCloseOnClickOutside = this.closeOnClickOutside.bind(this)
@@ -22,6 +24,16 @@ export default class extends Controller {
   }
   
   findModalElements() {
+    // Use Stimulus targets if available
+    if (this.hasModalTarget) {
+      this.modal = this.modalTarget
+      this.loadingEl = this.hasLoadingTarget ? this.loadingTarget : this.modal.querySelector('[data-git-diff-modal-target="loading"]')
+      this.contentEl = this.hasContentTarget ? this.contentTarget : this.modal.querySelector('[data-git-diff-modal-target="content"]')
+      this.subtitleEl = this.hasSubtitleTarget ? this.subtitleTarget : this.modal.querySelector('[data-git-diff-modal-target="subtitle"]')
+      return this.modal
+    }
+    
+    // Fallback to querySelector if targets not defined
     if (!this.modal) {
       this.modal = document.querySelector('[data-git-diff-modal-target="modal"]')
       if (this.modal) {
@@ -414,6 +426,12 @@ export default class extends Controller {
 
   close(event) {
     if (event) event.preventDefault()
+    
+    // Ensure modal is available
+    if (!this.findModalElements()) {
+      console.error("Modal not found for closing")
+      return
+    }
     
     const backdrop = this.modal.querySelector("div:first-child")
     const modalContent = this.modal.querySelector(".rounded-2xl")

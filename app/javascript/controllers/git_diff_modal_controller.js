@@ -185,7 +185,7 @@ export default class extends Controller {
     this.contentEl.innerHTML = `
       <div class="flex" style="height: 100%;">
         <!-- File list sidebar -->
-        <div class="w-64 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-y-auto flex-shrink-0" data-git-diff-modal-target="fileList">
+        <div class="w-64 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0" style="height: 100%; overflow-y: auto;" data-git-diff-modal-target="fileList">
           <div class="p-4">
             <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3">
               Changed Files (${data.files.length})

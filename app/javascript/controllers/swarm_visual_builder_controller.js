@@ -1693,14 +1693,27 @@ export default class extends Controller {
   }
   
   showNotification(message) {
-    // Create a simple notification
+    // Remove any existing notification
+    const existingNotification = document.querySelector('.swarm-notification')
+    if (existingNotification) {
+      existingNotification.remove()
+    }
+    
+    // Create notification at top of canvas
     const notification = document.createElement('div')
-    notification.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in'
-    notification.textContent = message
+    notification.className = 'swarm-notification fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 transition-all duration-300 translate-y-0 opacity-100'
+    notification.innerHTML = `
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <span class="font-medium">${message}</span>
+    `
     document.body.appendChild(notification)
     
+    // Fade out and remove after 3 seconds
     setTimeout(() => {
-      notification.remove()
+      notification.classList.add('translate-y-2', 'opacity-0')
+      setTimeout(() => notification.remove(), 300)
     }, 3000)
   }
   

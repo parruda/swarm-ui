@@ -73,8 +73,11 @@ export default class extends Controller {
   }
   
   handleCanvasRefresh(event) {
+    // This event is dispatched when the canvas needs to be refreshed
+    // The actual refresh is handled by swarm_visual_builder_controller
+    // We just show a notification here
     if (event.detail?.filePath === this.filePathValue) {
-      this.refreshCanvas()
+      this.showNotification("Canvas refreshed with latest changes")
     }
   }
   
@@ -421,23 +424,22 @@ export default class extends Controller {
     }, 500)
   }
   
-  refreshCanvas() {
-    // Dispatch event to refresh the canvas
-    const event = new CustomEvent('canvas:refresh', { 
-      detail: { filePath: this.filePathValue }
-    })
-    window.dispatchEvent(event)
-    
-    // Show a notification that canvas was refreshed
-    this.showNotification("Canvas refreshed with latest changes")
-  }
-  
   showNotification(message) {
-    // Create a temporary notification
-    const notification = document.createElement('div')
-    notification.className = 'fixed bottom-4 right-4 z-50 px-4 py-2 bg-green-600 text-white rounded-lg shadow-lg transform transition-all translate-y-0 opacity-100'
-    notification.textContent = message
+    // Remove any existing notification
+    const existingNotification = document.querySelector('.swarm-notification')
+    if (existingNotification) {
+      existingNotification.remove()
+    }
     
+    // Create notification at top of canvas
+    const notification = document.createElement('div')
+    notification.className = 'swarm-notification fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 transition-all duration-300 translate-y-0 opacity-100'
+    notification.innerHTML = `
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <span class="font-medium">${message}</span>
+    `
     document.body.appendChild(notification)
     
     // Fade out and remove after 3 seconds

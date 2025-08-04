@@ -1,12 +1,14 @@
-<div class="ml-12 mb-2 flex items-center gap-2 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-  <%= heroicon "document-check", variant: :solid, options: { class: "h-5 w-5 text-purple-600 dark:text-purple-400" } %>
-  <span class="text-sm font-medium text-purple-900 dark:text-purple-100">
-    File modified: <span class="font-mono"><%= File.basename(file_path) %></span>
-  </span>
-  <button type="button"
-          onclick="window.dispatchEvent(new CustomEvent('canvas:refresh', { detail: { filePath: '<%= file_path %>' }}))"
-          class="ml-auto px-2 py-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors flex items-center gap-1">
-    <%= heroicon "arrow-path", variant: :outline, options: { class: "h-3 w-3" } %>
-    Canvas
-  </button>
+<div class="ml-12 mb-1 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-200/50 dark:border-purple-800/50 rounded-md p-2 text-xs">
+  <div class="flex items-center gap-1.5">
+    <%= heroicon "document-check", variant: :solid, options: { class: "h-3 w-3 text-purple-600 dark:text-purple-500" } %>
+    <span class="font-medium text-gray-700 dark:text-gray-300">
+      File modified: <span class="font-mono text-gray-500 dark:text-gray-400"><%= File.basename(file_path) %></span>
+    </span>
+    <button type="button"
+            onclick="window.dispatchEvent(new CustomEvent('canvas:refresh', { detail: { filePath: '<%= file_path %>' }}))"
+            class="ml-auto px-1.5 py-0.5 text-[10px] font-medium text-white bg-purple-600 hover:bg-purple-700 rounded transition-colors flex items-center gap-0.5">
+      <%= heroicon "arrow-path", variant: :outline, options: { class: "h-2.5 w-2.5" } %>
+      Canvas
+    </button>
+  </div>
 </div>

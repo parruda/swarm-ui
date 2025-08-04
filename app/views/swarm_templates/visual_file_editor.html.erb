@@ -346,7 +346,7 @@
                                 action: "keydown->claude-chat#handleKeydown"
                               },
                               placeholder: @swarm_data[:visual_data][:file_path].present? ? 
-                                          'Ask Claude to help build your swarm...' : 
+                                          'Ask Claude to help build your swarm... (⌘+Enter to send)' : 
                                           'Save file first to enable chat...',
                               disabled: @swarm_data[:visual_data][:file_path].blank?,
                               rows: 2,

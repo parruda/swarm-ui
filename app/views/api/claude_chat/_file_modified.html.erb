@@ -4,11 +4,21 @@
     <span class="font-medium text-gray-700 dark:text-gray-300">
       File modified: <span class="font-mono text-gray-500 dark:text-gray-400"><%= File.basename(file_path) %></span>
     </span>
-    <button type="button"
-            onclick="window.dispatchEvent(new CustomEvent('canvas:refresh', { detail: { filePath: '<%= file_path %>' }}))"
-            class="ml-auto px-1.5 py-0.5 text-[10px] font-medium text-white bg-purple-600 hover:bg-purple-700 rounded transition-colors flex items-center gap-0.5">
+    <div class="ml-auto px-1.5 py-0.5 text-[10px] font-medium text-purple-600 dark:text-purple-400 flex items-center gap-0.5">
       <%= heroicon "arrow-path", variant: :outline, options: { class: "h-2.5 w-2.5" } %>
-      Canvas
-    </button>
+      Canvas updating
+    </div>
   </div>
 </div>
+
+<script>
+  // Automatically trigger canvas refresh when file is modified
+  (function() {
+    // Small delay to ensure DOM is ready
+    setTimeout(function() {
+      window.dispatchEvent(new CustomEvent('canvas:refresh', { 
+        detail: { filePath: '<%= file_path %>' }
+      }));
+    }, 100);
+  })();
+</script>

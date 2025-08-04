@@ -15,7 +15,31 @@ export default class ConnectionManager {
     return this.connections
   }
   
-  // Find optimal socket pair for connection based on natural flow
+  // Count connections for a specific socket
+  getSocketConnectionCount(nodeId, side) {
+    return this.connections.filter(c => 
+      (c.from === nodeId && c.fromSide === side) ||
+      (c.to === nodeId && c.toSide === side)
+    ).length
+  }
+  
+  // Find the least occupied socket on a given node
+  findLeastOccupiedSocket(nodeId, preferredSides = ['right', 'bottom', 'left', 'top']) {
+    let minConnections = Infinity
+    let bestSide = preferredSides[0]
+    
+    for (const side of preferredSides) {
+      const count = this.getSocketConnectionCount(nodeId, side)
+      if (count < minConnections) {
+        minConnections = count
+        bestSide = side
+      }
+    }
+    
+    return { side: bestSide, count: minConnections }
+  }
+  
+  // Find optimal socket pair for connection based on natural flow and connection load
   findBestSocketPair(fromNode, toNode) {
     const fromX = fromNode.data.x + this.controller.canvasCenter
     const fromY = fromNode.data.y + this.controller.canvasCenter
@@ -25,42 +49,75 @@ export default class ConnectionManager {
     const dx = toX - fromX
     const dy = toY - fromY
     
-    let fromSide, toSide
+    // Determine preferred sides based on relative positions
+    let fromPreferred = []
+    let toPreferred = []
     
     // For horizontal flow (most natural for reading order)
-    if (Math.abs(dx) > 50) {
+    if (Math.abs(dx) > Math.abs(dy)) {
       if (dx > 0) {
-        // Node is to the right - use right->left flow
-        fromSide = 'right'
-        toSide = 'left'
+        // Node is to the right - prefer right->left flow
+        fromPreferred = ['right', 'bottom', 'top', 'left']
+        toPreferred = ['left', 'top', 'bottom', 'right']
       } else {
-        // Node is to the left - use left->right flow
-        fromSide = 'left'
-        toSide = 'right'
+        // Node is to the left - prefer left->right flow
+        fromPreferred = ['left', 'bottom', 'top', 'right']
+        toPreferred = ['right', 'top', 'bottom', 'left']
       }
     } else {
-      // For vertical connections when nodes are aligned
+      // For vertical connections when nodes are more vertically aligned
       if (dy > 0) {
-        fromSide = 'bottom'
-        toSide = 'top'
+        // Node is below - prefer bottom->top flow
+        fromPreferred = ['bottom', 'right', 'left', 'top']
+        toPreferred = ['top', 'left', 'right', 'bottom']
       } else {
-        fromSide = 'top'
-        toSide = 'bottom'
+        // Node is above - prefer top->bottom flow
+        fromPreferred = ['top', 'right', 'left', 'bottom']
+        toPreferred = ['bottom', 'left', 'right', 'top']
       }
     }
     
-    // Check socket availability and adjust if needed
-    const toElement = toNode.element
-    const targetSocket = toElement.querySelector(`.socket[data-socket-side="${toSide}"]:not(.used-as-destination)`)
+    // Find the least occupied socket on the source side
+    const fromSocketInfo = this.findLeastOccupiedSocket(fromNode.id, fromPreferred)
+    let fromSide = fromSocketInfo.side
     
-    if (!targetSocket) {
-      // Find best available alternative
-      const alternatives = this.getSmartAlternatives(fromSide, dx, dy)
-      for (const alt of alternatives) {
-        const altSocket = toElement.querySelector(`.socket[data-socket-side="${alt}"]:not(.used-as-destination)`)
-        if (altSocket) {
-          toSide = alt
-          break
+    // Adjust target preferences based on selected source socket
+    if (fromSide === 'right') {
+      toPreferred = ['left', 'top', 'bottom', 'right']
+    } else if (fromSide === 'left') {
+      toPreferred = ['right', 'top', 'bottom', 'left']
+    } else if (fromSide === 'bottom') {
+      toPreferred = ['top', 'left', 'right', 'bottom']
+    } else if (fromSide === 'top') {
+      toPreferred = ['bottom', 'left', 'right', 'top']
+    }
+    
+    // Check socket availability on target side and find best option
+    const toElement = toNode.element
+    let toSide = toPreferred[0]
+    
+    // Try to find an unused socket first
+    let foundUnused = false
+    for (const side of toPreferred) {
+      const socket = toElement?.querySelector(`.socket[data-socket-side="${side}"]`)
+      if (socket && !socket.classList.contains('used-as-destination')) {
+        toSide = side
+        foundUnused = true
+        break
+      }
+    }
+    
+    // If no unused socket found, find the least occupied one
+    if (!foundUnused && toElement) {
+      let minConnections = Infinity
+      for (const side of toPreferred) {
+        const socket = toElement.querySelector(`.socket[data-socket-side="${side}"]`)
+        if (socket) {
+          const count = this.getSocketConnectionCount(toNode.id, side)
+          if (count < minConnections) {
+            minConnections = count
+            toSide = side
+          }
         }
       }
     }
@@ -83,36 +140,51 @@ export default class ConnectionManager {
   
   // Find best target socket when dragging from a specific source socket
   findBestSocketPairForDrag(fromNode, toNode, fromSide) {
-    // Get the natural flow-based pair
-    const naturalPair = this.findBestSocketPair(fromNode, toNode)
+    // Determine preferred target sides based on the source side
+    let toPreferred = []
     
-    // If the from side matches, use the natural target
-    if (naturalPair.fromSide === fromSide) {
-      return { toSide: naturalPair.toSide }
+    switch (fromSide) {
+      case 'right':
+        toPreferred = ['left', 'top', 'bottom', 'right']
+        break
+      case 'left':
+        toPreferred = ['right', 'top', 'bottom', 'left']
+        break
+      case 'bottom':
+        toPreferred = ['top', 'left', 'right', 'bottom']
+        break
+      case 'top':
+        toPreferred = ['bottom', 'left', 'right', 'top']
+        break
+      default:
+        toPreferred = ['left', 'top', 'right', 'bottom']
     }
     
-    // Otherwise, find the best opposite for the given fromSide
-    const opposites = {
-      'right': 'left',
-      'left': 'right',
-      'bottom': 'top',
-      'top': 'bottom'
-    }
-    
-    let toSide = opposites[fromSide]
-    
-    // Check if it's available
     const toElement = toNode.element
-    const targetSocket = toElement.querySelector(`.socket[data-socket-side="${toSide}"]`)
+    let toSide = toPreferred[0]
     
-    if (targetSocket && targetSocket.classList.contains('used-as-destination')) {
-      // Find alternative based on position
-      const alternatives = this.getAlternativeSockets(toSide)
-      for (const alt of alternatives) {
-        const altSocket = toElement.querySelector(`.socket[data-socket-side="${alt}"]`)
-        if (altSocket && !altSocket.classList.contains('used-as-destination')) {
-          toSide = alt
-          break
+    // First try to find an unused socket
+    let foundUnused = false
+    for (const side of toPreferred) {
+      const socket = toElement?.querySelector(`.socket[data-socket-side="${side}"]`)
+      if (socket && !socket.classList.contains('used-as-destination')) {
+        toSide = side
+        foundUnused = true
+        break
+      }
+    }
+    
+    // If no unused socket found, find the least occupied one
+    if (!foundUnused && toElement) {
+      let minConnections = Infinity
+      for (const side of toPreferred) {
+        const socket = toElement.querySelector(`.socket[data-socket-side="${side}"]`)
+        if (socket) {
+          const count = this.getSocketConnectionCount(toNode.id, side)
+          if (count < minConnections) {
+            minConnections = count
+            toSide = side
+          }
         }
       }
     }

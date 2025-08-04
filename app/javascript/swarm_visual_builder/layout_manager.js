@@ -6,14 +6,20 @@ export default class LayoutManager {
   
   // Auto-layout nodes using appropriate layout algorithm
   autoLayout(nodes, connections) {
-    if (nodes.length === 0) return
+    if (!nodes || nodes.length === 0) return
+    if (!connections) connections = []
     
     // Detect if this is a hub-and-spoke pattern
     const hubNode = this.detectHubNode(nodes, connections)
     
     if (hubNode && this.isHubAndSpoke(hubNode, nodes, connections)) {
       // Use radial layout for hub-and-spoke
-      this.radialLayout(hubNode, nodes, connections)
+      try {
+        this.radialLayout(hubNode, nodes, connections)
+      } catch (error) {
+        console.error('Error in radial layout, falling back to hierarchical:', error)
+        this.hierarchicalLayout(nodes, connections)
+      }
     } else {
       // Use hierarchical layout for other patterns  
       this.hierarchicalLayout(nodes, connections)
@@ -51,6 +57,17 @@ export default class LayoutManager {
     const nodeWidth = 250
     const nodeHeight = 120
     
+    // Validate inputs
+    if (!hubNode || !hubNode.data || !nodes || !Array.isArray(nodes) || !connections || !Array.isArray(connections)) {
+      console.error('Invalid inputs to radialLayout:', { 
+        hubNode: !!hubNode, 
+        hubNodeData: hubNode ? !!hubNode.data : 'no hubNode',
+        nodes: Array.isArray(nodes) ? nodes.length : 'not array',
+        connections: Array.isArray(connections) ? connections.length : 'not array'
+      })
+      throw new Error('Invalid inputs to radialLayout')
+    }
+    
     // Place hub in center
     hubNode.data.x = 0
     hubNode.data.y = 0
@@ -72,42 +89,56 @@ export default class LayoutManager {
     const minCircumference = connectedNodes.length * nodeSpacing
     const radius = Math.max(400, minCircumference / (2 * Math.PI))
     
-    // Group nodes by their connections' socket sides for better organization
+    // Group connections by preferred socket direction
     const socketGroups = {
-      top: [],
       right: [],
       bottom: [],
-      left: []
+      left: [],
+      top: []
     }
     
-    // First pass: distribute nodes evenly around the circle
-    connectedNodes.forEach(({ node, connection }, index) => {
-      // Calculate angle for even distribution
-      const angleStep = (2 * Math.PI) / connectedNodes.length
-      const angle = index * angleStep - Math.PI / 2 // Start from top
+    // Analyze each connection to determine preferred socket
+    if (connectedNodes && connectedNodes.length > 0) {
+      connectedNodes.forEach(({ node, connection }) => {
+        // Use connection manager to find best socket pair
+        const socketPair = this.controller.connectionManager.findBestSocketPair(hubNode, node)
+        
+        // Group by source socket side
+        const fromSide = socketPair.fromSide
+        if (!socketGroups[fromSide]) {
+          socketGroups[fromSide] = []
+        }
+        socketGroups[fromSide].push({ node, connection, fromSide, toSide: socketPair.toSide })
+      })
+    }
+    
+    // Position nodes based on their socket groups
+    let currentAngle = -Math.PI / 2 // Start from top
+    
+    // Process each socket group
+    ['top', 'right', 'bottom', 'left'].forEach(socketSide => {
+      const group = socketGroups[socketSide]
+      if (!group || group.length === 0) return
       
-      // Position node
-      node.data.x = Math.cos(angle) * radius
-      node.data.y = Math.sin(angle) * radius
+      // Calculate angular range for this socket group
+      const sectorSize = (2 * Math.PI) / 4 // 90 degrees per socket side
+      const sectorStart = this.getSocketAngle(socketSide) - sectorSize / 2
+      const angleStep = group.length > 1 ? sectorSize / (group.length + 1) : 0
       
-      // Determine which socket to use based on angle
-      const angleDegrees = (angle * 180 / Math.PI + 360) % 360
-      let targetSocket
-      
-      if (angleDegrees >= 315 || angleDegrees < 45) {
-        targetSocket = 'top'
-      } else if (angleDegrees >= 45 && angleDegrees < 135) {
-        targetSocket = 'right'
-      } else if (angleDegrees >= 135 && angleDegrees < 225) {
-        targetSocket = 'bottom'
-      } else {
-        targetSocket = 'left'
+      if (group && Array.isArray(group)) {
+        group.forEach(({ node, connection, fromSide, toSide }, index) => {
+          // Calculate angle within the sector
+          const angle = sectorStart + angleStep * (index + 1)
+          
+          // Position node at calculated angle and radius
+          node.data.x = Math.cos(angle) * radius
+          node.data.y = Math.sin(angle) * radius
+          
+          // Update connection sockets
+          connection.fromSide = fromSide
+          connection.toSide = toSide
+        })
       }
-      
-      // Update connection to use optimal sockets
-      const fromSocket = this.getRadialSocket(0, 0, node.data.x, node.data.y)
-      connection.fromSide = fromSocket
-      connection.toSide = this.getOppositeSocket(fromSocket)
     })
     
     // Place any unconnected nodes in outer layers
@@ -159,6 +190,22 @@ export default class LayoutManager {
           node.data.y = Math.sin(angle) * outerRadius
         })
       }
+    }
+  }
+  
+  getSocketAngle(socketSide) {
+    // Return the angle in radians for each socket direction
+    switch (socketSide) {
+      case 'top':
+        return -Math.PI / 2  // -90 degrees (pointing up)
+      case 'right':
+        return 0  // 0 degrees (pointing right)
+      case 'bottom':
+        return Math.PI / 2  // 90 degrees (pointing down)
+      case 'left':
+        return Math.PI  // 180 degrees (pointing left)
+      default:
+        return 0
     }
   }
   
@@ -223,38 +270,204 @@ export default class LayoutManager {
       nodesByLevel.get(level).push(nodes.find(n => n.id === nodeId))
     }
     
-    // Position nodes
-    let currentY = 0
-    
     // Sort levels
     const sortedLevels = Array.from(nodesByLevel.keys()).sort((a, b) => a - b)
     
-    sortedLevels.forEach(level => {
+    // Position nodes level by level, considering source socket positions
+    const positionedNodes = new Set()
+    
+    sortedLevels.forEach((level, levelIndex) => {
       const nodesAtLevel = nodesByLevel.get(level)
-      const totalWidth = nodesAtLevel.length * nodeWidth + (nodesAtLevel.length - 1) * horizontalSpacing
-      let currentX = -totalWidth / 2
       
-      // Sort nodes at the same level by their connections for better alignment
-      nodesAtLevel.sort((a, b) => {
-        const aParents = connections.filter(c => c.to === a.id).map(c => c.from)
-        const bParents = connections.filter(c => c.to === b.id).map(c => c.from)
+      if (levelIndex === 0) {
+        // First level (roots) - distribute horizontally
+        const totalWidth = nodesAtLevel.length * nodeWidth + (nodesAtLevel.length - 1) * horizontalSpacing
+        let currentX = -totalWidth / 2
         
-        if (aParents.length && bParents.length) {
-          const aParentX = this.getAverageX(aParents, nodes)
-          const bParentX = this.getAverageX(bParents, nodes)
-          return aParentX - bParentX
+        nodesAtLevel.forEach(node => {
+          node.data.x = currentX
+          node.data.y = 0
+          currentX += nodeWidth + horizontalSpacing
+          positionedNodes.add(node.id)
+        })
+      } else {
+        // Subsequent levels - position based on parent socket positions
+        const nodesToPosition = []
+        
+        nodesAtLevel.forEach(node => {
+          // Find all incoming connections
+          const incomingConns = connections.filter(c => c.to === node.id)
+          
+          if (incomingConns.length > 0) {
+            // Calculate position based on source sockets
+            const positions = incomingConns.map(conn => {
+              const sourceNode = nodes.find(n => n.id === conn.from)
+              if (!sourceNode || !positionedNodes.has(sourceNode.id)) return null
+              
+              // Get the source socket side from the connection manager
+              const socketPair = this.controller.connectionManager.findBestSocketPair(sourceNode, node)
+              conn.fromSide = socketPair.fromSide
+              conn.toSide = socketPair.toSide
+              
+              // Calculate position based on source socket
+              return this.calculateDestinationPosition(
+                sourceNode.data.x,
+                sourceNode.data.y,
+                socketPair.fromSide,
+                nodeWidth,
+                nodeHeight,
+                horizontalSpacing,
+                verticalSpacing
+              )
+            }).filter(p => p !== null)
+            
+            if (positions.length > 0) {
+              // Average the suggested positions
+              const avgX = positions.reduce((sum, p) => sum + p.x, 0) / positions.length
+              const avgY = positions.reduce((sum, p) => sum + p.y, 0) / positions.length
+              
+              nodesToPosition.push({
+                node,
+                x: avgX,
+                y: avgY,
+                hasPosition: true
+              })
+            } else {
+              nodesToPosition.push({ node, hasPosition: false })
+            }
+          } else {
+            // No incoming connections - position independently
+            nodesToPosition.push({ node, hasPosition: false })
+          }
+        })
+        
+        // Position nodes with calculated positions first
+        const positioned = nodesToPosition.filter(n => n.hasPosition)
+        const unpositioned = nodesToPosition.filter(n => !n.hasPosition)
+        
+        // Apply calculated positions and resolve overlaps
+        positioned.forEach(({ node, x, y }) => {
+          node.data.x = x
+          node.data.y = y
+          positionedNodes.add(node.id)
+        })
+        
+        // Resolve overlaps among positioned nodes
+        this.resolveOverlaps(positioned.map(p => p.node), nodeWidth, nodeHeight, horizontalSpacing / 2)
+        
+        // Position any remaining nodes
+        if (unpositioned.length > 0) {
+          // Find the y position for this level
+          const levelY = level * (nodeHeight + verticalSpacing)
+          
+          // Distribute unpositioned nodes horizontally
+          const totalWidth = unpositioned.length * nodeWidth + (unpositioned.length - 1) * horizontalSpacing
+          let currentX = -totalWidth / 2
+          
+          unpositioned.forEach(({ node }) => {
+            node.data.x = currentX
+            node.data.y = levelY
+            currentX += nodeWidth + horizontalSpacing
+            positionedNodes.add(node.id)
+          })
         }
-        return 0
-      })
-      
-      nodesAtLevel.forEach((node, index) => {
-        node.data.x = currentX
-        node.data.y = currentY
-        currentX += nodeWidth + horizontalSpacing
-      })
-      
-      currentY += nodeHeight + verticalSpacing
+      }
     })
+  }
+  
+  calculateDestinationPosition(sourceX, sourceY, fromSide, nodeWidth, nodeHeight, hSpacing, vSpacing) {
+    const halfWidth = nodeWidth / 2
+    const halfHeight = nodeHeight / 2
+    
+    switch (fromSide) {
+      case 'right':
+        // Position to the right
+        return {
+          x: sourceX + nodeWidth + hSpacing,
+          y: sourceY
+        }
+      case 'left':
+        // Position to the left
+        return {
+          x: sourceX - nodeWidth - hSpacing,
+          y: sourceY
+        }
+      case 'bottom':
+        // Position below
+        return {
+          x: sourceX,
+          y: sourceY + nodeHeight + vSpacing
+        }
+      case 'top':
+        // Position above
+        return {
+          x: sourceX,
+          y: sourceY - nodeHeight - vSpacing
+        }
+      default:
+        // Default to right
+        return {
+          x: sourceX + nodeWidth + hSpacing,
+          y: sourceY
+        }
+    }
+  }
+  
+  resolveOverlaps(nodes, nodeWidth, nodeHeight, minSpacing) {
+    const padding = minSpacing
+    let resolved = false
+    let iterations = 0
+    const maxIterations = 50
+    
+    while (!resolved && iterations < maxIterations) {
+      resolved = true
+      iterations++
+      
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const node1 = nodes[i]
+          const node2 = nodes[j]
+          
+          const dx = Math.abs(node2.data.x - node1.data.x)
+          const dy = Math.abs(node2.data.y - node1.data.y)
+          
+          const minX = nodeWidth + padding
+          const minY = nodeHeight + padding
+          
+          if (dx < minX && dy < minY) {
+            // Nodes overlap - push them apart
+            resolved = false
+            
+            // Calculate overlap amounts
+            const overlapX = minX - dx
+            const overlapY = minY - dy
+            
+            // Determine push direction based on which overlap is smaller
+            if (overlapX < overlapY) {
+              // Push horizontally
+              const pushX = overlapX / 2 + 5
+              if (node1.data.x < node2.data.x) {
+                node1.data.x -= pushX
+                node2.data.x += pushX
+              } else {
+                node1.data.x += pushX
+                node2.data.x -= pushX
+              }
+            } else {
+              // Push vertically
+              const pushY = overlapY / 2 + 5
+              if (node1.data.y < node2.data.y) {
+                node1.data.y -= pushY
+                node2.data.y += pushY
+              } else {
+                node1.data.y += pushY
+                node2.data.y -= pushY
+              }
+            }
+          }
+        }
+      }
+    }
   }
   
   buildGraph(nodes, connections) {

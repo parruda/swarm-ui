@@ -11,7 +11,7 @@
         <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Reusable AI agent configurations for your swarms.</p>
       </div>
       <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-        <%= link_to new_instance_template_path, class: "inline-flex items-center justify-center gap-x-1.5 rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+        <%= link_to new_instance_template_path, data: { turbo_frame: "_top" }, class: "inline-flex items-center justify-center gap-x-1.5 rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
           <%= heroicon "plus", variant: :mini, options: { class: "h-5 w-5" } %>
           New Template
         <% end %>
@@ -50,6 +50,9 @@
         </button>
       <% end %>
     </div>
+
+    <!-- Divider -->
+    <div class="mt-6 border-t border-gray-200 dark:border-gray-700"></div>
 
     <%= turbo_frame_tag "templates_list" do %>
     <!-- Tag Filters -->
@@ -203,7 +206,7 @@
           Get started by creating a new instance template.
         </p>
         <div class="mt-6">
-          <%= link_to new_instance_template_path, class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+          <%= link_to new_instance_template_path, data: { turbo_frame: "_top" }, class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
             <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
             Create Template
           <% end %>

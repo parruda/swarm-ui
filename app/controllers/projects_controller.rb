@@ -140,12 +140,12 @@ class ProjectsController < ApplicationController
     # Toggle webhook state
     @project.update!(github_webhook_enabled: !@project.github_webhook_enabled)
 
-    if @project.github_webhook_enabled?
-      flash.now[:notice] = "GitHub webhooks enabled. The webhook forwarder will start shortly."
+    flash.now[:notice] = if @project.github_webhook_enabled?
+      "GitHub webhooks enabled. The webhook forwarder will start shortly."
     else
-      flash.now[:notice] = "GitHub webhooks disabled."
+      "GitHub webhooks disabled."
     end
-    
+
     render(:toggle_webhook)
   end
 

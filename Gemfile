@@ -23,7 +23,6 @@ gem "jbuilder"
 # Forms made easy for Rails! It's tied to a simple DSL, with no opinion on markup
 gem "simple_form"
 
-
 # Use Redis for pub/sub
 gem "redis", "~> 5.0"
 gem "connection_pool", "~> 2.4"

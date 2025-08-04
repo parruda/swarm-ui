@@ -3,7 +3,7 @@
 class BuilderChannel < ApplicationCable::Channel
   def subscribed
     project = Project.find(params[:project_id])
-    stream_from "project_#{project.id}_builder"
+    stream_from("project_#{project.id}_builder")
   end
 
   def unsubscribed

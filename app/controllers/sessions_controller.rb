@@ -45,14 +45,14 @@ class SessionsController < ApplicationController
       project = Project.find_by(id: params[:project_id])
       if project
         @session.project_id = project.id
-        
+
         # Check if a specific config was passed (e.g., from visual builder)
-        if params[:config].present?
-          @session.configuration_path = params[:config]
+        @session.configuration_path = if params[:config].present?
+          params[:config]
         else
-          @session.configuration_path = project.default_config_path
+          project.default_config_path
         end
-        
+
         @session.use_worktree = project.default_use_worktree
         # Don't prefill project environment variables - they're inherited automatically
         @focus_name_field = true

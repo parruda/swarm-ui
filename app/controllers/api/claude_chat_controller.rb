@@ -7,10 +7,10 @@ module Api
       @file_path = params[:file_path]
       @prompt = params[:prompt]
       @tracking_id = params[:tracking_id].presence || SecureRandom.uuid
-      @session_id = params[:session_id].presence  # Claude session ID from previous message
+      @session_id = params[:session_id].presence # Claude session ID from previous message
       @message_id = SecureRandom.hex(8)
-      
-      Rails.logger.info "[ClaudeChatController] Tracking ID: #{@tracking_id}, Session ID: #{@session_id}"
+
+      Rails.logger.info("[ClaudeChatController] Tracking ID: #{@tracking_id}, Session ID: #{@session_id}")
 
       # Validate file exists
       unless File.exist?(@file_path)
@@ -20,7 +20,7 @@ module Api
 
       # Add user message to chat
       broadcast_user_message(@prompt)
-      
+
       # Show typing indicator
       broadcast_typing_indicator
 
@@ -34,7 +34,7 @@ module Api
         message_id: @message_id,
       )
 
-      head :ok
+      head(:ok)
     end
 
     private
@@ -58,7 +58,7 @@ module Api
         target: "chat_messages",
         partial: "api/claude_chat/typing_indicator",
         locals: {
-          indicator_id: "typing_indicator_#{@message_id}"
+          indicator_id: "typing_indicator_#{@message_id}",
         },
       )
     end

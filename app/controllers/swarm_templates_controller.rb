@@ -70,14 +70,14 @@ class SwarmTemplatesController < ApplicationController
     if @project
       # For project files, use simple data structure
       @swarm_data = {
-        name: '',
-        yaml_content: '',
+        name: "",
+        yaml_content: "",
         visual_data: {
           project_id: @project.id,
           project_name: @project.name,
           project_path: @project.path,
-          is_new_file: true
-        }
+          is_new_file: true,
+        },
       }
       @instance_templates = InstanceTemplate.ordered
       render("visual_file_editor")
@@ -101,7 +101,7 @@ class SwarmTemplatesController < ApplicationController
 
       respond_to do |format|
         format.html { redirect_to(@swarm_template, notice: "Swarm template was successfully created.") }
-        format.json { render json: { redirect_url: swarm_template_path(@swarm_template) } }
+        format.json { render(json: { redirect_url: swarm_template_path(@swarm_template) }) }
       end
     else
       respond_to do |format|
@@ -109,7 +109,7 @@ class SwarmTemplatesController < ApplicationController
           @instance_templates = InstanceTemplate.ordered
           render(:new, status: :unprocessable_entity)
         end
-        format.json { render json: { errors: @swarm_template.errors.full_messages }, status: :unprocessable_entity }
+        format.json { render(json: { errors: @swarm_template.errors.full_messages }, status: :unprocessable_entity) }
       end
     end
   end
@@ -124,7 +124,7 @@ class SwarmTemplatesController < ApplicationController
     if @swarm_template.update(swarm_template_params)
       respond_to do |format|
         format.html { redirect_to(@swarm_template, notice: "Swarm template was successfully updated.") }
-        format.json { render json: { redirect_url: swarm_template_path(@swarm_template) } }
+        format.json { render(json: { redirect_url: swarm_template_path(@swarm_template) }) }
       end
     else
       respond_to do |format|
@@ -132,7 +132,7 @@ class SwarmTemplatesController < ApplicationController
           @instance_templates = InstanceTemplate.ordered
           render(:visual_new, status: :unprocessable_entity)
         end
-        format.json { render json: { errors: @swarm_template.errors.full_messages }, status: :unprocessable_entity }
+        format.json { render(json: { errors: @swarm_template.errors.full_messages }, status: :unprocessable_entity) }
       end
     end
   end
@@ -140,7 +140,7 @@ class SwarmTemplatesController < ApplicationController
   def destroy
     project = @swarm_template.project
     @swarm_template.destroy!
-    
+
     # Redirect to project swarm templates if it belongs to a project, otherwise to general swarm templates
     if project
       redirect_to(project_swarm_templates_path(project), notice: "Swarm template was successfully deleted.")

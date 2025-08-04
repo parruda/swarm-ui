@@ -8,14 +8,14 @@ class ClaudeChatJob < ApplicationJob
     current_tool_id = nil
     typing_indicator_removed = false
     new_session_id = nil
-    
+
     # Use tracking_id for all broadcasts (stays constant)
     broadcast_id = tracking_id
-    
+
     service = ClaudeChatService.new(
       project: project,
       file_path: file_path,
-      session_id: session_id  # Pass the Claude session ID to resume conversation
+      session_id: session_id, # Pass the Claude session ID to resume conversation
     )
 
     service.chat(prompt) do |message|
@@ -24,7 +24,7 @@ class ClaudeChatJob < ApplicationJob
         broadcast_remove_typing_indicator(project_id, broadcast_id, message_id)
         typing_indicator_removed = true
       end
-      
+
       case message[:type]
       when "text"
         # Mark previous tool as complete if there was one
@@ -32,7 +32,7 @@ class ClaudeChatJob < ApplicationJob
           broadcast_tool_complete(project_id, broadcast_id, current_tool_id)
           current_tool_id = nil
         end
-        
+
         # Append text as a new message, don't update
         broadcast_assistant_message(project_id, broadcast_id, message[:content])
 
@@ -41,7 +41,7 @@ class ClaudeChatJob < ApplicationJob
         if current_tool_id
           broadcast_tool_complete(project_id, broadcast_id, current_tool_id)
         end
-        
+
         # Track current tool
         current_tool_id = message[:id]
         broadcast_tool_use(project_id, broadcast_id, message)
@@ -49,32 +49,32 @@ class ClaudeChatJob < ApplicationJob
       when "tool_result"
         # Mark the tool as complete with result
         broadcast_tool_result(project_id, broadcast_id, message)
-        
+
         # Clear current tool if it matches
         if current_tool_id == message[:tool_use_id]
           current_tool_id = nil
         end
-        
+
       when "file_modified"
         broadcast_file_modified(project_id, broadcast_id, file_path)
         broadcast_canvas_refresh(project_id, broadcast_id, file_path)
-        
+
       when "usage"
         # Skip usage info - not needed in UI
-        
+
       when "thinking"
         # Skip thinking - not needed in production
-        
+
       when "complete"
         # Mark any pending tool as complete
         if current_tool_id
           broadcast_tool_complete(project_id, broadcast_id, current_tool_id)
           current_tool_id = nil
         end
-        
+
         # Claude is done! Capture the NEW session ID for the next message
         new_session_id = message[:session_id]
-        Rails.logger.info "[ClaudeChatJob] Broadcasting new session ID: #{new_session_id}"
+        Rails.logger.info("[ClaudeChatJob] Broadcasting new session ID: #{new_session_id}")
         broadcast_session_update(project_id, broadcast_id, new_session_id)
         broadcast_enable_input(project_id, broadcast_id)
 
@@ -84,7 +84,7 @@ class ClaudeChatJob < ApplicationJob
           broadcast_tool_error(project_id, broadcast_id, current_tool_id)
           current_tool_id = nil
         end
-        
+
         broadcast_error(project_id, broadcast_id, message[:content])
       end
     end
@@ -125,7 +125,7 @@ class ClaudeChatJob < ApplicationJob
     Turbo::StreamsChannel.broadcast_replace_to(
       "claude_chat_#{project_id}_#{conversation_id}",
       target: "tool_#{tool_id}_status",
-      html: <<~HTML
+      html: <<~HTML,
         <div class="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
           <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -135,13 +135,13 @@ class ClaudeChatJob < ApplicationJob
       HTML
     )
   end
-  
+
   def broadcast_tool_error(project_id, conversation_id, tool_id)
     # Update the status to error
     Turbo::StreamsChannel.broadcast_replace_to(
       "claude_chat_#{project_id}_#{conversation_id}",
       target: "tool_#{tool_id}_status",
-      html: <<~HTML
+      html: <<~HTML,
         <div class="flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
           <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -165,7 +165,7 @@ class ClaudeChatJob < ApplicationJob
         },
       )
     end
-    
+
     # Update status
     if result_data[:is_error]
       broadcast_tool_error(project_id, conversation_id, result_data[:tool_use_id])
@@ -187,9 +187,9 @@ class ClaudeChatJob < ApplicationJob
     Turbo::StreamsChannel.broadcast_append_to(
       "claude_chat_#{project_id}_#{conversation_id}",
       target: "chat_messages",
-      html: <<~HTML
+      html: <<~HTML,
         <script>
-          window.dispatchEvent(new CustomEvent('canvas:refresh', { 
+          window.dispatchEvent(new CustomEvent('canvas:refresh', {#{" "}
             detail: { filePath: '#{file_path}' }
           }));
         </script>
@@ -208,44 +208,44 @@ class ClaudeChatJob < ApplicationJob
         message_id: SecureRandom.hex(8),
       },
     )
-    
+
     # Enable input on error
     broadcast_enable_input(project_id, conversation_id)
   end
-  
+
   def broadcast_session_update(project_id, conversation_id, session_id)
     # Broadcast the actual session ID so the client can use it for the next message
     Turbo::StreamsChannel.broadcast_append_to(
       "claude_chat_#{project_id}_#{conversation_id}",
       target: "chat_messages",
-      html: <<~HTML
+      html: <<~HTML,
         <script>
-          window.dispatchEvent(new CustomEvent('session:update', { 
+          window.dispatchEvent(new CustomEvent('session:update', {#{" "}
             detail: { sessionId: '#{session_id}' }
           }));
         </script>
       HTML
     )
   end
-  
+
   def broadcast_enable_input(project_id, conversation_id)
     # Re-enable the input form
     Turbo::StreamsChannel.broadcast_append_to(
       "claude_chat_#{project_id}_#{conversation_id}",
       target: "chat_messages",
-      html: <<~HTML
+      html: <<~HTML,
         <script>
           window.dispatchEvent(new CustomEvent('chat:complete'));
         </script>
       HTML
     )
   end
-  
+
   def broadcast_remove_typing_indicator(project_id, conversation_id, message_id)
     # Remove the typing indicator
     Turbo::StreamsChannel.broadcast_remove_to(
       "claude_chat_#{project_id}_#{conversation_id}",
-      target: "typing_indicator_#{message_id}"
+      target: "typing_indicator_#{message_id}",
     )
   end
 end

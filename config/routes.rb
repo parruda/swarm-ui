@@ -27,7 +27,7 @@ Rails.application.routes.draw do
       post :git_status_poll
     end
   end
-  
+
   # API routes
   namespace :api do
     post "claude_chat", to: "claude_chat#create"
@@ -51,7 +51,7 @@ Rails.application.routes.draw do
       get "tabs/sessions", to: "project_tabs#sessions", as: :tab_sessions
       get "tabs/git", to: "project_tabs#git", as: :tab_git
     end
-    
+
     collection do
       post :save_swarm_file
       post :check_file_exists

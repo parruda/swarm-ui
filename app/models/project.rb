@@ -210,17 +210,17 @@ class Project < ApplicationRecord
   # Find all swarm YAML files in the project directory
   def find_swarm_files
     return [] unless File.directory?(path)
-    
+
     swarm_files = []
-    
+
     # Scan directory for YAML files
     Dir.glob(File.join(path, "**/*.{yml,yaml}")).each do |file|
       next unless valid_swarm_config?(file)
-      
+
       begin
         config = YAML.load_file(file)
         swarm = config["swarm"]
-        
+
         swarm_files << {
           path: file,
           relative_path: file.sub("#{path}/", ""),
@@ -233,12 +233,12 @@ class Project < ApplicationRecord
         Rails.logger.warn("Error reading swarm file #{file}: #{e.message}")
       end
     end
-    
+
     swarm_files.sort_by { |f| f[:relative_path] }
   end
 
   private
-  
+
   def valid_swarm_config?(file_path)
     return false unless File.exist?(file_path)
 

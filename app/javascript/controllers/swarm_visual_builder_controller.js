@@ -161,9 +161,21 @@ export default class extends Controller {
       e.preventDefault()
       const templateData = JSON.parse(e.dataTransfer.getData('template'))
       if (templateData) {
-        const rect = this.viewport.getBoundingClientRect()
-        const x = (e.clientX - rect.left) / this.zoomLevel - this.canvasCenter
-        const y = (e.clientY - rect.top) / this.zoomLevel - this.canvasCenter
+        // Get the viewport's bounding rect (which is scaled)
+        const viewportRect = this.viewport.getBoundingClientRect()
+        
+        // Mouse position relative to the scaled viewport
+        const mouseX = e.clientX - viewportRect.left
+        const mouseY = e.clientY - viewportRect.top
+        
+        // Convert from scaled pixels to actual viewport pixels
+        const viewportX = mouseX / this.zoomLevel
+        const viewportY = mouseY / this.zoomLevel
+        
+        // Convert to canvas coordinates (relative to center)
+        const x = viewportX - this.canvasCenter
+        const y = viewportY - this.canvasCenter
+        
         this.addNode(templateData, x, y)
       }
     })

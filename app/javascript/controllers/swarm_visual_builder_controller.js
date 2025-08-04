@@ -1947,24 +1947,106 @@ export default class extends Controller {
   async saveAsNewFile(yaml) {
     // Generate default filename from swarm name
     const swarmName = this.nameInputTarget.value || 'swarm'
-    const defaultFilename = swarmName.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '.yaml'
+    const defaultFilename = swarmName.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '.yml'
     
     // Prompt for filename
     const filename = await this.promptForFilename(defaultFilename)
     if (!filename) return // User cancelled
     
-    // Ensure .yaml or .yml extension
-    const finalFilename = filename.match(/\.(yaml|yml)$/i) ? filename : filename + '.yaml'
-    
     // Build full path
-    const filePath = `${this.projectPathValue}/${finalFilename}`
+    const filePath = `${this.projectPathValue}/${filename}`
+    
+    // Check if file exists
+    const fileExists = await this.checkFileExists(filePath)
+    if (fileExists) {
+      const shouldOverwrite = await this.confirmOverwrite(filename)
+      if (!shouldOverwrite) {
+        // User cancelled, prompt again
+        return this.saveAsNewFile(yaml)
+      }
+    }
     
     // Save to file
     await this.saveToFile(filePath, yaml)
   }
   
+  async checkFileExists(filePath) {
+    try {
+      const response = await fetch('/projects/check_file_exists', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ file_path: filePath })
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        return result.exists
+      }
+      return false
+    } catch (error) {
+      console.error('Error checking file existence:', error)
+      return false
+    }
+  }
+  
+  async confirmOverwrite(filename) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div')
+      overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+      
+      const modal = document.createElement('div')
+      modal.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4'
+      modal.innerHTML = `
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">File Already Exists</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          The file <span class="font-mono font-semibold">${filename}</span> already exists.
+          <br/>
+          Do you want to overwrite it?
+        </p>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" 
+                  class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+                  data-action="cancel">
+            Cancel
+          </button>
+          <button type="button" 
+                  class="px-4 py-2 text-sm font-medium text-white bg-red-600 dark:bg-red-600 rounded-md hover:bg-red-700 dark:hover:bg-red-700"
+                  data-action="overwrite">
+            Overwrite
+          </button>
+        </div>
+      `
+      
+      overlay.appendChild(modal)
+      document.body.appendChild(overlay)
+      
+      const handleOverwrite = () => {
+        document.body.removeChild(overlay)
+        resolve(true)
+      }
+      
+      const handleCancel = () => {
+        document.body.removeChild(overlay)
+        resolve(false)
+      }
+      
+      modal.querySelector('[data-action="overwrite"]').addEventListener('click', handleOverwrite)
+      modal.querySelector('[data-action="cancel"]').addEventListener('click', handleCancel)
+      
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) handleCancel()
+      })
+    })
+  }
+  
   async promptForFilename(defaultName) {
     return new Promise((resolve) => {
+      // Ensure default name ends with .yml
+      const normalizedDefault = defaultName.replace(/\.(yaml|yml)$/i, '') + '.yml'
+      
       // Create modal overlay
       const overlay = document.createElement('div')
       overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
@@ -1979,10 +2061,13 @@ export default class extends Controller {
           <br/>
           <span class="text-xs">It will be saved in: ${this.projectPathValue}/</span>
         </p>
-        <input type="text" 
-               value="${defaultName}" 
-               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent"
-               placeholder="filename.yaml">
+        <div class="relative">
+          <input type="text" 
+                 value="${normalizedDefault}" 
+                 class="w-full px-3 py-2 pr-12 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent"
+                 placeholder="filename.yml">
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm pointer-events-none">.yml</span>
+        </div>
         <div class="flex justify-end gap-3 mt-6">
           <button type="button" 
                   class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
@@ -2000,21 +2085,42 @@ export default class extends Controller {
       overlay.appendChild(modal)
       document.body.appendChild(overlay)
       
-      // Focus input and select text
+      // Focus input and select only the basename (not the extension)
       const input = modal.querySelector('input')
       input.focus()
-      input.select()
+      
+      // Select only the basename part
+      const baseName = normalizedDefault.replace('.yml', '')
+      input.setSelectionRange(0, baseName.length)
+      
+      // Ensure .yml extension on input change
+      input.addEventListener('input', (e) => {
+        let value = e.target.value
+        // Remove any existing extension
+        value = value.replace(/\.(yaml|yml)$/i, '')
+        // Update the input to show without extension (the .yml is shown as static text)
+        e.target.value = value
+      })
       
       // Handle actions
       const handleSave = () => {
-        const filename = input.value.trim()
-        if (filename) {
-          document.body.removeChild(overlay)
-          resolve(filename)
-        } else {
+        let filename = input.value.trim()
+        
+        // Remove any extension the user might have typed
+        filename = filename.replace(/\.(yaml|yml)$/i, '')
+        
+        // Validate filename (not empty and not just dots/spaces)
+        if (!filename || filename === '' || /^\.+$/.test(filename)) {
           input.classList.add('ring-2', 'ring-red-500')
           setTimeout(() => input.classList.remove('ring-2', 'ring-red-500'), 2000)
+          return
         }
+        
+        // Add .yml extension
+        filename = filename + '.yml'
+        
+        document.body.removeChild(overlay)
+        resolve(filename)
       }
       
       const handleCancel = () => {

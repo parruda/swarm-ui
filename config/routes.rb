@@ -42,6 +42,7 @@ Rails.application.routes.draw do
     
     collection do
       post :save_swarm_file
+      post :check_file_exists
     end
 
     # Nested swarm templates under projects

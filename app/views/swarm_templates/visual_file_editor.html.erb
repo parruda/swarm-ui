@@ -62,7 +62,7 @@
                   data-action="click->swarm-visual-builder#saveSwarm"
                   class="inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-green-800 dark:bg-green-800 rounded-lg hover:bg-green-700 dark:hover:bg-green-700 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200">
             <%= heroicon "check-circle", variant: :solid, options: { class: "h-5 w-5 mr-2" } %>
-            <%= @swarm_data[:visual_data][:is_file_edit] ? 'Save to File' : 'Save as File' %>
+            <%= @swarm_data[:visual_data][:is_file_edit] ? 'Save' : 'Save as...' %>
           </button>
           
           <button type="button"

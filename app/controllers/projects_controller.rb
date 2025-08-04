@@ -227,6 +227,18 @@ class ProjectsController < ApplicationController
     end
   end
 
+  def check_file_exists
+    file_path = params[:file_path]
+    
+    if file_path.blank?
+      render(json: { exists: false })
+      return
+    end
+    
+    exists = File.exist?(file_path)
+    render(json: { exists: exists })
+  end
+  
   def save_swarm_file
     file_path = params[:file_path]
     yaml_content = params[:yaml_content]

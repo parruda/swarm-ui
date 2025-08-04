@@ -1234,16 +1234,22 @@ export default class extends Controller {
   }
   
   addBlankInstance() {
-    const viewportRect = this.viewport.getBoundingClientRect()
-    const containerRect = this.container.getBoundingClientRect()
-    
     // Node dimensions
     const nodeWidth = 250
     const nodeHeight = 120
     
-    // Calculate center position and offset by half node size to center the node
-    const centerX = (containerRect.width / 2 - viewportRect.left + this.container.scrollLeft) / this.zoomLevel - this.canvasCenter - (nodeWidth / 2)
-    const centerY = (containerRect.height / 2 - viewportRect.top + this.container.scrollTop) / this.zoomLevel - this.canvasCenter - (nodeHeight / 2)
+    // Get the current visible center of the canvas
+    const containerRect = this.container.getBoundingClientRect()
+    const scrollLeft = this.container.scrollLeft
+    const scrollTop = this.container.scrollTop
+    
+    // Calculate the center of the visible area in viewport coordinates
+    const visibleCenterX = (scrollLeft + containerRect.width / 2) / this.zoomLevel
+    const visibleCenterY = (scrollTop + containerRect.height / 2) / this.zoomLevel
+    
+    // Convert to canvas coordinates (relative to center) and center the node
+    const x = visibleCenterX - this.canvasCenter - (nodeWidth / 2)
+    const y = visibleCenterY - this.canvasCenter - (nodeHeight / 2)
     
     const templateData = {
       name: 'New Instance',
@@ -1253,7 +1259,29 @@ export default class extends Controller {
       provider: ''
     }
     
-    this.addNode(templateData, centerX, centerY)
+    // Add the node
+    const node = this.nodeManager.createNode(templateData, { x, y })
+    this.renderNode(node)
+    this.updateEmptyState()
+    this.updateYamlPreview()
+    
+    // Select the new node and show properties
+    this.selectNode(node.id)
+    
+    // Switch to properties tab if not already visible
+    this.switchToProperties()
+    
+    // Focus on the instance name field after DOM updates
+    // Use requestAnimationFrame to ensure the DOM has been updated
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const nameInput = this.propertiesPanelTarget.querySelector('input[data-property="name"]')
+        if (nameInput) {
+          nameInput.focus()
+          nameInput.select()
+        }
+      })
+    })
   }
   
   // Tags operations

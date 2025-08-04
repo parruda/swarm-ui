@@ -2382,7 +2382,7 @@ export default class extends Controller {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${this.nameInputTarget.value || 'swarm'}.yaml`
+    a.download = `${this.nameInputTarget.value || 'swarm'}.yml`
     a.click()
     URL.revokeObjectURL(url)
   }

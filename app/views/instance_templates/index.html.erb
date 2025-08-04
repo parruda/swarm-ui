@@ -96,7 +96,7 @@
                 <div class="min-w-0">
                   <div class="flex items-center space-x-3">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                      <%= link_to template.name, instance_template_path(template), class: "hover:text-orange-900 dark:hover:text-orange-400" %>
+                      <%= link_to template.name, instance_template_path(template), data: { turbo_frame: "_top" }, class: "hover:text-orange-900 dark:hover:text-orange-400" %>
                     </h3>
                     <% if template.provider == "claude" %>
                       <span class="inline-flex items-center rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
@@ -168,11 +168,11 @@
               </div>
 
               <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
-                <%= link_to instance_template_path(template), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                <%= link_to instance_template_path(template), data: { turbo_frame: "_top" }, class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
                   <%= heroicon "eye", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
                   View
                 <% end %>
-                <%= link_to edit_instance_template_path(template), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                <%= link_to edit_instance_template_path(template), data: { turbo_frame: "_top" }, class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
                   <%= heroicon "pencil", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
                   Edit
                 <% end %>

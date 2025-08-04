@@ -18,6 +18,7 @@ export default class extends Controller {
     // Store the tracking ID for channel subscription (never changes)
     this.trackingId = this.conversationIdValue
     this.sessionId = null  // Will be set when we get a response from Claude
+    this.selectedNodes = []  // Track selected nodes from visual builder
     
     // Set initial tracking ID in form
     if (this.hasTrackingIdFieldTarget) {
@@ -48,6 +49,10 @@ export default class extends Controller {
     this.handleChatTabVisible = this.handleChatTabVisible.bind(this)
     window.addEventListener('chat:tabVisible', this.handleChatTabVisible)
     
+    // Listen for node selection changes from visual builder
+    this.handleNodeSelectionChange = this.handleNodeSelectionChange.bind(this)
+    window.addEventListener('nodes:selectionChanged', this.handleNodeSelectionChange)
+    
     // Hide welcome message on first interaction
     this.welcomeHidden = false
     
@@ -64,6 +69,7 @@ export default class extends Controller {
     window.removeEventListener('chat:complete', this.handleChatComplete)
     window.removeEventListener('claude:status', this.handleClaudeStatus)
     window.removeEventListener('chat:tabVisible', this.handleChatTabVisible)
+    window.removeEventListener('nodes:selectionChanged', this.handleNodeSelectionChange)
     document.removeEventListener('turbo:before-stream-render', this.handleTurboStreamRender)
     
     // Clean up mutation observer
@@ -178,6 +184,15 @@ export default class extends Controller {
     this.isWaitingForResponse = true
     
     // Session ID field is already updated in handleSessionUpdate
+    
+    // Add selected nodes context to the prompt if any nodes are selected
+    if (this.selectedNodes.length > 0 && this.hasInputTarget) {
+      const context = this.getSelectedNodesContextString()
+      if (context) {
+        // Append context to the input value
+        this.inputTarget.value = this.inputTarget.value + context
+      }
+    }
     
     // Hide welcome message on first message and expand sidebar
     if (!this.welcomeHidden) {
@@ -497,5 +512,67 @@ export default class extends Controller {
     
     // Also dispatch the event as backup
     window.dispatchEvent(new CustomEvent('sidebar:expandToMax'))
+  }
+  
+  handleNodeSelectionChange(event) {
+    // Update selected nodes from visual builder
+    this.selectedNodes = event.detail.selectedNodes || []
+    
+    // Update visual indicator in chat panel
+    this.updateSelectionIndicator()
+  }
+  
+  updateSelectionIndicator() {
+    // Find or create selection indicator element
+    let indicator = this.element.querySelector('[data-claude-chat-target="selectionIndicator"]')
+    
+    if (!indicator) {
+      // Create indicator element if it doesn't exist
+      const inputArea = this.element.querySelector('.border-t.border-gray-200')
+      if (inputArea) {
+        indicator = document.createElement('div')
+        indicator.dataset.claudeChatTarget = 'selectionIndicator'
+        indicator.className = 'px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-orange-50 dark:bg-orange-900/20'
+        inputArea.parentNode.insertBefore(indicator, inputArea)
+      }
+    }
+    
+    if (indicator) {
+      if (this.selectedNodes.length > 0) {
+        // Show selected nodes
+        const nodeNames = this.selectedNodes.map(n => 
+          `<span class="inline-flex items-center px-2 py-1 mr-2 text-xs font-medium bg-orange-100 dark:bg-orange-800 text-orange-800 dark:text-orange-200 rounded-md">
+            ${n.name}
+          </span>`
+        ).join('')
+        
+        indicator.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center flex-wrap gap-1">
+              <span class="text-xs font-medium text-gray-600 dark:text-gray-400 mr-2">Context:</span>
+              ${nodeNames}
+            </div>
+            <button onclick="this.closest('[data-claude-chat-target=selectionIndicator]').style.display='none'" 
+                    class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+              Clear
+            </button>
+          </div>
+        `
+        indicator.style.display = 'block'
+      } else {
+        // Hide indicator when no nodes selected
+        indicator.style.display = 'none'
+      }
+    }
+  }
+  
+  getSelectedNodesContextString() {
+    if (this.selectedNodes.length === 0) return ''
+    
+    const nodeDescriptions = this.selectedNodes.map(node => 
+      `- ${node.name} (${node.model})`
+    ).join('\n')
+    
+    return `\n\n[Context: This message is about the following selected instance${this.selectedNodes.length > 1 ? 's' : ''}:\n${nodeDescriptions}]`
   }
 }

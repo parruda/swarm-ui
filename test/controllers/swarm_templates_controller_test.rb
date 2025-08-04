@@ -289,9 +289,9 @@ class SwarmTemplatesControllerTest < ActionDispatch::IntegrationTest
     get edit_swarm_template_url(@swarm_template)
     assert_response :success
 
-    assert_select "h1", /Edit Swarm Template/
-    assert_select "form"
-    assert_select "input[name='swarm_template[name]'][value=?]", @swarm_template.name
+    # Now using visual builder for editing
+    assert_select "h1", /Swarm Builder/
+    assert_select "[data-controller='swarm-visual-builder']"
   end
 
   # Update tests

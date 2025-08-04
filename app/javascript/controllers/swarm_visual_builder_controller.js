@@ -469,6 +469,9 @@ export default class extends Controller {
     } else {
       this.showMultiSelectMessage()
     }
+    
+    // Notify chat controller about selection change
+    this.notifySelectionChange()
   }
   
   toggleNodeSelection(nodeId) {
@@ -499,6 +502,9 @@ export default class extends Controller {
     } else {
       this.showMultiSelectMessage()
     }
+    
+    // Notify chat controller about selection change
+    this.notifySelectionChange()
   }
   
   isNodeSelected(nodeId) {
@@ -533,6 +539,9 @@ export default class extends Controller {
         <p>Select an instance to edit its properties</p>
       </div>
     `
+    
+    // Notify chat controller about selection change
+    this.notifySelectionChange()
   }
   
   clearPropertiesPanel() {
@@ -2880,6 +2889,37 @@ export default class extends Controller {
     setTimeout(() => {
       this.rightSidebarTarget.style.transition = ''
     }, 300)
+  }
+  
+  notifySelectionChange() {
+    // Create event with selected nodes data
+    const selectedNodesData = this.selectedNodes.map(node => ({
+      id: node.id,
+      name: node.data.name || 'Unnamed Instance',
+      model: node.data.model || 'Unknown Model',
+      type: node.type
+    }))
+    
+    // Dispatch event for chat controller to listen to
+    window.dispatchEvent(new CustomEvent('nodes:selectionChanged', {
+      detail: {
+        selectedNodes: selectedNodesData,
+        count: this.selectedNodes.length
+      }
+    }))
+  }
+  
+  getSelectedNodesContext() {
+    // Return context string for selected nodes
+    if (this.selectedNodes.length === 0) return null
+    
+    const nodeDescriptions = this.selectedNodes.map(node => {
+      const name = node.data.name || 'Unnamed Instance'
+      const model = node.data.model || 'Unknown Model'
+      return `- ${name} (${model})`
+    }).join('\n')
+    
+    return `\n\n[Context: This message is about the following selected instance${this.selectedNodes.length > 1 ? 's' : ''}:\n${nodeDescriptions}]`
   }
   
   createResizeOverlay() {

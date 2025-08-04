@@ -1865,6 +1865,9 @@ export default class extends Controller {
         // Enable the Launch button
         this.enableLaunchButton()
         
+        // Update Save button text from "Save as..." to "Save"
+        this.updateSaveButtonText()
+        
         // Don't redirect - stay on the page
         if (result.redirect_url) {
           // Only redirect if explicitly requested
@@ -1880,6 +1883,24 @@ export default class extends Controller {
     }
   }
   
+  updateSaveButtonText() {
+    const saveButton = document.getElementById('save-swarm')
+    if (saveButton) {
+      // Find the text node (last child after the icon)
+      const textNode = saveButton.childNodes[saveButton.childNodes.length - 1]
+      if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+        if (this.isFileEditValue && this.filePathValue) {
+          textNode.textContent = 'Save'
+        } else if (this.isNewFileValue) {
+          textNode.textContent = 'Save as...'
+        } else {
+          // For database swarms
+          textNode.textContent = saveButton.dataset.persisted === 'true' ? 'Update Swarm' : 'Save Swarm'
+        }
+      }
+    }
+  }
+  
   showFlashMessage(message, type = 'success') {
     // Remove any existing flash messages
     const existingFlash = document.querySelector('.flash-message')
@@ -1887,9 +1908,9 @@ export default class extends Controller {
       existingFlash.remove()
     }
     
-    // Create flash message element
+    // Create flash message element - positioned in horizontal center
     const flash = document.createElement('div')
-    flash.className = `flash-message fixed top-20 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transition-all transform translate-x-0 ${
+    flash.className = `flash-message fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-4 rounded-lg shadow-lg transition-all transform ${
       type === 'success' 
         ? 'bg-green-500 text-white' 
         : 'bg-red-500 text-white'
@@ -1909,7 +1930,7 @@ export default class extends Controller {
     
     // Auto-remove after 5 seconds
     setTimeout(() => {
-      flash.classList.add('translate-x-full', 'opacity-0')
+      flash.classList.add('-translate-y-full', 'opacity-0')
       setTimeout(() => flash.remove(), 300)
     }, 5000)
   }

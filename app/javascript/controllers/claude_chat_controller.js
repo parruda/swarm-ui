@@ -36,20 +36,30 @@ export default class extends Controller {
     this.handleChatComplete = this.handleChatComplete.bind(this)
     window.addEventListener('chat:complete', this.handleChatComplete)
     
+    // Listen for Turbo Stream events to detect new messages
+    this.handleTurboStreamRender = this.handleTurboStreamRender.bind(this)
+    document.addEventListener('turbo:before-stream-render', this.handleTurboStreamRender)
+    
+    // Listen for chat tab becoming visible
+    this.handleChatTabVisible = this.handleChatTabVisible.bind(this)
+    window.addEventListener('chat:tabVisible', this.handleChatTabVisible)
+    
     // Hide welcome message on first interaction
     this.welcomeHidden = false
     
     // Track if we're waiting for a response
     this.isWaitingForResponse = false
     
-    // Set up mutation observer for auto-scroll
-    this.setupAutoScroll()
+    // Set up auto-scroll after a small delay to ensure DOM is ready
+    setTimeout(() => this.setupAutoScroll(), 100)
   }
   
   disconnect() {
     window.removeEventListener('canvas:refresh', this.handleCanvasRefresh)
     window.removeEventListener('session:update', this.handleSessionUpdate)
     window.removeEventListener('chat:complete', this.handleChatComplete)
+    window.removeEventListener('chat:tabVisible', this.handleChatTabVisible)
+    document.removeEventListener('turbo:before-stream-render', this.handleTurboStreamRender)
     
     // Clean up mutation observer
     if (this.messageObserver) {
@@ -80,6 +90,40 @@ export default class extends Controller {
     this.isWaitingForResponse = false
     this.enableInput()
     this.updateStatus("Ready")
+  }
+  
+  handleTurboStreamRender(event) {
+    // Check if this stream is for our chat
+    const streamElement = event.target
+    if (streamElement && streamElement.getAttribute('target') === 'chat_messages') {
+      // Check if this is a user message (sent by us)
+      const html = streamElement.innerHTML || ''
+      const isUserMessage = html.includes('role="user"') || html.includes('bg-blue-600') || html.includes('text-right')
+      
+      if (isUserMessage) {
+        // Force scroll for user messages
+        requestAnimationFrame(() => {
+          this.scrollToBottom()
+          setTimeout(() => this.scrollToBottom(), 50)
+          setTimeout(() => this.scrollToBottom(), 150)
+        })
+      } else {
+        // Auto-scroll for other messages (only if near bottom)
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            this.autoScrollIfNeeded()
+          }, 50)
+        })
+      }
+    }
+  }
+  
+  handleChatTabVisible(event) {
+    // When chat tab becomes visible, check if we should scroll
+    setTimeout(() => {
+      // Force recalculation of scroll position when tab becomes visible
+      this.autoScrollIfNeeded()
+    }, 100)
   }
   
   handleKeydown(event) {
@@ -132,11 +176,9 @@ export default class extends Controller {
       textArea.value = ""
     }
     
-    // Always scroll to bottom when user sends a message
-    // This ensures they see their message and the response
-    setTimeout(() => {
-      this.scrollToBottom()
-    }, 100)
+    // ALWAYS force scroll to bottom when user sends a message
+    // Do it multiple times to ensure it happens after all DOM updates
+    this.forceScrollToBottom()
     
     // Note: We don't re-enable input here anymore
     // It will be re-enabled when we receive the chat:complete event
@@ -187,12 +229,21 @@ export default class extends Controller {
     // Create mutation observer to watch for new messages
     this.messageObserver = new MutationObserver((mutations) => {
       // Check if any actual nodes were added (not just text changes)
-      const hasNewNodes = mutations.some(mutation => 
-        mutation.type === 'childList' && mutation.addedNodes.length > 0
-      )
+      const hasNewNodes = mutations.some(mutation => {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          // Check if any added nodes are actual elements (not text nodes)
+          return Array.from(mutation.addedNodes).some(node => node.nodeType === Node.ELEMENT_NODE)
+        }
+        return false
+      })
       
       if (hasNewNodes) {
-        this.autoScrollIfNeeded()
+        // Use requestAnimationFrame to ensure DOM is updated
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            this.autoScrollIfNeeded()
+          }, 50)
+        })
       }
     })
     
@@ -207,7 +258,17 @@ export default class extends Controller {
   }
   
   getScrollContainer() {
-    // The parent div with overflow-y-auto is the actual scroll container
+    // Find the scroll container by looking for the overflow-y-auto class
+    // Start from messages target and go up
+    let element = this.messagesTarget
+    while (element && element !== document.body) {
+      const styles = window.getComputedStyle(element)
+      if (styles.overflowY === 'auto' || styles.overflowY === 'scroll') {
+        return element
+      }
+      element = element.parentElement
+    }
+    // Fallback to parent element
     return this.messagesTarget.parentElement
   }
   
@@ -215,13 +276,26 @@ export default class extends Controller {
     const scrollContainer = this.getScrollContainer()
     if (!scrollContainer) return true // Default to true if no container
     
-    const threshold = 50 // pixels from bottom to consider "near bottom"
+    const threshold = 100 // Increased threshold - pixels from bottom to consider "near bottom"
     
     // Check if scrolled near the bottom
     const scrollPosition = scrollContainer.scrollTop + scrollContainer.clientHeight
     const scrollHeight = scrollContainer.scrollHeight
     
-    const nearBottom = scrollHeight - scrollPosition <= threshold
+    const distanceFromBottom = scrollHeight - scrollPosition
+    const nearBottom = distanceFromBottom <= threshold
+    
+    // Debug logging
+    if (this.debugScroll) {
+      console.log('Scroll check:', {
+        scrollTop: scrollContainer.scrollTop,
+        clientHeight: scrollContainer.clientHeight,
+        scrollHeight: scrollContainer.scrollHeight,
+        distanceFromBottom,
+        nearBottom,
+        threshold
+      })
+    }
     
     return nearBottom
   }
@@ -229,24 +303,55 @@ export default class extends Controller {
   autoScrollIfNeeded() {
     if (!this.hasMessagesTarget) return
     
-    // Add a small delay to ensure content is rendered
-    setTimeout(() => {
-      // Only scroll if user is already near the bottom
-      if (this.isNearBottom()) {
-        this.scrollToBottom()
-      }
-    }, 50)
+    // Check if we should scroll
+    const shouldScroll = this.isNearBottom()
+    
+    if (shouldScroll) {
+      // Scroll to bottom
+      this.scrollToBottom()
+    }
   }
   
   scrollToBottom() {
     const scrollContainer = this.getScrollContainer()
     if (!scrollContainer) return
     
-    // Smooth scroll to bottom
-    scrollContainer.scrollTo({
-      top: scrollContainer.scrollHeight,
-      behavior: 'smooth'
+    // Use instant scroll for better responsiveness
+    scrollContainer.scrollTop = scrollContainer.scrollHeight
+    
+    // Alternatively, for smooth scrolling (may cause issues with rapid messages):
+    // scrollContainer.scrollTo({
+    //   top: scrollContainer.scrollHeight,
+    //   behavior: 'smooth'
+    // })
+  }
+  
+  forceScrollToBottom() {
+    // Force scroll to bottom multiple times to ensure it happens
+    // This is used when user sends a message - we ALWAYS want to scroll
+    
+    // Immediate scroll
+    this.scrollToBottom()
+    
+    // After next frame
+    requestAnimationFrame(() => {
+      this.scrollToBottom()
     })
+    
+    // After a short delay for DOM updates
+    setTimeout(() => {
+      this.scrollToBottom()
+    }, 50)
+    
+    // After a longer delay for Turbo Stream updates
+    setTimeout(() => {
+      this.scrollToBottom()
+    }, 200)
+    
+    // One more time after everything should be settled
+    setTimeout(() => {
+      this.scrollToBottom()
+    }, 500)
   }
   
   refreshCanvas() {

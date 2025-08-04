@@ -1638,6 +1638,9 @@ export default class extends Controller {
     
     this.yamlTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
     this.yamlTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
+    
+    // Dispatch event to notify chat controller that tab is now visible
+    window.dispatchEvent(new CustomEvent('chat:tabVisible'))
   }
   
   // Handle canvas refresh when Claude modifies the file

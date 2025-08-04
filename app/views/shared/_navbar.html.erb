@@ -15,11 +15,6 @@
           Projects
         <% end %>
         
-        <%= link_to swarm_templates_path, class: "flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors duration-200 #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(swarm_templates_path) || params[:controller] == 'swarm_templates'}" do %>
-          <%= heroicon "cube", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
-          Swarms
-        <% end %>
-        
         <div class="relative" data-controller="dropdown-hover" data-dropdown-hover-has-items-value="<%= active_sessions.any? %>">
           <%= link_to sessions_path, 
               class: "flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors duration-200 #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(sessions_path) || (params[:controller] == 'sessions' && action_name != 'show')}",
@@ -143,11 +138,6 @@
       <%= link_to projects_path, class: "flex items-center px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(projects_path) || params[:controller] == 'projects'}" do %>
         <%= heroicon "folder", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
         Projects
-      <% end %>
-      
-      <%= link_to swarm_templates_path, class: "flex items-center px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(swarm_templates_path) || params[:controller] == 'swarm_templates'}" do %>
-        <%= heroicon "cube", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
-        Swarms
       <% end %>
       
       <%= link_to sessions_path, class: "flex items-center px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if current_page?(sessions_path) || params[:controller] == 'sessions'}" do %>

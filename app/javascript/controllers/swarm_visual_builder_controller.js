@@ -1385,39 +1385,62 @@ export default class extends Controller {
   buildSwarmData() {
     const instances = {}
     
+    // Determine main instance key first
+    const mainNodeId = this.mainNodeId || (this.nodeManager.getNodes()[0]?.id)
+    
     // Build instances
     this.nodeManager.getNodes().forEach(node => {
       const key = node.data.name.toLowerCase().replace(/\s+/g, '_')
       this.nodeKeyMap.set(node.id, key)
       
+      // Check if this is the main instance
+      const isMainInstance = node.id === mainNodeId
+      
       // Create instance with proper structure
       const instance = {}
       
-      // Add essential properties
-      instance.model = node.data.model || node.data.config?.model || 'sonnet'
-      instance.provider = node.data.provider || node.data.config?.provider || 'claude'
+      // REQUIRED: description field
+      instance.description = node.data.description || node.data.config?.description || `Instance for ${node.data.name}`
       
-      if (node.data.description || node.data.config?.description) {
-        instance.description = node.data.description || node.data.config.description
+      // Optional fields only added if they have values
+      const model = node.data.model || node.data.config?.model
+      if (model && model !== 'sonnet') {
+        instance.model = model
+      }
+      
+      const provider = node.data.provider || node.data.config?.provider
+      // IMPORTANT: Main instance cannot have provider field in the YAML (claude-swarm rule)
+      if (!isMainInstance && provider && provider !== 'claude') {
+        instance.provider = provider
       }
       
       if (node.data.directory || node.data.config?.directory) {
         instance.directory = node.data.directory || node.data.config.directory
       }
       
+      // Use 'prompt' instead of 'system_prompt' for claude-swarm compliance
       if (node.data.system_prompt || node.data.config?.system_prompt) {
-        instance.system_prompt = node.data.system_prompt || node.data.config.system_prompt
+        instance.prompt = node.data.system_prompt || node.data.config.system_prompt
       }
       
       // Handle OpenAI-specific fields
-      if (instance.provider === 'openai') {
-        if (node.data.temperature || node.data.config?.temperature) {
+      if (provider === 'openai') {
+        // Check if it's an o-series model
+        const isOSeries = model && /^o\d/.test(model)
+        
+        // Temperature not allowed for o-series models
+        if (!isOSeries && (node.data.temperature || node.data.config?.temperature)) {
           instance.temperature = parseFloat(node.data.temperature || node.data.config.temperature)
+        }
+        
+        // Reasoning effort only for o-series models
+        if (isOSeries && (node.data.reasoning_effort || node.data.config?.reasoning_effort)) {
+          instance.reasoning_effort = node.data.reasoning_effort || node.data.config.reasoning_effort
         }
       }
       
-      // Handle vibe mode and allowed tools
-      if (instance.provider === 'claude') {
+      // Handle vibe mode and allowed tools (not for OpenAI instances)
+      if (provider !== 'openai') {
         if (node.data.vibe || node.data.config?.vibe) {
           instance.vibe = true
         } else if (node.data.allowed_tools?.length > 0 || node.data.config?.allowed_tools?.length > 0) {
@@ -1444,23 +1467,25 @@ export default class extends Controller {
       }
     })
     
-    // Build final structure
+    // Build final structure compliant with claude-swarm
     const swarmName = this.nameInputTarget.value || 'my_swarm'
-    const mainKey = this.mainNodeId ? this.nodeKeyMap.get(this.mainNodeId) : null
+    const mainKey = this.mainNodeId ? this.nodeKeyMap.get(this.mainNodeId) : Object.keys(instances)[0]
     
+    // Create proper claude-swarm YAML structure
     const result = {
-      [swarmName]: {
-        instances
+      version: 1,
+      swarm: {
+        name: swarmName,
+        instances: instances
       }
     }
     
-    if (mainKey) {
-      result[swarmName].main = mainKey
+    // Only add main key if there are instances and a main is defined
+    if (mainKey && Object.keys(instances).length > 0) {
+      result.swarm.main = mainKey
     }
     
-    if (this.tags.length > 0) {
-      result[swarmName].tags = this.tags
-    }
+    // Note: tags are NOT included in the YAML - they're for SwarmUI database only
     
     return result
   }
@@ -1503,20 +1528,32 @@ export default class extends Controller {
     try {
       const data = jsyaml.load(content)
       
-      // Find the swarm data
+      // Handle claude-swarm format (version: 1, swarm: {...})
       let swarmData = null
       let swarmName = null
+      let tags = []
       
-      for (const [key, value] of Object.entries(data)) {
-        if (value.instances) {
-          swarmData = value
-          swarmName = key
-          break
+      if (data.version === 1 && data.swarm) {
+        // Standard claude-swarm format
+        swarmData = data.swarm
+        swarmName = swarmData.name || 'imported_swarm'
+      } else {
+        // Legacy format or SwarmUI export format - look for first object with instances
+        for (const [key, value] of Object.entries(data)) {
+          if (value && typeof value === 'object' && value.instances) {
+            swarmData = value
+            swarmName = key
+            // Extract tags if present (SwarmUI-specific)
+            if (value.tags) {
+              tags = value.tags
+            }
+            break
+          }
         }
       }
       
-      if (!swarmData) {
-        alert('Invalid swarm file format')
+      if (!swarmData || !swarmData.instances) {
+        alert('Invalid swarm file format. File must be a valid claude-swarm YAML.')
         return
       }
       
@@ -1525,8 +1562,8 @@ export default class extends Controller {
       
       // Set name and tags
       this.nameInputTarget.value = swarmName
-      if (swarmData.tags) {
-        this.tags = swarmData.tags
+      if (tags.length > 0) {
+        this.tags = tags
         this.renderTags()
       }
       
@@ -1537,6 +1574,16 @@ export default class extends Controller {
       importedNodes.forEach(node => {
         this.renderNode(node)
       })
+      
+      // Set main node if specified
+      if (swarmData.main) {
+        const mainNode = importedNodes.find(n => 
+          n.data.name.toLowerCase().replace(/\s+/g, '_') === swarmData.main
+        )
+        if (mainNode) {
+          this.setMainNode(mainNode.id)
+        }
+      }
       
       // Create connections
       Object.entries(swarmData.instances).forEach(([instanceKey, instanceData]) => {

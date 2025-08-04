@@ -2070,7 +2070,7 @@ export default class extends Controller {
     
     // Respect min and max width
     const minWidth = 300
-    const maxWidth = 600
+    const maxWidth = 800
     
     if (newWidth >= minWidth && newWidth <= maxWidth) {
       this.rightSidebarTarget.style.width = `${newWidth}px`

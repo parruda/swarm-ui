@@ -120,7 +120,7 @@ class InstanceTemplate < ApplicationRecord
     # Use the system_prompt column value for the YAML 'prompt' field
     # This is required for claude-swarm compatibility
     base_config["prompt"] = system_prompt if system_prompt.present?
-    
+
     # Remove any system_prompt from config to avoid duplication
     base_config.delete("system_prompt")
 

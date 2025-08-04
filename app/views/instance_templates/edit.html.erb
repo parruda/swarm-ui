@@ -1,26 +1,16 @@
 <% content_for :title, "Edit #{@instance_template.name}" %>
 
 <div class="py-8">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="mb-6">
-      <nav class="flex mb-4" aria-label="Breadcrumb">
-        <%= link_to instance_templates_path, class: "text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" do %>
-          Instance Templates
-        <% end %>
-        <span class="mx-2 text-gray-400">/</span>
-        <%= link_to @instance_template.name, instance_template_path(@instance_template), class: "text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" %>
-        <span class="mx-2 text-gray-400">/</span>
-        <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Edit</span>
-      </nav>
-      
-      <h1 class="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:truncate sm:text-3xl sm:tracking-tight">
-        Edit Instance Template
-      </h1>
-      <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-        Update the configuration for this instance template.
-      </p>
+  <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:truncate sm:text-3xl sm:tracking-tight">Edit Instance Template</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Update the configuration for <%= @instance_template.name %>.</p>
     </div>
 
-    <%= render 'form' %>
+    <div class="bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-900/5 dark:ring-gray-700 sm:rounded-xl transition-colors duration-200">
+      <div class="px-4 py-6 sm:p-8">
+        <%= render 'form' %>
+      </div>
+    </div>
   </div>
 </div>

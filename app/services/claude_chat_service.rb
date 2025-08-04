@@ -169,26 +169,26 @@ class ClaudeChatService
     # Find the claude_swarm gem directory
     gem_spec = Gem::Specification.find_by_name("claude_swarm")
     gem_dir = gem_spec.gem_dir
-    
+
     # Read the ERB template from the gem
     template_path = File.join(gem_dir, "lib", "claude_swarm", "templates", "generation_prompt.md.erb")
     raise "Template not found at #{template_path}" unless File.exist?(template_path)
-    
+
     # Read the README.md from the gem
     readme_path = File.join(gem_dir, "README.md")
     readme_content = if File.exist?(readme_path)
-                       File.read(readme_path)
-                     else
-                       "README.md not found in claude-swarm gem"
-                     end
-    
+      File.read(readme_path)
+    else
+      "README.md not found in claude-swarm gem"
+    end
+
     # Set up variables for ERB rendering
     output_file = @file_path
-    
+
     # Read and render the ERB template
     template_content = File.read(template_path)
     erb = ERB.new(template_content)
-    
+
     # Render with binding that includes the required variables
     erb.result(binding)
   end

@@ -190,7 +190,6 @@ class ClaudeChatJob < ApplicationJob
     )
   end
 
-
   def broadcast_error(project_id, conversation_id, error_message)
     Turbo::StreamsChannel.broadcast_append_to(
       "claude_chat_#{project_id}_#{conversation_id}",

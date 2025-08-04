@@ -290,7 +290,7 @@ class InstanceTemplateTest < ActiveSupport::TestCase
     config = @template.to_instance_config
     assert_equal @template.description, config["description"]
   end
-  
+
   test "to_instance_config maps system_prompt to prompt for YAML" do
     @template.system_prompt = "You are a specialized assistant"
     config = @template.to_instance_config

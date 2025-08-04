@@ -22,10 +22,10 @@ module Api
 
       # Append node context to prompt if present
       full_prompt = if @node_context.present?
-                      "#{@prompt}#{@node_context}"
-                    else
-                      @prompt
-                    end
+        "#{@prompt}#{@node_context}"
+      else
+        @prompt
+      end
 
       # Add user message to chat (show original prompt without context for cleaner UI)
       broadcast_user_message(@prompt)

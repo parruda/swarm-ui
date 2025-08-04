@@ -5,8 +5,8 @@
   </span>
   <button type="button"
           onclick="window.dispatchEvent(new CustomEvent('canvas:refresh', { detail: { filePath: '<%= file_path %>' }}))"
-          class="ml-auto px-3 py-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors flex items-center gap-1">
+          class="ml-auto px-2 py-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors flex items-center gap-1">
     <%= heroicon "arrow-path", variant: :outline, options: { class: "h-3 w-3" } %>
-    Refresh Canvas
+    Canvas
   </button>
 </div>

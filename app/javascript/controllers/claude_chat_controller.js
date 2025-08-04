@@ -36,6 +36,10 @@ export default class extends Controller {
     this.handleChatComplete = this.handleChatComplete.bind(this)
     window.addEventListener('chat:complete', this.handleChatComplete)
     
+    // Listen for Claude status updates
+    this.handleClaudeStatus = this.handleClaudeStatus.bind(this)
+    window.addEventListener('claude:status', this.handleClaudeStatus)
+    
     // Listen for Turbo Stream events to detect new messages
     this.handleTurboStreamRender = this.handleTurboStreamRender.bind(this)
     document.addEventListener('turbo:before-stream-render', this.handleTurboStreamRender)
@@ -58,6 +62,7 @@ export default class extends Controller {
     window.removeEventListener('canvas:refresh', this.handleCanvasRefresh)
     window.removeEventListener('session:update', this.handleSessionUpdate)
     window.removeEventListener('chat:complete', this.handleChatComplete)
+    window.removeEventListener('claude:status', this.handleClaudeStatus)
     window.removeEventListener('chat:tabVisible', this.handleChatTabVisible)
     document.removeEventListener('turbo:before-stream-render', this.handleTurboStreamRender)
     
@@ -90,6 +95,26 @@ export default class extends Controller {
     this.isWaitingForResponse = false
     this.enableInput()
     this.updateStatus("Ready")
+  }
+  
+  handleClaudeStatus(event) {
+    // Handle status updates from Claude
+    const status = event.detail?.status
+    if (!status) return
+    
+    switch(status) {
+      case 'working':
+        this.updateStatus("Claude is working")
+        break
+      case 'tool_running':
+        this.updateStatus("Running tool")
+        break
+      case 'thinking':
+        this.updateStatus("Claude is thinking")
+        break
+      default:
+        this.updateStatus(status)
+    }
   }
   
   handleTurboStreamRender(event) {
@@ -189,6 +214,16 @@ export default class extends Controller {
     this.sendButtonTarget.disabled = true
     this.inputTarget.classList.add("opacity-50", "cursor-not-allowed")
     this.sendButtonTarget.classList.add("opacity-50", "cursor-not-allowed")
+    
+    // Change send button to show loading state
+    const originalContent = this.sendButtonTarget.innerHTML
+    this.sendButtonTarget.dataset.originalContent = originalContent
+    this.sendButtonTarget.innerHTML = `
+      <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    `
   }
   
   enableInput() {
@@ -196,23 +231,77 @@ export default class extends Controller {
     this.sendButtonTarget.disabled = false
     this.inputTarget.classList.remove("opacity-50", "cursor-not-allowed")
     this.sendButtonTarget.classList.remove("opacity-50", "cursor-not-allowed")
+    
+    // Restore original send button content
+    if (this.sendButtonTarget.dataset.originalContent) {
+      this.sendButtonTarget.innerHTML = this.sendButtonTarget.dataset.originalContent
+      delete this.sendButtonTarget.dataset.originalContent
+    }
+    
     this.inputTarget.focus()
   }
   
   updateStatus(text) {
     if (this.hasStatusTarget) {
-      this.statusTarget.textContent = text
-      
-      // Add animation class for typing status
-      if (text.includes("typing")) {
+      // Add different styles based on status
+      if (text.includes("typing") || text.includes("working") || text.includes("thinking")) {
+        // Claude is actively working
         this.statusTarget.innerHTML = `
-          <span class="flex items-center gap-1">
-            ${text}
-            <span class="flex gap-0.5">
-              <span class="w-1 h-1 bg-orange-500 rounded-full animate-pulse"></span>
-              <span class="w-1 h-1 bg-orange-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></span>
-              <span class="w-1 h-1 bg-orange-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></span>
+          <span class="flex items-center gap-1.5 text-orange-600 dark:text-orange-400 font-medium">
+            <span class="relative flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
             </span>
+            ${text}
+          </span>
+        `
+        // Add subtle pulsing border to chat container
+        if (this.hasMessagesTarget) {
+          const chatContainer = this.messagesTarget.closest('.bg-gray-50, .dark\\:bg-gray-900')
+          if (chatContainer) {
+            chatContainer.classList.add('ring-1', 'ring-orange-500/30', 'animate-pulse')
+          }
+        }
+      } else if (text.includes("tool")) {
+        // Running a tool
+        this.statusTarget.innerHTML = `
+          <span class="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 font-medium">
+            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            ${text}
+          </span>
+        `
+        // Different color for tool running
+        if (this.hasMessagesTarget) {
+          const chatContainer = this.messagesTarget.closest('.bg-gray-50, .dark\\:bg-gray-900')
+          if (chatContainer) {
+            chatContainer.classList.remove('ring-orange-500/30')
+            chatContainer.classList.add('ring-1', 'ring-purple-500/30', 'animate-pulse')
+          }
+        }
+      } else if (text === "Ready") {
+        this.statusTarget.innerHTML = `
+          <span class="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            ${text}
+          </span>
+        `
+        // Remove all pulsing borders
+        if (this.hasMessagesTarget) {
+          const chatContainer = this.messagesTarget.closest('.bg-gray-50, .dark\\:bg-gray-900')
+          if (chatContainer) {
+            chatContainer.classList.remove('ring-1', 'ring-2', 'ring-orange-500/30', 'ring-orange-500/50', 'ring-purple-500/30', 'ring-offset-2', 'animate-pulse')
+          }
+        }
+      } else {
+        // Default status
+        this.statusTarget.innerHTML = `
+          <span class="text-gray-600 dark:text-gray-400">
+            ${text}
           </span>
         `
       }

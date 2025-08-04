@@ -23,6 +23,8 @@ class ClaudeChatJob < ApplicationJob
       unless typing_indicator_removed
         broadcast_remove_typing_indicator(project_id, broadcast_id, message_id)
         typing_indicator_removed = true
+        # Update status to show Claude is working
+        broadcast_status_update(project_id, broadcast_id, "working")
       end
 
       case message[:type]
@@ -31,6 +33,8 @@ class ClaudeChatJob < ApplicationJob
         if current_tool_id
           broadcast_tool_complete(project_id, broadcast_id, current_tool_id)
           current_tool_id = nil
+          # Claude is back to working after tool completed
+          broadcast_status_update(project_id, broadcast_id, "working")
         end
 
         # Append text as a new message, don't update
@@ -45,6 +49,8 @@ class ClaudeChatJob < ApplicationJob
         # Track current tool
         current_tool_id = message[:id]
         broadcast_tool_use(project_id, broadcast_id, message)
+        # Update status to show we're waiting for tool
+        broadcast_status_update(project_id, broadcast_id, "tool_running")
 
       when "tool_result"
         # Mark the tool as complete with result
@@ -57,13 +63,14 @@ class ClaudeChatJob < ApplicationJob
 
       when "file_modified"
         broadcast_file_modified(project_id, broadcast_id, file_path)
-        broadcast_canvas_refresh(project_id, broadcast_id, file_path)
+        # Canvas refresh is handled client-side when file_modified is received
 
       when "usage"
         # Skip usage info - not needed in UI
 
       when "thinking"
-        # Skip thinking - not needed in production
+        # Show thinking status in UI
+        broadcast_status_update(project_id, broadcast_id, "thinking")
 
       when "complete"
         # Mark any pending tool as complete
@@ -183,19 +190,6 @@ class ClaudeChatJob < ApplicationJob
     )
   end
 
-  def broadcast_canvas_refresh(project_id, conversation_id, file_path)
-    Turbo::StreamsChannel.broadcast_append_to(
-      "claude_chat_#{project_id}_#{conversation_id}",
-      target: "chat_messages",
-      html: <<~HTML,
-        <script>
-          window.dispatchEvent(new CustomEvent('canvas:refresh', {#{" "}
-            detail: { filePath: '#{file_path}' }
-          }));
-        </script>
-      HTML
-    )
-  end
 
   def broadcast_error(project_id, conversation_id, error_message)
     Turbo::StreamsChannel.broadcast_append_to(
@@ -246,6 +240,21 @@ class ClaudeChatJob < ApplicationJob
     Turbo::StreamsChannel.broadcast_remove_to(
       "claude_chat_#{project_id}_#{conversation_id}",
       target: "typing_indicator_#{message_id}",
+    )
+  end
+
+  def broadcast_status_update(project_id, conversation_id, status)
+    # Broadcast status update for the UI to handle
+    Turbo::StreamsChannel.broadcast_append_to(
+      "claude_chat_#{project_id}_#{conversation_id}",
+      target: "chat_messages",
+      html: <<~HTML,
+        <script>
+          window.dispatchEvent(new CustomEvent('claude:status', {#{" "}
+            detail: { status: '#{status}' }
+          }));
+        </script>
+      HTML
     )
   end
 end

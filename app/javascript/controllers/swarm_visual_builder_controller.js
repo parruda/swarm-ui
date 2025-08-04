@@ -1648,26 +1648,48 @@ export default class extends Controller {
     const filePath = event.detail?.filePath
     if (!filePath || filePath !== this.filePathValue) return
     
-    // Refreshing canvas due to file modification by Claude
-    
-    // Reload the file content from server
-    try {
-      const response = await fetch(`/api/swarm_files/read?path=${encodeURIComponent(filePath)}`)
-      if (!response.ok) throw new Error('Failed to read file')
-      
-      const data = await response.json()
-      if (data.yaml_content) {
-        // Parse and reload the YAML content
-        const yamlData = jsyaml.load(data.yaml_content)
-        this.loadFromYamlData(yamlData)
-        this.updateYamlPreview()
-        
-        // Show a brief notification
-        this.showNotification('Canvas refreshed with latest changes')
-      }
-    } catch (error) {
-      console.error('Error refreshing canvas:', error)
+    // Debounce multiple refresh requests
+    if (this.refreshTimeout) {
+      clearTimeout(this.refreshTimeout)
     }
+    
+    // Set a flag to prevent duplicate refreshes
+    if (this.isRefreshing) {
+      return
+    }
+    
+    // Wait a bit to collect all refresh events, then execute once
+    this.refreshTimeout = setTimeout(async () => {
+      // Prevent duplicate refreshes
+      if (this.isRefreshing) return
+      this.isRefreshing = true
+      
+      // Refreshing canvas due to file modification by Claude
+      
+      // Reload the file content from server
+      try {
+        const response = await fetch(`/api/swarm_files/read?path=${encodeURIComponent(filePath)}`)
+        if (!response.ok) throw new Error('Failed to read file')
+        
+        const data = await response.json()
+        if (data.yaml_content) {
+          // Parse and reload the YAML content
+          const yamlData = jsyaml.load(data.yaml_content)
+          this.loadFromYamlData(yamlData)
+          this.updateYamlPreview()
+          
+          // Show a brief notification
+          this.showNotification('Canvas refreshed with latest changes')
+        }
+      } catch (error) {
+        console.error('Error refreshing canvas:', error)
+      } finally {
+        // Reset the flag after a delay to allow for the next refresh
+        setTimeout(() => {
+          this.isRefreshing = false
+        }, 1000)
+      }
+    }, 500) // Wait 500ms to debounce multiple events
   }
   
   showNotification(message) {

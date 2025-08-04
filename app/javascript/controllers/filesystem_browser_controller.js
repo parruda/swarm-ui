@@ -153,7 +153,7 @@ export default class extends Controller {
       const data = await response.json()
       
       if (data.configs.length > 0) {
-        this.configSelectTarget.innerHTML = '<option value="">Select a swarm configuration file (optional)</option>'
+        this.configSelectTarget.innerHTML = '<option value="">Select a swarm configuration file</option>'
         data.configs.forEach(config => {
           const option = document.createElement("option")
           option.value = config.path

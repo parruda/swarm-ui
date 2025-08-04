@@ -47,7 +47,7 @@
                 <% if @session.project_id.blank? %>
                   <option value="">Select a project first</option>
                 <% else %>
-                  <option value="">Select a swarm configuration file (optional)</option>
+                  <option value="">Select a swarm configuration file</option>
                   <% if @session.configuration_path.present? %>
                     <option value="<%= @session.configuration_path %>" selected><%= @session.configuration_path %></option>
                   <% end %>

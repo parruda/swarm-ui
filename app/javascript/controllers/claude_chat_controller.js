@@ -255,13 +255,6 @@ export default class extends Controller {
             ${text}
           </span>
         `
-        // Add subtle pulsing border to chat container
-        if (this.hasMessagesTarget) {
-          const chatContainer = this.messagesTarget.closest('.bg-gray-50, .dark\\:bg-gray-900')
-          if (chatContainer) {
-            chatContainer.classList.add('ring-1', 'ring-orange-500/30', 'animate-pulse')
-          }
-        }
       } else if (text.includes("tool")) {
         // Running a tool
         this.statusTarget.innerHTML = `
@@ -273,14 +266,6 @@ export default class extends Controller {
             ${text}
           </span>
         `
-        // Different color for tool running
-        if (this.hasMessagesTarget) {
-          const chatContainer = this.messagesTarget.closest('.bg-gray-50, .dark\\:bg-gray-900')
-          if (chatContainer) {
-            chatContainer.classList.remove('ring-orange-500/30')
-            chatContainer.classList.add('ring-1', 'ring-purple-500/30', 'animate-pulse')
-          }
-        }
       } else if (text === "Ready") {
         this.statusTarget.innerHTML = `
           <span class="flex items-center gap-1.5 text-green-600 dark:text-green-400">
@@ -290,13 +275,6 @@ export default class extends Controller {
             ${text}
           </span>
         `
-        // Remove all pulsing borders
-        if (this.hasMessagesTarget) {
-          const chatContainer = this.messagesTarget.closest('.bg-gray-50, .dark\\:bg-gray-900')
-          if (chatContainer) {
-            chatContainer.classList.remove('ring-1', 'ring-2', 'ring-orange-500/30', 'ring-orange-500/50', 'ring-purple-500/30', 'ring-offset-2', 'animate-pulse')
-          }
-        }
       } else {
         // Default status
         this.statusTarget.innerHTML = `

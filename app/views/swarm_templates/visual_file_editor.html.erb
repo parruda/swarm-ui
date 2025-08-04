@@ -69,8 +69,8 @@
                   id="launch-swarm"
                   data-action="click->swarm-visual-builder#launchSwarm"
                   <%= @swarm_data[:visual_data][:is_file_edit] ? '' : 'disabled' %>
-                  class="inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 dark:bg-blue-600 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 <%= @swarm_data[:visual_data][:is_file_edit] ? 'hover:bg-blue-700 dark:hover:bg-blue-700' : 'opacity-50 cursor-not-allowed' %>">
-            <%= heroicon "rocket-launch", variant: :solid, options: { class: "h-5 w-5 mr-2" } %>
+                  class="inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-orange-900 dark:bg-orange-900 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 <%= @swarm_data[:visual_data][:is_file_edit] ? 'hover:bg-orange-800 dark:hover:bg-orange-800' : 'opacity-50 cursor-not-allowed' %>">
+            <%= heroicon "play", variant: :solid, options: { class: "h-5 w-5 mr-2" } %>
             Launch
           </button>
         </div>

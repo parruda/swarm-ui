@@ -419,6 +419,14 @@ export default class extends Controller {
     `
   }
   
+  clearPropertiesPanel() {
+    this.propertiesPanelTarget.innerHTML = `
+      <div class="p-4 text-center text-gray-500 dark:text-gray-400">
+        <p>Select an instance to edit its properties</p>
+      </div>
+    `
+  }
+  
   showNodeProperties(node) {
     const nodeData = node.data
     const isOpenAI = nodeData.provider === 'openai'
@@ -874,9 +882,10 @@ export default class extends Controller {
     // Remove from nodes
     this.nodeManager.removeNode(nodeId)
     
-    // Clear selection
+    // Clear selection and properties panel if this was the selected node
     if (this.selectedNode?.id === nodeId) {
       this.selectedNode = null
+      this.clearPropertiesPanel()
     }
     
     // Update main node if needed

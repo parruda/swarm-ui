@@ -215,12 +215,49 @@ export default class extends Controller {
           }
           e.dataTransfer.setData('mcp', JSON.stringify(mcpData))
           e.dataTransfer.setData('type', 'mcp')
+          e.dataTransfer.effectAllowed = 'copy'
+          
+          // Add visual indicator that we're dragging an MCP
+          this.isDraggingMcp = true
+          this.container.classList.add('dragging-mcp')
         }
       })
     }
     
     this.viewport.addEventListener('dragover', (e) => {
       e.preventDefault()
+      
+      // Check if we're dragging an MCP server
+      if (this.isDraggingMcp) {
+        // Find the node under the cursor
+        const element = document.elementFromPoint(e.clientX, e.clientY)
+        const nodeEl = element?.closest('.swarm-node')
+        
+        // Clear previous highlights
+        this.viewport.querySelectorAll('.swarm-node.mcp-drop-target').forEach(n => {
+          n.classList.remove('mcp-drop-target')
+        })
+        
+        // Highlight the target node if found
+        if (nodeEl) {
+          nodeEl.classList.add('mcp-drop-target')
+          e.dataTransfer.dropEffect = 'copy'
+        } else {
+          e.dataTransfer.dropEffect = 'none'
+        }
+      }
+    })
+    
+    // Add dragend listener to clean up
+    document.addEventListener('dragend', (e) => {
+      if (this.isDraggingMcp) {
+        // Clean up any remaining highlights
+        this.viewport.querySelectorAll('.swarm-node.mcp-drop-target').forEach(n => {
+          n.classList.remove('mcp-drop-target')
+        })
+        this.container.classList.remove('dragging-mcp')
+        this.isDraggingMcp = false
+      }
     })
     
     this.viewport.addEventListener('drop', (e) => {
@@ -265,6 +302,13 @@ export default class extends Controller {
             this.addMcpToNode(nodeId, mcpData)
           }
         }
+        
+        // Clean up visual feedback
+        this.viewport.querySelectorAll('.swarm-node.mcp-drop-target').forEach(n => {
+          n.classList.remove('mcp-drop-target')
+        })
+        this.container.classList.remove('dragging-mcp')
+        this.isDraggingMcp = false
       }
     })
     
@@ -446,12 +490,18 @@ export default class extends Controller {
     nodeEl.dataset.nodeId = node.id
     nodeEl.style.width = '250px'
     
+    // Check if node has MCP servers
+    const mcpCount = node.data.mcps?.length || 0
+    
     // Create node content
     const content = `
       <div class="node-header mb-2">
         <h3 class="node-title flex items-center justify-between">
           <span>${node.data.name}</span>
-          ${node.id === this.mainNodeId ? '<span class="text-xs bg-orange-500 text-white px-2 py-1 rounded">Main</span>' : ''}
+          <div class="flex items-center gap-1">
+            ${mcpCount > 0 ? `<span class="text-xs bg-purple-500 text-white px-2 py-1 rounded" title="${mcpCount} MCP server${mcpCount > 1 ? 's' : ''}">MCP: ${mcpCount}</span>` : ''}
+            ${node.id === this.mainNodeId ? '<span class="text-xs bg-orange-500 text-white px-2 py-1 rounded">Main</span>' : ''}
+          </div>
         </h3>
         ${node.data.description ? `<p class="node-description">${node.data.description}</p>` : ''}
       </div>
@@ -459,7 +509,6 @@ export default class extends Controller {
         ${node.data.model ? `<span class="node-tag model-tag">${node.data.model}</span>` : ''}
         ${node.data.provider ? `<span class="node-tag provider-tag">${node.data.provider}</span>` : ''}
         ${node.data.config?.vibecheck ? '<span class="node-tag vibe-tag">Vibecheck</span>' : ''}
-      </div>
       <div class="output-sockets">
         <div class="socket socket-top" data-socket-side="top" data-node-id="${node.id}"></div>
         <div class="socket socket-right" data-socket-side="right" data-node-id="${node.id}"></div>
@@ -2019,6 +2068,9 @@ export default class extends Controller {
     // Add to node's MCP list
     node.data.mcps.push(mcpConfig)
     
+    // Update the node's visual representation
+    this.updateNodeVisual(node)
+    
     // Update properties panel if this node is selected
     if (this.selectedNode?.id === nodeId) {
       this.showNodeProperties(node)
@@ -2041,6 +2093,9 @@ export default class extends Controller {
     // Remove the MCP
     node.data.mcps = node.data.mcps.filter(mcp => mcp.name !== mcpName)
     
+    // Update the node's visual representation
+    this.updateNodeVisual(node)
+    
     // Update properties panel
     if (this.selectedNode?.id === nodeId) {
       this.showNodeProperties(node)
@@ -2050,6 +2105,46 @@ export default class extends Controller {
     this.updateYamlPreview()
     
     this.showFlashMessage(`Removed MCP server "${mcpName}" from instance`, 'info')
+  }
+  
+  // Update node's visual representation
+  updateNodeVisual(node) {
+    if (!node.element) return
+    
+    const mcpCount = node.data.mcps?.length || 0
+    const titleEl = node.element.querySelector('.node-title')
+    
+    if (titleEl) {
+      // Find or create the badges container
+      let badgesContainer = titleEl.querySelector('div')
+      if (!badgesContainer) {
+        badgesContainer = document.createElement('div')
+        badgesContainer.className = 'flex items-center gap-1'
+        titleEl.appendChild(badgesContainer)
+      }
+      
+      // Update MCP badge
+      let mcpBadge = badgesContainer.querySelector('.bg-purple-500')
+      if (mcpCount > 0) {
+        if (!mcpBadge) {
+          // Create new MCP badge
+          mcpBadge = document.createElement('span')
+          mcpBadge.className = 'text-xs bg-purple-500 text-white px-2 py-1 rounded'
+          // Insert before Main badge if it exists
+          const mainBadge = badgesContainer.querySelector('.bg-orange-500')
+          if (mainBadge) {
+            badgesContainer.insertBefore(mcpBadge, mainBadge)
+          } else {
+            badgesContainer.appendChild(mcpBadge)
+          }
+        }
+        mcpBadge.textContent = `MCP: ${mcpCount}`
+        mcpBadge.title = `${mcpCount} MCP server${mcpCount > 1 ? 's' : ''}`
+      } else if (mcpBadge) {
+        // Remove MCP badge if no MCPs
+        mcpBadge.remove()
+      }
+    }
   }
   
   // YAML preview and export

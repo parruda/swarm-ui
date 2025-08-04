@@ -193,6 +193,22 @@ iframe::-webkit-scrollbar,
   box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
 }
 
+/* MCP server drop target - purple theme to differentiate from connections */
+.swarm-node.mcp-drop-target {
+  border-color: #9333ea;
+  box-shadow: 0 0 0 4px rgba(147, 51, 234, 0.3);
+  animation: mcp-pulse 1.5s infinite;
+}
+
+@keyframes mcp-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(147, 51, 234, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(147, 51, 234, 0.1);
+  }
+}
+
 .node-header {
   margin-bottom: 8px;
 }
@@ -378,6 +394,19 @@ iframe::-webkit-scrollbar,
 
 .visual-builder-canvas.panning {
   cursor: grabbing !important;
+}
+
+/* MCP dragging state */
+.visual-builder-canvas.dragging-mcp {
+  cursor: copy !important;
+}
+
+.visual-builder-canvas.dragging-mcp .swarm-node {
+  cursor: copy !important;
+}
+
+.visual-builder-canvas.dragging-mcp .swarm-node.mcp-drop-target {
+  cursor: pointer !important;
 }
 
 .input-sockets,

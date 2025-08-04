@@ -9,12 +9,13 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
-/* Hide scrollbars on iframes */
-iframe {
+/* Hide scrollbars on iframes and canvas */
+iframe, .visual-builder-canvas {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;     /* Firefox */
 }
-iframe::-webkit-scrollbar {
+iframe::-webkit-scrollbar,
+.visual-builder-canvas::-webkit-scrollbar {
   display: none;             /* Chrome, Safari, Opera */
 }
 

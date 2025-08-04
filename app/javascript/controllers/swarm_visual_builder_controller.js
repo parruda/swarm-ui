@@ -82,6 +82,16 @@ export default class extends Controller {
     
     // Listen for canvas refresh events from Claude chat
     window.addEventListener('canvas:refresh', this.handleCanvasRefresh.bind(this))
+    
+    // Listen for sidebar expansion request
+    this.handleSidebarExpand = this.expandSidebarToMax.bind(this)
+    window.addEventListener('sidebar:expandToMax', this.handleSidebarExpand)
+  }
+  
+  disconnect() {
+    // Clean up event listeners
+    window.removeEventListener('canvas:refresh', this.handleCanvasRefresh)
+    window.removeEventListener('sidebar:expandToMax', this.handleSidebarExpand)
   }
   
   async initializeVisualBuilder() {

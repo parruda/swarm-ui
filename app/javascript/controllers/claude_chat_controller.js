@@ -476,14 +476,7 @@ export default class extends Controller {
   }
   
   expandSidebarToMax() {
-    // Find the swarm visual builder controller and call its expand method
-    const visualBuilder = this.application.getControllerForElementAndIdentifier(
-      document.querySelector('[data-controller~="swarm-visual-builder"]'),
-      'swarm-visual-builder'
-    )
-    
-    if (visualBuilder && visualBuilder.expandSidebarToMax) {
-      visualBuilder.expandSidebarToMax()
-    }
+    // Dispatch an event to request sidebar expansion
+    window.dispatchEvent(new CustomEvent('sidebar:expandToMax'))
   }
 }

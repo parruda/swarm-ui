@@ -58,358 +58,503 @@
       </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200">
-      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-        <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Project Details</h2>
+    <!-- Quick Stats - Always Visible -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center">
+          <%= heroicon "command-line", variant: :outline, options: { class: "h-8 w-8 text-orange-600 dark:text-orange-400" } %>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Sessions</p>
+            <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100"><%= @project.total_sessions_count %></p>
+          </div>
+        </div>
       </div>
       
-      <div class="px-6 py-4">
-        <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-          <div>
-            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Version Control</dt>
-            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-              <% if @project.git? %>
-                <span class="inline-flex items-center rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                  <%= heroicon "code-bracket", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
-                  Git Repository
-                </span>
-              <% else %>
-                <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                  <%= heroicon "folder", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
-                  Local Directory
-                </span>
-              <% end %>
-            </dd>
+      <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center">
+          <%= heroicon "cube", variant: :outline, options: { class: "h-8 w-8 text-blue-600 dark:text-blue-400" } %>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Swarms</p>
+            <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100"><%= @project.swarm_templates.count %></p>
           </div>
-          
-          <div>
-            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Default Config</dt>
-            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-              <%= @project.default_config_path || "None" %>
-            </dd>
+        </div>
+      </div>
+      
+      <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center">
+          <%= heroicon "clock", variant: :outline, options: { class: "h-8 w-8 text-green-600 dark:text-green-400" } %>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Last Active</p>
+            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <%= @project.last_session_at ? time_ago_in_words(@project.last_session_at) + " ago" : "Never" %>
+            </p>
           </div>
-          
-          <div>
-            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Use Worktree by Default</dt>
-            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-              <% if @project.default_use_worktree? %>
-                <span class="inline-flex items-center rounded-md bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-green-600/20 dark:ring-green-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">Yes</span>
-              <% else %>
-                <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">No</span>
-              <% end %>
-            </dd>
-          </div>
-          
-          <div>
-            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Sessions</dt>
-            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-              <span class="text-green-600 dark:text-green-400"><%= @project.active_sessions_count %> active</span> / 
-              <span><%= @project.total_sessions_count %> total</span>
-            </dd>
-          </div>
-          
-          <% if @project.last_session_at %>
-            <div>
-              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Activity</dt>
-              <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                <%= time_ago_in_words(@project.last_session_at) %> ago
-              </dd>
-            </div>
-          <% end %>
-        </dl>
+        </div>
       </div>
     </div>
 
-    <% if @project.git? && @project.github_configured? %>
-      <div class="mt-8 bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-            <%= heroicon "globe-alt", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
-            GitHub Webhooks
-          </h2>
-        </div>
-        
-        <div class="px-6 py-4">
-          <% if !Setting.github_username_configured? %>
-            <div class="rounded-md bg-amber-50 dark:bg-amber-900/20 p-3 mb-4">
-              <div class="flex">
-                <div class="flex-shrink-0">
-                  <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-4 w-4 text-amber-400" } %>
-                </div>
-                <div class="ml-2">
-                  <p class="text-sm text-amber-700 dark:text-amber-300">
-                    GitHub username not configured. <%= link_to "Configure in Settings", edit_settings_path(anchor: "github-username"), class: "font-medium underline hover:text-amber-800 dark:hover:text-amber-200" %> to enable webhooks.
-                  </p>
-                </div>
-              </div>
-            </div>
-          <% end %>
+    <!-- Tabs Navigation and Panels Container -->
+    <div data-controller="tabs">
+      <!-- Tabs Navigation -->
+      <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+          <button type="button"
+                  data-tabs-target="tab"
+                  data-panel="overview"
+                  data-action="click->tabs#switchTab"
+                  class="border-orange-500 dark:border-orange-400 text-orange-600 dark:text-orange-400 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
+            <%= heroicon "information-circle", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            Overview
+          </button>
           
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-700 dark:text-gray-300">
-                Repository: <span class="font-mono font-semibold"><%= @project.github_repo_full_name %></span>
-              </p>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Status: 
-                <span data-webhook-status-target="status" class="font-medium">
-                  <% if @project.webhook_running? %>
-                    <span class="text-green-600 dark:text-green-400">Running</span>
-                  <% else %>
-                    <span class="text-gray-600 dark:text-gray-400">Stopped</span>
-                  <% end %>
+          <button type="button"
+                  data-tabs-target="tab"
+                  data-panel="sessions"
+                  data-action="click->tabs#switchTab"
+                  class="border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
+            <%= heroicon "command-line", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            Sessions
+            <% if @project.active_sessions_count > 0 %>
+              <span class="ml-2 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-400 px-2 py-0.5 text-xs font-medium">
+                <%= @project.active_sessions_count %>
+              </span>
+            <% end %>
+          </button>
+          
+          <button type="button"
+                  data-tabs-target="tab"
+                  data-panel="swarms"
+                  data-action="click->tabs#switchTab"
+                  class="border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
+            <%= heroicon "cube", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            Swarms
+            <% if @project.swarm_templates.any? %>
+              <span class="ml-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 text-xs font-medium">
+                <%= @project.swarm_templates.count %>
+              </span>
+            <% end %>
+          </button>
+          
+          <% if @project.git? %>
+            <button type="button"
+                    data-tabs-target="tab"
+                    data-panel="git"
+                    data-action="click->tabs#switchTab"
+                    class="border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
+              <%= heroicon "code-bracket", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+              Git & GitHub
+              <% if @project.git_status && @project.git_status[:dirty] %>
+                <span class="ml-2 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-0.5 text-xs font-medium">
+                  <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3 w-3 inline" } %>
                 </span>
-              </p>
-              <% if @project.github_webhook_enabled? %>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Events: <%= @project.selected_event_names.join(", ") %>
-                </p>
               <% end %>
-            </div>
-            
-            <div class="flex items-center gap-3">
-              <%= link_to edit_project_path(@project, anchor: "webhook-configuration"), class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
-                <%= heroicon "cog-6-tooth", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-                Configure
-              <% end %>
-              
-              <% has_enabled_events = @project.github_webhook_events.enabled.any? %>
-              <% can_enable_webhooks = Setting.github_username_configured? && (has_enabled_events || @project.github_webhook_enabled?) %>
-              
-              <% if can_enable_webhooks %>
-                <%= link_to toggle_webhook_project_path(@project), method: :post, data: { turbo_method: :post }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{@project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-orange-900 hover:bg-orange-800 text-white'}" do %>
-                  <% if @project.github_webhook_enabled? %>
-                    <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-                    Disable Webhooks
+            </button>
+          <% end %>
+        </nav>
+      </div>
+
+      <!-- Tab Panels -->
+      <div class="mt-6">
+        <!-- Overview Tab -->
+        <div data-tabs-target="panel" data-panel-name="overview">
+        <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Project Details</h2>
+          </div>
+          
+          <div class="px-6 py-4">
+            <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+              <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Version Control</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  <% if @project.git? %>
+                    <span class="inline-flex items-center rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                      <%= heroicon "code-bracket", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                      Git Repository
+                    </span>
                   <% else %>
-                    <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-                    Enable Webhooks
+                    <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                      <%= heroicon "folder", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                      Local Directory
+                    </span>
                   <% end %>
-                <% end %>
-              <% else %>
-                <% tooltip = !Setting.github_username_configured? ? "Configure GitHub username in Settings first" : "Select at least one event to enable webhooks" %>
-                <button type="button" disabled class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed" title="<%= tooltip %>">
-                  <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-                  Enable Webhooks
-                </button>
+                </dd>
+              </div>
+              
+              <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Default Config</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  <%= @project.default_config_path || "None" %>
+                </dd>
+              </div>
+              
+              <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Use Worktree by Default</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  <% if @project.default_use_worktree? %>
+                    <span class="inline-flex items-center rounded-md bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-green-600/20 dark:ring-green-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">Yes</span>
+                  <% else %>
+                    <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">No</span>
+                  <% end %>
+                </dd>
+              </div>
+              
+              <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Sessions</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  <span class="text-green-600 dark:text-green-400"><%= @project.active_sessions_count %> active</span> / 
+                  <span><%= @project.total_sessions_count %> total</span>
+                </dd>
+              </div>
+              
+              <% if @project.last_session_at %>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Activity</dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                    <%= time_ago_in_words(@project.last_session_at) %> ago
+                  </dd>
+                </div>
               <% end %>
-            </div>
+              
+              <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Created</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  <%= @project.created_at.strftime("%B %d, %Y") %>
+                </dd>
+              </div>
+              
+              <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Project Path</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 font-mono truncate">
+                  <%= @project.path %>
+                </dd>
+              </div>
+            </dl>
           </div>
         </div>
       </div>
-    <% end %>
 
-    <% if @project.git? && @project.git_status %>
-      <div class="mt-8 bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200" data-controller="git-sync">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-            </svg>
-            Git Repository Status
-          </h2>
+      <!-- Sessions Tab -->
+      <div data-tabs-target="panel" data-panel-name="sessions" class="hidden">
+        <div class="sm:flex sm:items-center sm:justify-between mb-4">
+          <h2 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100">Active Sessions</h2>
+          <div class="mt-3 sm:mt-0">
+            <%= link_to sessions_path(project_id: @project.id), class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300" do %>
+              View all sessions →
+            <% end %>
+          </div>
         </div>
         
-        <div class="px-6 py-4">
-          <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-            <div>
-              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Current Branch</dt>
-              <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                <span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-blue-600/20 dark:ring-blue-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                  <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <% if @sessions.any? %>
+          <div class="space-y-4">
+            <%= render partial: "sessions/session", collection: @sessions %>
+          </div>
+        <% else %>
+          <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center border-2 border-dashed border-gray-300 dark:border-gray-700">
+            <div class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500">
+              <%= heroicon "command-line", variant: :outline, options: { class: "h-12 w-12" } %>
+            </div>
+            <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">No active sessions</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Sessions running for this project will appear here.</p>
+            <div class="mt-6">
+              <%= link_to new_session_path(project_id: @project.id), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+                <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+                Create Session
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Swarms Tab -->
+      <div data-tabs-target="panel" data-panel-name="swarms" class="hidden">
+        <% if @project.swarm_templates.any? %>
+          <div class="sm:flex sm:items-center sm:justify-between mb-4">
+            <h2 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100">Swarm Templates</h2>
+            <div class="mt-3 sm:mt-0">
+              <%= link_to project_swarm_templates_path(@project), class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300" do %>
+                Manage all swarms →
+              <% end %>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <% @project.swarm_templates.each do |swarm_template| %>
+              <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200">
+                <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 truncate">
+                  <%= link_to swarm_template.name, swarm_template_path(swarm_template), class: "hover:text-orange-900 dark:hover:text-orange-400" %>
+                </h3>
+                <% if swarm_template.description.present? %>
+                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2"><%= swarm_template.description %></p>
+                <% end %>
+                <div class="mt-3 flex items-center justify-between text-xs">
+                  <span class="text-gray-500 dark:text-gray-400">
+                    <%= pluralize(swarm_template.instances.count, 'instance') %>
+                  </span>
+                  <div class="flex items-center gap-2">
+                    <%= link_to edit_swarm_template_path(swarm_template), 
+                        class: "inline-flex items-center rounded bg-white dark:bg-gray-700 px-2 py-1 text-xs font-semibold text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600" do %>
+                      <%= heroicon "pencil", variant: :mini, options: { class: "h-3 w-3" } %>
+                    <% end %>
+                    <%= link_to launch_session_swarm_template_path(swarm_template), method: :post, 
+                        class: "inline-flex items-center rounded bg-orange-600 px-2 py-1 text-xs font-semibold text-white hover:bg-orange-700" do %>
+                      <%= heroicon "play", variant: :mini, options: { class: "h-3 w-3" } %>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center border-2 border-dashed border-gray-300 dark:border-gray-700">
+            <div class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500">
+              <%= heroicon "cube", variant: :outline, options: { class: "h-12 w-12" } %>
+            </div>
+            <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">No swarm templates</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Create swarm templates to quickly launch pre-configured AI agent teams.</p>
+            <div class="mt-6">
+              <%= link_to new_project_swarm_template_path(@project), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+                <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+                Create Swarm Template
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Git & GitHub Tab (conditional) -->
+      <% if @project.git? %>
+        <div data-tabs-target="panel" data-panel-name="git" class="hidden space-y-6">
+          <!-- Git Repository Status -->
+          <% if @project.git_status %>
+            <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200" data-controller="git-sync">
+              <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                  <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                   </svg>
-                  <%= @project.git_status[:branch] || "unknown" %>
-                </span>
-              </dd>
-            </div>
-            
-            <div>
-              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Working Directory</dt>
-              <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                <% if @project.git_status[:dirty] %>
-                  <% summary = @project.git_status[:status_summary] %>
-                  <span class="inline-flex items-center rounded-md bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 ring-yellow-600/20 dark:ring-yellow-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                    <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
-                    Dirty
-                  </span>
-                  <% if summary && summary[:total] > 0 %>
-                    <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">
-                      <%= summary[:modified] %> modified, 
-                      <%= summary[:staged] %> staged, 
-                      <%= summary[:untracked] %> untracked
-                    </span>
+                  Git Repository Status
+                </h2>
+              </div>
+              
+              <div class="px-6 py-4">
+                <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Current Branch</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                      <span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-blue-600/20 dark:ring-blue-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                        <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                        <%= @project.git_status[:branch] || "unknown" %>
+                      </span>
+                    </dd>
+                  </div>
+                  
+                  <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Working Directory</dt>
+                    <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                      <% if @project.git_status[:dirty] %>
+                        <% summary = @project.git_status[:status_summary] %>
+                        <span class="inline-flex items-center rounded-md bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 ring-yellow-600/20 dark:ring-yellow-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                          <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                          Dirty
+                        </span>
+                        <% if summary && summary[:total] > 0 %>
+                          <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                            <%= summary[:modified] %> modified, 
+                            <%= summary[:staged] %> staged, 
+                            <%= summary[:untracked] %> untracked
+                          </span>
+                        <% end %>
+                      <% else %>
+                        <span class="inline-flex items-center rounded-md bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-green-600/20 dark:ring-green-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                          <%= heroicon "check-circle", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                          Clean
+                        </span>
+                      <% end %>
+                    </dd>
+                  </div>
+                  
+                  <% if @project.git_status[:last_commit] %>
+                    <div class="sm:col-span-2">
+                      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Commit</dt>
+                      <dd class="mt-1">
+                        <div class="flex items-start space-x-2">
+                          <code class="text-xs font-mono text-gray-600 dark:text-gray-400"><%= @project.git_status[:last_commit][:hash] %></code>
+                          <div class="flex-1">
+                            <p class="text-sm text-gray-900 dark:text-gray-100"><%= @project.git_status[:last_commit][:message] %></p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              by <%= @project.git_status[:last_commit][:author] %> • <%= @project.git_status[:last_commit][:date] %>
+                            </p>
+                          </div>
+                        </div>
+                      </dd>
+                    </div>
                   <% end %>
-                <% else %>
-                  <span class="inline-flex items-center rounded-md bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-green-600/20 dark:ring-green-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                    <%= heroicon "check-circle", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
-                    Clean
-                  </span>
+                  
+                  <% if @project.git_status[:remote_url] %>
+                    <div class="sm:col-span-2">
+                      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Remote Repository</dt>
+                      <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 font-mono text-xs truncate">
+                        <% 
+                          remote_url = @project.git_status[:remote_url]
+                          # Convert SSH URLs to HTTPS for GitHub/GitLab/Bitbucket
+                          https_url = case remote_url
+                          when /^git@github\.com:(.+)\.git$/
+                            "https://github.com/#{$1}"
+                          when /^git@gitlab\.com:(.+)\.git$/
+                            "https://gitlab.com/#{$1}"
+                          when /^git@bitbucket\.org:(.+)\.git$/
+                            "https://bitbucket.org/#{$1}"
+                          when /^https?:\/\/.+/
+                            remote_url.sub(/\.git$/, '')
+                          else
+                            nil
+                          end
+                        %>
+                        <% if https_url %>
+                          <%= link_to https_url, target: "_blank", rel: "noopener", class: "inline-flex items-center text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:underline" do %>
+                            <%= remote_url %>
+                            <%= heroicon "arrow-top-right-on-square", variant: :mini, options: { class: "h-3 w-3 ml-1" } %>
+                          <% end %>
+                        <% else %>
+                          <%= remote_url %>
+                        <% end %>
+                      </dd>
+                    </div>
+                  <% end %>
+                  
+                  <% ahead_behind = @project.git_status[:ahead_behind] %>
+                  <% if ahead_behind && ahead_behind[:ahead] && ahead_behind[:behind] && (ahead_behind[:ahead] > 0 || ahead_behind[:behind] > 0) %>
+                    <div>
+                      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Sync Status</dt>
+                      <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                        <div class="flex items-center space-x-3">
+                          <% if ahead_behind[:ahead] > 0 %>
+                            <span class="inline-flex items-center">
+                              <svg class="h-4 w-4 mr-1 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>
+                              </svg>
+                              <span class="text-green-600 dark:text-green-400"><%= ahead_behind[:ahead] %> ahead</span>
+                            </span>
+                          <% end %>
+                          <% if ahead_behind[:behind] > 0 %>
+                            <span class="inline-flex items-center">
+                              <svg class="h-4 w-4 mr-1 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path>
+                              </svg>
+                              <span class="text-orange-600 dark:text-orange-400"><%= ahead_behind[:behind] %> behind</span>
+                            </span>
+                          <% end %>
+                          <span class="text-xs text-gray-500 dark:text-gray-400">
+                            vs origin/<%= ahead_behind[:base_branch] %>
+                          </span>
+                        </div>
+                      </dd>
+                    </div>
+                  <% end %>
+                </dl>
+                
+                <% if @project.git_status[:remote_url] %>
+                  <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button"
+                            data-action="click->git-sync#sync"
+                            data-project-id="<%= @project.id %>"
+                            class="inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200">
+                      <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                      </svg>
+                      Sync with Remote
+                    </button>
+                  </div>
                 <% end %>
-              </dd>
+              </div>
             </div>
-            
-            <% if @project.git_status[:last_commit] %>
-              <div class="sm:col-span-2">
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Commit</dt>
-                <dd class="mt-1">
-                  <div class="flex items-start space-x-2">
-                    <code class="text-xs font-mono text-gray-600 dark:text-gray-400"><%= @project.git_status[:last_commit][:hash] %></code>
-                    <div class="flex-1">
-                      <p class="text-sm text-gray-900 dark:text-gray-100"><%= @project.git_status[:last_commit][:message] %></p>
-                      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        by <%= @project.git_status[:last_commit][:author] %> • <%= @project.git_status[:last_commit][:date] %>
-                      </p>
+          <% end %>
+
+          <!-- GitHub Webhooks -->
+          <% if @project.github_configured? %>
+            <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200">
+              <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                  <%= heroicon "globe-alt", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+                  GitHub Webhooks
+                </h2>
+              </div>
+              
+              <div class="px-6 py-4">
+                <% if !Setting.github_username_configured? %>
+                  <div class="rounded-md bg-amber-50 dark:bg-amber-900/20 p-3 mb-4">
+                    <div class="flex">
+                      <div class="flex-shrink-0">
+                        <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-4 w-4 text-amber-400" } %>
+                      </div>
+                      <div class="ml-2">
+                        <p class="text-sm text-amber-700 dark:text-amber-300">
+                          GitHub username not configured. <%= link_to "Configure in Settings", edit_settings_path(anchor: "github-username"), class: "font-medium underline hover:text-amber-800 dark:hover:text-amber-200" %> to enable webhooks.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </dd>
-              </div>
-            <% end %>
-            
-            <% if @project.git_status[:remote_url] %>
-              <div class="sm:col-span-2">
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Remote Repository</dt>
-                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 font-mono text-xs truncate">
-                  <% 
-                    remote_url = @project.git_status[:remote_url]
-                    # Convert SSH URLs to HTTPS for GitHub/GitLab/Bitbucket
-                    https_url = case remote_url
-                    when /^git@github\.com:(.+)\.git$/
-                      "https://github.com/#{$1}"
-                    when /^git@gitlab\.com:(.+)\.git$/
-                      "https://gitlab.com/#{$1}"
-                    when /^git@bitbucket\.org:(.+)\.git$/
-                      "https://bitbucket.org/#{$1}"
-                    when /^https?:\/\/.+/
-                      remote_url.sub(/\.git$/, '')
-                    else
-                      nil
-                    end
-                  %>
-                  <% if https_url %>
-                    <%= link_to https_url, target: "_blank", rel: "noopener", class: "inline-flex items-center text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:underline" do %>
-                      <%= remote_url %>
-                      <%= heroicon "arrow-top-right-on-square", variant: :mini, options: { class: "h-3 w-3 ml-1" } %>
-                    <% end %>
-                  <% else %>
-                    <%= remote_url %>
-                  <% end %>
-                </dd>
-              </div>
-            <% end %>
-            
-            <% ahead_behind = @project.git_status[:ahead_behind] %>
-            <% if ahead_behind && ahead_behind[:ahead] && ahead_behind[:behind] && (ahead_behind[:ahead] > 0 || ahead_behind[:behind] > 0) %>
-              <div>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Sync Status</dt>
-                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  <div class="flex items-center space-x-3">
-                    <% if ahead_behind[:ahead] > 0 %>
-                      <span class="inline-flex items-center">
-                        <svg class="h-4 w-4 mr-1 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>
-                        </svg>
-                        <span class="text-green-600 dark:text-green-400"><%= ahead_behind[:ahead] %> ahead</span>
-                      </span>
-                    <% end %>
-                    <% if ahead_behind[:behind] > 0 %>
-                      <span class="inline-flex items-center">
-                        <svg class="h-4 w-4 mr-1 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path>
-                        </svg>
-                        <span class="text-orange-600 dark:text-orange-400"><%= ahead_behind[:behind] %> behind</span>
-                      </span>
-                    <% end %>
-                    <span class="text-xs text-gray-500 dark:text-gray-400">
-                      vs origin/<%= ahead_behind[:base_branch] %>
-                    </span>
-                  </div>
-                </dd>
-              </div>
-            <% end %>
-          </dl>
-          
-          <% if @project.git_status[:remote_url] %>
-            <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <button type="button"
-                      data-action="click->git-sync#sync"
-                      data-project-id="<%= @project.id %>"
-                      class="inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200">
-                <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
-                Sync with Remote
-              </button>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    <% end %>
-
-    <% if @project.swarm_templates.any? %>
-      <div class="mt-8">
-        <div class="sm:flex sm:items-center sm:justify-between mb-4">
-          <h2 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100">Swarm Templates</h2>
-          <div class="mt-3 sm:mt-0">
-            <%= link_to project_swarm_templates_path(@project), class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300" do %>
-              Manage swarms →
-            <% end %>
-          </div>
-        </div>
-        
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <% @project.swarm_templates.limit(6).each do |swarm_template| %>
-            <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200">
-              <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 truncate">
-                <%= link_to swarm_template.name, swarm_template_path(swarm_template), class: "hover:text-orange-900 dark:hover:text-orange-400" %>
-              </h3>
-              <% if swarm_template.description.present? %>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2"><%= swarm_template.description %></p>
-              <% end %>
-              <div class="mt-3 flex items-center justify-between text-xs">
-                <span class="text-gray-500 dark:text-gray-400">
-                  <%= pluralize(swarm_template.instances.count, 'instance') %>
-                </span>
-                <%= link_to "Launch", launch_session_swarm_template_path(swarm_template), method: :post, 
-                    class: "inline-flex items-center rounded bg-orange-600 px-2 py-1 text-xs font-semibold text-white hover:bg-orange-700" do %>
-                  <%= heroicon "play", variant: :mini, options: { class: "h-3 w-3" } %>
                 <% end %>
+                
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                      Repository: <span class="font-mono font-semibold"><%= @project.github_repo_full_name %></span>
+                    </p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Status: 
+                      <span data-webhook-status-target="status" class="font-medium">
+                        <% if @project.webhook_running? %>
+                          <span class="text-green-600 dark:text-green-400">Running</span>
+                        <% else %>
+                          <span class="text-gray-600 dark:text-gray-400">Stopped</span>
+                        <% end %>
+                      </span>
+                    </p>
+                    <% if @project.github_webhook_enabled? %>
+                      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Events: <%= @project.selected_event_names.join(", ") %>
+                      </p>
+                    <% end %>
+                  </div>
+                  
+                  <div class="flex items-center gap-3">
+                    <%= link_to edit_project_path(@project, anchor: "webhook-configuration"), class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                      <%= heroicon "cog-6-tooth", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                      Configure
+                    <% end %>
+                    
+                    <% has_enabled_events = @project.github_webhook_events.enabled.any? %>
+                    <% can_enable_webhooks = Setting.github_username_configured? && (has_enabled_events || @project.github_webhook_enabled?) %>
+                    
+                    <% if can_enable_webhooks %>
+                      <%= link_to toggle_webhook_project_path(@project), method: :post, data: { turbo_method: :post }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{@project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-orange-900 hover:bg-orange-800 text-white'}" do %>
+                        <% if @project.github_webhook_enabled? %>
+                          <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                          Disable Webhooks
+                        <% else %>
+                          <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                          Enable Webhooks
+                        <% end %>
+                      <% end %>
+                    <% else %>
+                      <% tooltip = !Setting.github_username_configured? ? "Configure GitHub username in Settings first" : "Select at least one event to enable webhooks" %>
+                      <button type="button" disabled class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed" title="<%= tooltip %>">
+                        <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                        Enable Webhooks
+                      </button>
+                    <% end %>
+                  </div>
+                </div>
               </div>
             </div>
           <% end %>
-        </div>
-      </div>
-    <% end %>
-
-    <div class="mt-8">
-      <div class="sm:flex sm:items-center sm:justify-between mb-4">
-        <h2 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100">Active Sessions</h2>
-        <div class="mt-3 sm:mt-0">
-          <%= link_to sessions_path(project_id: @project.id), class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300" do %>
-            View all sessions →
-          <% end %>
-        </div>
-      </div>
-      
-      <% if @sessions.any? %>
-        <div class="space-y-4">
-          <%= render partial: "sessions/session", collection: @sessions %>
-        </div>
-      <% else %>
-        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center border-2 border-dashed border-gray-300 dark:border-gray-700">
-          <div class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500">
-            <%= heroicon "command-line", variant: :outline, options: { class: "h-12 w-12" } %>
-          </div>
-          <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">No active sessions</h3>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Sessions running for this project will appear here.</p>
-          <div class="mt-6">
-            <%= link_to new_session_path(project_id: @project.id), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
-              <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
-              Create Session
-            <% end %>
-          </div>
         </div>
       <% end %>
+      </div>
     </div>
   </div>
 </div>

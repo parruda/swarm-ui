@@ -1,5 +1,4 @@
 import { Controller } from "@hotwired/stimulus"
-import { visit } from "@hotwired/turbo"
 
 export default class extends Controller {
   static targets = ["tab", "frame"]
@@ -14,7 +13,7 @@ export default class extends Controller {
       if (tab) {
         this.switchTab({ currentTarget: tab })
       }
-    } else {
+    } else if (this.tabTargets.length > 0) {
       // Make sure first tab (swarms) is active by default
       this.activateTab(this.tabTargets[0])
     }

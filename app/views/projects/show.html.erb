@@ -145,7 +145,7 @@
                   data-panel="swarms"
                   data-frame-url="<%= tab_swarms_project_path(@project) %>"
                   data-action="click->turbo-tabs#switchTab"
-                  class="border-orange-500 dark:border-orange-400 text-orange-600 dark:text-orange-400 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
+                  class="cursor-pointer border-orange-500 dark:border-orange-400 text-orange-600 dark:text-orange-400 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
             <%= heroicon "cube", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
             Swarms
             <% if @swarm_files && @swarm_files.any? %>
@@ -160,7 +160,7 @@
                   data-panel="sessions"
                   data-frame-url="<%= tab_sessions_project_path(@project) %>"
                   data-action="click->turbo-tabs#switchTab"
-                  class="border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
+                  class="cursor-pointer border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
             <%= heroicon "command-line", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
             Sessions
             <% if @project.active_sessions_count > 0 %>
@@ -176,7 +176,7 @@
                     data-panel="git"
                     data-frame-url="<%= tab_git_project_path(@project) %>"
                     data-action="click->turbo-tabs#switchTab"
-                    class="border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
+                    class="cursor-pointer border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
               <%= heroicon "code-bracket", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
               Git & GitHub
               <% if @project.git_status && @project.git_status[:dirty] %>

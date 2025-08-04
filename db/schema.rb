@@ -58,6 +58,23 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_04_230751) do
     t.index ["system_template"], name: "index_instance_templates_on_system_template"
   end
 
+  create_table "mcp_servers", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.string "server_type", null: false
+    t.string "command"
+    t.string "url"
+    t.json "args", default: []
+    t.json "env", default: {}
+    t.json "headers", default: {}
+    t.json "tags", default: []
+    t.json "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_mcp_servers_on_name"
+    t.index ["server_type"], name: "index_mcp_servers_on_server_type"
+  end
+
   create_table "projects", force: :cascade do |t|
     t.string "name", null: false
     t.string "path", null: false

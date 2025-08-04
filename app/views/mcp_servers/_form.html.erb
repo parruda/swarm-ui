@@ -1,0 +1,148 @@
+<%= simple_form_for @mcp_server, local: true, wrapper: :tailwind, html: { data: { controller: "mcp-server-form" } } do |f| %>
+  <div class="space-y-6">
+    <!-- Basic Information -->
+    <div>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Basic Information</h3>
+      
+      <%= f.input :name,
+                  label: "Server Name",
+                  placeholder: "e.g., github_api, database_connection",
+                  hint: "A unique name for your MCP server (lowercase letters and underscores only)",
+                  wrapper: :tailwind,
+                  input_html: { 
+                    data: { 
+                      mcp_server_form_target: "nameInput",
+                      action: "input->mcp-server-form#validateName keypress->mcp-server-form#preventInvalidCharacters"
+                    },
+                    pattern: "[a-z_]+",
+                    title: "Only lowercase letters and underscores are allowed"
+                  } %>
+      
+      <%= f.input :description,
+                  as: :text,
+                  label: "Description",
+                  placeholder: "Describe what this MCP server provides...",
+                  hint: "A brief description of the server's purpose and capabilities",
+                  wrapper: :tailwind,
+                  input_html: { rows: 3 } %>
+      
+      <div class="space-y-2">
+        <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Tags</label>
+        <input type="text" 
+               name="mcp_server[tags_string]" 
+               value="<%= @mcp_server.tags&.join(', ') %>"
+               placeholder="e.g., github, database, api, monitoring (comma-separated)"
+               class="block w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:outline-none focus:border-orange-500 dark:focus:border-orange-400 focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 sm:text-sm sm:leading-6 transition-colors duration-200">
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Add tags to organize and filter servers (comma-separated)</p>
+      </div>
+    </div>
+
+    <!-- Server Type Configuration -->
+    <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Server Configuration</h3>
+      
+      <div class="space-y-2">
+        <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Server Type <span class="text-red-500">*</span></label>
+        <%= f.select :server_type,
+                     options_for_select(McpServer::SERVER_TYPES.map { |t| [t.upcase, t] }, @mcp_server.server_type),
+                     {},
+                     class: "block w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:outline-none focus:border-orange-500 dark:focus:border-orange-400 focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 sm:text-sm sm:leading-6 transition-colors duration-200",
+                     data: { 
+                       action: "change->mcp-server-form#typeChanged",
+                       mcp_server_form_target: "typeSelect"
+                     } %>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          <strong>STDIO:</strong> Standard I/O communication with executable commands<br>
+          <strong>SSE:</strong> Server-Sent Events over HTTP
+        </p>
+      </div>
+      
+      <!-- STDIO Configuration -->
+      <div class="space-y-4 mt-4 <%= 'hidden' unless @mcp_server.stdio? %>" data-mcp-server-form-target="stdioFields">
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Command <span class="text-red-500">*</span></label>
+          <%= f.text_field :command,
+                           placeholder: "e.g., /usr/local/bin/mcp-server-github",
+                           required: @mcp_server.stdio?,
+                           class: "block w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:outline-none focus:border-orange-500 dark:focus:border-orange-400 focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 sm:text-sm sm:leading-6 transition-colors duration-200 font-mono" %>
+          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">The executable command to run</p>
+        </div>
+        
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Arguments</label>
+          <input type="text"
+                 name="mcp_server[args]"
+                 value="<%= @mcp_server.args&.join(', ') if @mcp_server.args.is_a?(Array) %>"
+                 placeholder="e.g., --host, localhost, --port, 5432 (comma-separated)"
+                 class="block w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:outline-none focus:border-orange-500 dark:focus:border-orange-400 focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 sm:text-sm sm:leading-6 transition-colors duration-200 font-mono">
+          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Command-line arguments (comma-separated)</p>
+        </div>
+        
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Environment Variables</label>
+          <textarea name="mcp_server[env_text]"
+                    rows="4"
+                    placeholder="API_KEY=your-api-key&#10;DB_HOST=localhost&#10;DB_PORT=5432"
+                    class="block w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:outline-none focus:border-orange-500 dark:focus:border-orange-400 focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 sm:text-sm sm:leading-6 transition-colors duration-200 font-mono"><% if @mcp_server.env.present? %><% @mcp_server.env.each do |key, value| %><%= key %>=<%= value %>
+<% end %><% end %></textarea>
+          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">One per line in KEY=value format. Supports ${VAR_NAME} for variable interpolation</p>
+        </div>
+      </div>
+      
+      <!-- SSE Configuration -->
+      <div class="space-y-4 mt-4 <%= 'hidden' unless @mcp_server.sse? %>" data-mcp-server-form-target="sseFields">
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">URL <span class="text-red-500">*</span></label>
+          <%= f.text_field :url,
+                           placeholder: "e.g., https://api.example.com/mcp/events",
+                           required: @mcp_server.sse?,
+                           class: "block w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:outline-none focus:border-orange-500 dark:focus:border-orange-400 focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 sm:text-sm sm:leading-6 transition-colors duration-200 font-mono" %>
+          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">The SSE endpoint URL</p>
+        </div>
+        
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">HTTP Headers</label>
+          <textarea name="mcp_server[headers_text]"
+                    rows="4"
+                    placeholder="Authorization: Bearer your-token&#10;X-API-Key: your-api-key&#10;Content-Type: text/event-stream"
+                    class="block w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:outline-none focus:border-orange-500 dark:focus:border-orange-400 focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 sm:text-sm sm:leading-6 transition-colors duration-200 font-mono"><% if @mcp_server.headers.present? %><% @mcp_server.headers.each do |key, value| %><%= key %>: <%= value %>
+<% end %><% end %></textarea>
+          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">One per line in Header: value format. Supports ${VAR_NAME} for variable interpolation</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Example Configurations -->
+    <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Example Configurations</h3>
+      
+      <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+        <div class="space-y-4">
+          <div data-mcp-server-form-target="stdioExample" class="<%= 'hidden' unless @mcp_server.stdio? %>">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">STDIO Example (GitHub MCP Server)</h4>
+            <pre class="text-xs text-gray-600 dark:text-gray-400 font-mono">Command: mcp-server-github
+Arguments: --readonly
+Environment:
+  GITHUB_TOKEN=${GITHUB_TOKEN}
+  LOG_LEVEL=info</pre>
+          </div>
+          
+          <div data-mcp-server-form-target="sseExample" class="<%= 'hidden' unless @mcp_server.sse? %>">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">SSE Example (Remote API)</h4>
+            <pre class="text-xs text-gray-600 dark:text-gray-400 font-mono">URL: https://api.service.com/mcp/events
+Headers:
+  Authorization: Bearer ${API_TOKEN}
+  X-API-Version: 2.0
+  Accept: text/event-stream</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="flex items-center justify-end gap-x-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+      <%= link_to "Cancel", mcp_servers_path, class: "text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200" %>
+      <%= f.submit @mcp_server.persisted? ? "Update MCP Server" : "Create MCP Server", class: "rounded-md bg-orange-600 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 dark:focus-visible:outline-orange-900 transition-colors duration-200" %>
+    </div>
+  </div>
+<% end %>

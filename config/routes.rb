@@ -91,6 +91,12 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :mcp_servers do
+    member do
+      post :duplicate
+    end
+  end
+
   # GitHub webhook receiver endpoint
   post "/github/webhooks/:project_id", to: "github_webhooks#receive", as: :github_webhooks
 

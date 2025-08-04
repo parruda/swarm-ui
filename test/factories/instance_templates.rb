@@ -4,6 +4,7 @@ FactoryBot.define do
   factory :instance_template do
     sequence(:name) { |n| "instance-template-#{n}" }
     description { "A test instance template" }
+    system_prompt { "You are a helpful assistant" }
     category { "general" }
     system_template { false }
     usage_count { 0 }
@@ -14,43 +15,41 @@ FactoryBot.define do
         "provider" => "claude",
         "model" => "sonnet",
         "directory" => ".",
-        "system_prompt" => "You are a helpful assistant",
         "allowed_tools" => [],
       }
     end
 
     trait :with_prompt do
+      system_prompt { "Help me with coding" }
       config do
         {
           "provider" => "claude",
           "model" => "sonnet",
           "directory" => ".",
-          "system_prompt" => "You are a helpful assistant",
-          "prompt" => "Help me with coding",
           "allowed_tools" => [],
         }
       end
     end
 
     trait :claude_opus do
+      system_prompt { "You are Claude Opus, the most capable model" }
       config do
         {
           "provider" => "claude",
           "model" => "opus",
           "directory" => ".",
-          "system_prompt" => "You are Claude Opus, the most capable model",
           "allowed_tools" => ["Read", "Write", "Edit"],
         }
       end
     end
 
     trait :openai_gpt4 do
+      system_prompt { "You are GPT-4o" }
       config do
         {
           "provider" => "openai",
           "model" => "gpt-4o",
           "directory" => ".",
-          "system_prompt" => "You are GPT-4o",
           "api_version" => "chat_completion",
           "temperature" => 0.7,
           "allowed_tools" => InstanceTemplate::AVAILABLE_TOOLS,
@@ -60,12 +59,12 @@ FactoryBot.define do
     end
 
     trait :openai_o1 do
+      system_prompt { "You are O1 with reasoning" }
       config do
         {
           "provider" => "openai",
           "model" => "o1",
           "directory" => ".",
-          "system_prompt" => "You are O1 with reasoning",
           "api_version" => "responses",
           "reasoning_effort" => "medium",
           "allowed_tools" => InstanceTemplate::AVAILABLE_TOOLS,
@@ -75,12 +74,12 @@ FactoryBot.define do
     end
 
     trait :with_worktree do
+      system_prompt { "You are a helpful assistant" }
       config do
         {
           "provider" => "claude",
           "model" => "sonnet",
           "directory" => "/tmp/worktree",
-          "system_prompt" => "You are a helpful assistant",
           "worktree" => true,
           "allowed_tools" => [],
         }
@@ -88,12 +87,12 @@ FactoryBot.define do
     end
 
     trait :vibe_mode do
+      system_prompt { "You are in vibe mode" }
       config do
         {
           "provider" => "claude",
           "model" => "sonnet",
           "directory" => ".",
-          "system_prompt" => "You are in vibe mode",
           "vibe" => true,
           "allowed_tools" => InstanceTemplate::AVAILABLE_TOOLS,
         }
@@ -101,17 +100,16 @@ FactoryBot.define do
     end
 
     trait :with_variables do
+      system_prompt { "You work in ${ENVIRONMENT} environment" }
       config do
         {
           "provider" => "claude",
           "model" => "sonnet",
           "directory" => "${PROJECT_DIR}/src",
-          "system_prompt" => "You work in ${ENVIRONMENT} environment",
-          "prompt" => "Help with ${TASK_TYPE}",
           "allowed_tools" => [],
         }
       end
-      required_variables { ["ENVIRONMENT", "PROJECT_DIR", "TASK_TYPE"] }
+      required_variables { ["ENVIRONMENT", "PROJECT_DIR"] }
     end
 
     trait :system do

@@ -129,7 +129,7 @@
                  data-template-id="<%= template.id %>"
                  data-template-name="<%= template.name %>"
                  data-template-description="<%= template.description %>"
-                 data-template-config='<%= template.config.to_json %>'
+                 data-template-config='<%= template.config.merge("system_prompt" => template.system_prompt).to_json %>'
                  class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-move hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
               <div class="flex items-start justify-between">
                 <div>

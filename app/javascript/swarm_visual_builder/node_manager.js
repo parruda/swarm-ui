@@ -25,6 +25,15 @@ export default class NodeManager {
   // Create a new node
   createNode(templateData, position) {
     const nodeId = this.nodeIdCounter++
+    
+    // Extract system_prompt from config if present
+    const config = templateData.config || {}
+    const system_prompt = config.system_prompt || ''
+    
+    // Remove system_prompt from config since it's stored separately
+    const cleanConfig = { ...config }
+    delete cleanConfig.system_prompt
+    
     const node = {
       id: nodeId,
       data: {
@@ -32,9 +41,14 @@ export default class NodeManager {
         y: position.y,
         name: templateData.name || 'Instance',
         description: templateData.description || '',
-        config: templateData.config || {},
-        model: templateData.model,
-        provider: templateData.provider
+        config: cleanConfig,
+        system_prompt: system_prompt,
+        model: templateData.model || config.model,
+        provider: templateData.provider || config.provider,
+        directory: config.directory,
+        allowed_tools: config.allowed_tools,
+        vibe: config.vibe,
+        temperature: config.temperature
       }
     }
     
@@ -138,22 +152,21 @@ export default class NodeManager {
       const x = startX + col * (nodeWidth + nodeSpacing) - this.controller.canvasCenter
       const y = startY + row * (nodeHeight + nodeSpacing) - this.controller.canvasCenter
       
-      // Map the swarm YAML format to the visual builder format
-      const mappedConfig = {
-        ...config,
-        system_prompt: config.prompt || config.system_prompt || '',  // Map 'prompt' to 'system_prompt'
-        temperature: config.temperature,
-        allowed_tools: config.allowed_tools,
-        parallel_tool_calls: config.parallel_tool_calls,
-        response_format: config.response_format,
-        vibe: config.vibe,
-        directory: config.directory
-      }
+      // Extract system_prompt from the YAML 'prompt' field
+      const system_prompt = config.prompt || config.system_prompt || ''
+      
+      // Create clean config without prompt fields
+      const cleanConfig = { ...config }
+      delete cleanConfig.prompt
+      delete cleanConfig.system_prompt
+      
+      // Add system_prompt to the config for createNode to extract
+      cleanConfig.system_prompt = system_prompt
       
       const node = this.createNode({
         name: name,
         description: config.description || '',
-        config: mappedConfig,
+        config: cleanConfig,
         model: config.model || 'opus',
         provider: config.provider || 'claude'  // Default to claude if not specified
       }, { x, y })
@@ -174,8 +187,13 @@ export default class NodeManager {
         name: node.data.name,
         description: node.data.description,
         config: node.data.config,
+        system_prompt: node.data.system_prompt,
         model: node.data.model,
-        provider: node.data.provider
+        provider: node.data.provider,
+        directory: node.data.directory,
+        allowed_tools: node.data.allowed_tools,
+        vibe: node.data.vibe,
+        temperature: node.data.temperature
       }
     }))
   }

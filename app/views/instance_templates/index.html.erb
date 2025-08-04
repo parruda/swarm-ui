@@ -2,142 +2,174 @@
 
 <div class="py-8">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <!-- Header -->
-    <div class="mb-8">
-      <div class="sm:flex sm:items-center sm:justify-between">
-        <div class="sm:flex-auto">
-          <h1 class="text-2xl font-bold leading-7 text-gray-900 dark:text-gray-100 sm:truncate sm:text-3xl sm:tracking-tight">
-            Instance Templates
-          </h1>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Reusable AI agent configurations for your swarms
-          </p>
-        </div>
-        
-        <div class="mt-4 flex items-center gap-x-3 sm:ml-16 sm:mt-0 sm:flex-none">
-          <%= link_to new_instance_template_path, class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
-            <%= heroicon "plus", variant: :mini, options: { class: "h-5 w-5 mr-1.5" } %>
-            New Instance Template
-          <% end %>
-        </div>
+    <div class="sm:flex sm:items-center">
+      <div class="sm:flex-auto">
+        <h1 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100 flex items-center">
+          <%= heroicon "cube", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+          Instance Templates
+        </h1>
+        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">Reusable AI agent configurations for your swarms.</p>
       </div>
-    </div>
-
-    <!-- Search and Filters -->
-    <div class="mb-6 flex flex-col sm:flex-row gap-4">
-      <div class="flex-1">
-        <input type="text"
-               placeholder="Search templates..."
-               class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-      </div>
-      
-      <div class="flex gap-2">
-        <% InstanceTemplate::CATEGORIES.each do |category| %>
-          <%= link_to category.capitalize, 
-              instance_templates_path(category: category),
-              class: "px-3 py-1 text-sm rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 #{params[:category] == category ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' : ''}" %>
+      <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+        <%= link_to new_instance_template_path, class: "inline-flex items-center justify-center gap-x-1.5 rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+          <%= heroicon "plus", variant: :mini, options: { class: "h-5 w-5" } %>
+          New Template
         <% end %>
       </div>
     </div>
 
-    <!-- Templates Grid -->
+    <!-- Category Filter Tabs -->
+    <div class="mt-8">
+      <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
+          <%= link_to instance_templates_path, class: "#{params[:category].blank? ? 'border-orange-900 dark:border-orange-500 text-orange-900 dark:text-orange-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200" do %>
+            <%= heroicon "squares-2x2", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            All
+            <span class="ml-2 rounded-full <%= params[:category].blank? ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' %> px-2.5 py-0.5 text-xs font-medium"><%= @instance_templates.count %></span>
+          <% end %>
+          <% InstanceTemplate::CATEGORIES.each do |category| %>
+            <%= link_to instance_templates_path(category: category), class: "#{params[:category] == category ? 'border-orange-900 dark:border-orange-500 text-orange-900 dark:text-orange-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200'} whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200" do %>
+              <% icon = case category
+                        when "frontend" then "window"
+                        when "backend" then "server-stack"
+                        when "security" then "shield-check"
+                        when "database" then "circle-stack"
+                        when "devops" then "command-line"
+                        when "testing" then "beaker"
+                        else "folder"
+                        end %>
+              <%= heroicon icon, variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+              <%= category.capitalize %>
+              <span class="ml-2 rounded-full <%= params[:category] == category ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' %> px-2.5 py-0.5 text-xs font-medium">
+                <%= InstanceTemplate.by_category(category).count %>
+              </span>
+            <% end %>
+          <% end %>
+        </nav>
+      </div>
+    </div>
+
     <% if @instance_templates.any? %>
-      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="mt-8 space-y-4">
         <% @instance_templates.each do |template| %>
-          <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 group">
-            <div class="p-6">
-              <div class="flex items-start justify-between">
-                <div class="flex-1 min-w-0">
-                  <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 truncate">
-                    <%= link_to template.name, instance_template_path(template), 
-                        class: "group-hover:text-orange-900 dark:group-hover:text-orange-400" %>
-                  </h3>
+          <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg p-6 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
+            <div class="flex items-center justify-between">
+              <div class="flex items-start space-x-8 flex-1">
+                <div class="min-w-0">
+                  <div class="flex items-center space-x-3">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                      <%= link_to template.name, instance_template_path(template), class: "hover:text-orange-900 dark:hover:text-orange-400" %>
+                    </h3>
+                    <% if template.provider == "claude" %>
+                      <span class="inline-flex items-center rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                        <%= heroicon "sparkles", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                        Claude
+                      </span>
+                    <% elsif template.provider == "openai" %>
+                      <span class="inline-flex items-center rounded-md bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-green-600/20 dark:ring-green-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                        <%= heroicon "sparkles", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                        OpenAI
+                      </span>
+                    <% end %>
+                    <% if template.model.present? %>
+                      <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                        <%= heroicon "cpu-chip", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                        <%= template.model %>
+                      </span>
+                    <% end %>
+                    <% if template.vibe %>
+                      <span class="inline-flex items-center rounded-md bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 ring-orange-600/20 dark:ring-orange-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                        <%= heroicon "musical-note", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                        Vibe
+                      </span>
+                    <% end %>
+                    <% if template.worktree %>
+                      <span class="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 ring-indigo-600/20 dark:ring-indigo-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                        <%= heroicon "arrow-path", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                        Worktree
+                      </span>
+                    <% end %>
+                  </div>
                   <% if template.description.present? %>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       <%= template.description %>
                     </p>
                   <% end %>
+                  <% if template.category.present? %>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <span class="font-semibold">Category:</span> <%= template.category.capitalize %>
+                    </p>
+                  <% end %>
+                  <% if template.allowed_tools.any? %>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <span class="font-semibold">Tools:</span> 
+                      <% if template.allowed_tools.length == InstanceTemplate::AVAILABLE_TOOLS.length %>
+                        All tools enabled
+                      <% else %>
+                        <%= template.allowed_tools.join(", ") %>
+                      <% end %>
+                    </p>
+                  <% end %>
+                  <% if template.tags.present? && template.tags.any? %>
+                    <div class="flex items-center gap-1 mt-2">
+                      <% template.tags.each do |tag| %>
+                        <span class="inline-flex items-center rounded bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
+                          <%= tag %>
+                        </span>
+                      <% end %>
+                    </div>
+                  <% end %>
                 </div>
                 
-                <% if template.system_template? %>
-                  <span class="ml-3 inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900 px-2 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-200 flex-shrink-0">
-                    System
-                  </span>
-                <% elsif template.category.present? %>
-                  <span class="ml-3 inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-medium text-gray-700 dark:text-gray-300 flex-shrink-0">
-                    <%= template.category.capitalize %>
-                  </span>
-                <% end %>
-              </div>
-              
-              <!-- Template Details -->
-              <div class="mt-4 space-y-2">
-                <% if template.model.present? %>
-                  <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                    <%= heroicon "cpu-chip", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-                    Model: <%= template.model %>
+                <div class="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
+                  <div>
+                    <span class="font-medium">Used in:</span> 
+                    <span class="text-green-600 dark:text-green-400"><%= pluralize(template.swarm_template_instances.count, 'swarm') %></span>
                   </div>
-                <% end %>
-                
-                <% if template.provider.present? %>
-                  <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                    <%= heroicon "globe-alt", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-                    Provider: <%= template.provider.capitalize %>
-                  </div>
-                <% end %>
-                
-                <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                  <%= heroicon "cube", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-                  Used in <%= pluralize(template.swarm_template_instances.count, 'swarm') %>
+                  <% if template.usage_count && template.usage_count > 0 %>
+                    <div>
+                      <span class="font-medium">Usage count:</span> <%= template.usage_count %>
+                    </div>
+                  <% end %>
                 </div>
               </div>
-            </div>
-            
-            <!-- Actions -->
-            <div class="bg-gray-50 dark:bg-gray-900 px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <%= link_to edit_instance_template_path(template), 
-                      class: "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100",
-                      title: "Edit" do %>
-                    <%= heroicon "pencil", variant: :mini, options: { class: "h-4 w-4" } %>
+
+              <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
+                <%= link_to instance_template_path(template), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                  <%= heroicon "eye", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                  View
+                <% end %>
+                <%= link_to edit_instance_template_path(template), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                  <%= heroicon "pencil", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                  Edit
+                <% end %>
+                <% unless template.swarm_template_instances.any? %>
+                  <%= link_to instance_template_path(template), method: :delete,
+                      data: { confirm: "Are you sure you want to delete this template?" },
+                      class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-red-600 dark:text-red-400 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200" do %>
+                    <%= heroicon "trash", variant: :mini, options: { class: "h-4 w-4" } %>
                   <% end %>
-                  
-                  <%= link_to duplicate_instance_template_path(template), method: :post,
-                      class: "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100",
-                      title: "Duplicate" do %>
-                    <%= heroicon "document-duplicate", variant: :mini, options: { class: "h-4 w-4" } %>
-                  <% end %>
-                  
-                  <% unless template.system_template? || template.swarm_template_instances.any? %>
-                    <%= link_to instance_template_path(template), method: :delete,
-                        data: { confirm: "Are you sure?" },
-                        class: "text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200",
-                        title: "Delete" do %>
-                      <%= heroicon "trash", variant: :mini, options: { class: "h-4 w-4" } %>
-                    <% end %>
-                  <% end %>
-                </div>
-                
-                <%= link_to "View Details", instance_template_path(template),
-                    class: "inline-flex items-center rounded bg-orange-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-orange-700 transition-colors" %>
+                <% end %>
               </div>
             </div>
           </div>
         <% end %>
       </div>
     <% else %>
-      <!-- Empty State -->
-      <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg p-12 text-center border border-gray-200 dark:border-gray-700">
-        <%= heroicon "cube", variant: :outline, options: { class: "mx-auto h-16 w-16 text-gray-300 dark:text-gray-600" } %>
-        <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No instance templates yet</h3>
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          Create reusable instance configurations for your swarms.
+      <div class="mt-8 text-center">
+        <div class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500">
+          <%= heroicon 'cube', variant: :outline, options: { class: "h-12 w-12" } %>
+        </div>
+        <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+          No instance templates
+        </h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Get started by creating a new instance template.
         </p>
         <div class="mt-6">
-          <%= link_to new_instance_template_path, class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
-            <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
-            Create Your First Instance Template
+          <%= link_to new_instance_template_path, class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+            <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+            Create Template
           <% end %>
         </div>
       </div>

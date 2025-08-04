@@ -627,7 +627,7 @@ export default class extends Controller {
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Working Directory <span class="text-red-500">*</span></label>
             <input type="text" 
-                   value="${nodeData.directory || nodeData.config?.directory || '.'}" 
+                   value="${nodeData.directory || '.'}" 
                    data-property="directory"
                    data-node-id="${node.id}"
                    placeholder="e.g., . or ./frontend"
@@ -638,7 +638,7 @@ export default class extends Controller {
           <div id="temperature-field" style="display: ${isOpenAI ? 'block' : 'none'};">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Temperature</label>
             <input type="number" 
-                   value="${nodeData.temperature || nodeData.config?.temperature || ''}" 
+                   value="${nodeData.temperature || ''}" 
                    data-property="temperature"
                    data-node-id="${node.id}"
                    min="0"
@@ -655,7 +655,7 @@ export default class extends Controller {
                       data-node-id="${node.id}"
                       rows="4"
                       placeholder="Define the behavior and capabilities of this AI instance..."
-                      class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm focus:outline-none">${nodeData.system_prompt || nodeData.config?.system_prompt || ''}</textarea>
+                      class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm focus:outline-none">${nodeData.system_prompt || ''}</textarea>
           </div>
           
           <!-- Vibe Mode -->
@@ -677,7 +677,7 @@ export default class extends Controller {
             ` : `
               <label class="flex items-start cursor-pointer">
                 <input type="checkbox" 
-                       ${nodeData.vibe || nodeData.config?.vibe ? 'checked' : ''}
+                       ${nodeData.vibe ? 'checked' : ''}
                        data-property="vibe"
                        data-node-id="${node.id}"
                        class="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-0 focus:outline-none cursor-pointer">
@@ -692,7 +692,7 @@ export default class extends Controller {
           </div>
           
           <!-- Allowed Tools (only for Claude and not in vibe mode) -->
-          <div id="tools-field" style="display: ${isClaude && !nodeData.vibe && !nodeData.config?.vibe ? 'block' : 'none'};">
+          <div id="tools-field" style="display: ${isClaude && !nodeData.vibe ? 'block' : 'none'};">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Allowed Tools
               <span class="text-xs text-gray-500 dark:text-gray-400">(OpenAI has access to all tools)</span>
@@ -703,7 +703,7 @@ export default class extends Controller {
                   <label class="flex items-center cursor-pointer hover:text-gray-900 dark:hover:text-gray-100">
                     <input type="checkbox"
                            value="${tool}"
-                           ${nodeData.allowed_tools?.includes(tool) || nodeData.config?.allowed_tools?.includes(tool) ? 'checked' : ''}
+                           ${nodeData.allowed_tools?.includes(tool) ? 'checked' : ''}
                            data-tool-checkbox
                            data-node-id="${node.id}"
                            class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-0 focus:outline-none cursor-pointer">
@@ -847,7 +847,7 @@ export default class extends Controller {
           // Refresh the entire properties panel to update vibe mode display
           this.showNodeProperties(node)
         }
-      } else if (property === 'directory' || property === 'temperature' || property === 'system_prompt' || property === 'vibe') {
+      } else if (property === 'directory' || property === 'temperature' || property === 'vibe') {
         // Store these in config
         if (!node.data.config) node.data.config = {}
         
@@ -863,6 +863,9 @@ export default class extends Controller {
           node.data[property] = e.target.value
           node.data.config[property] = e.target.value
         }
+      } else if (property === 'system_prompt') {
+        // Store system_prompt directly in node.data, not in config
+        node.data[property] = e.target.value
       }
     } else if (configProperty) {
       if (!node.data.config) node.data.config = {}
@@ -1727,8 +1730,8 @@ export default class extends Controller {
       }
       
       // Use 'prompt' instead of 'system_prompt' for claude-swarm compliance
-      if (node.data.system_prompt || node.data.config?.system_prompt) {
-        instance.prompt = node.data.system_prompt || node.data.config.system_prompt
+      if (node.data.system_prompt) {
+        instance.prompt = node.data.system_prompt
       }
       
       // Handle OpenAI-specific fields

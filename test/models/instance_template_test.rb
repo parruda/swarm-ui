@@ -56,10 +56,10 @@ class InstanceTemplateTest < ActiveSupport::TestCase
     assert_includes @template.errors[:config], "must include 'directory'"
   end
 
-  test "validates config must include system_prompt" do
-    @template.config = { "provider" => "claude", "model" => "sonnet", "directory" => "." }
+  test "validates system_prompt is required" do
+    @template.system_prompt = nil
     assert_not @template.valid?
-    assert_includes @template.errors[:config], "must include 'system_prompt'"
+    assert_includes @template.errors[:system_prompt], "can't be blank"
   end
 
   test "validates category inclusion" do
@@ -214,9 +214,9 @@ class InstanceTemplateTest < ActiveSupport::TestCase
     assert_empty @template.allowed_tools
   end
 
-  test "prompt returns prompt from config" do
+  test "system_prompt is stored in database column" do
     template = create(:instance_template, :with_prompt)
-    assert_equal "Help me with coding", template.prompt
+    assert_equal "Help me with coding", template.system_prompt
   end
 
   test "worktree returns worktree from config" do
@@ -289,6 +289,13 @@ class InstanceTemplateTest < ActiveSupport::TestCase
   test "to_instance_config adds description if not present" do
     config = @template.to_instance_config
     assert_equal @template.description, config["description"]
+  end
+  
+  test "to_instance_config maps system_prompt to prompt for YAML" do
+    @template.system_prompt = "You are a specialized assistant"
+    config = @template.to_instance_config
+    assert_equal "You are a specialized assistant", config["prompt"]
+    assert_nil config["system_prompt"]
   end
 
   test "to_instance_config removes openai fields for claude provider" do
@@ -405,13 +412,13 @@ class InstanceTemplateTest < ActiveSupport::TestCase
 
   test "extracts required variables from directory string" do
     template = create(:instance_template, :with_variables)
-    # Should be set by the factory  - but "ENVIRONMENT" is only in prompt, not directory
-    assert_equal ["PROJECT_DIR", "TASK_TYPE"], template.required_variables
+    # ENVIRONMENT is in system_prompt, PROJECT_DIR is in directory
+    assert_equal ["ENVIRONMENT", "PROJECT_DIR"], template.required_variables
   end
 
   test "extracts required variables on save when config changes" do
     @template.config["directory"] = "${PROJECT_ROOT}/src"
-    @template.config["prompt"] = "Work on ${FEATURE_NAME}"
+    @template.system_prompt = "Work on ${FEATURE_NAME}"
     @template.save!
 
     assert_equal ["FEATURE_NAME", "PROJECT_ROOT"], @template.required_variables.sort

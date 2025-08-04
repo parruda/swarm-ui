@@ -1,145 +1,216 @@
-<%= simple_form_for instance_template, local: true, wrapper: :tailwind, html: { data: { controller: "instance-form" } } do |f| %>
-  <div class="space-y-6">
+<%= simple_form_for(@instance_template) do |f| %>
+  <%= f.error_notification %>
+  <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+
+  <div class="space-y-8">
     <!-- Basic Information -->
-    <div class="space-y-6">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Basic Information</h3>
-      
-      <%= f.input :name,
-                  label: "Template Name",
-                  placeholder: "e.g., Code Review Expert",
-                  hint: "A descriptive name for your instance template",
-                  wrapper: :tailwind %>
-      
-      <%= f.input :description,
-                  as: :text,
-                  label: "Description",
-                  placeholder: "Describe what this instance template does...",
-                  hint: "Explain the purpose and capabilities of this template",
-                  wrapper: :tailwind,
-                  input_html: { rows: 3 } %>
-      
-      <div class="space-y-2">
-        <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">
-          Tags <span class="text-gray-500 font-normal">(comma separated)</span>
-        </label>
-        <input type="text"
-               name="instance_template[tags_string]"
-               value="<%= instance_template.tags&.join(', ') %>"
-               placeholder="e.g., frontend, react, typescript"
-               class="block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 focus:outline-none">
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Tags help categorize and filter templates</p>
+    <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Basic Information</h3>
+      </div>
+      <div class="px-6 py-4 space-y-4">
+        <%= f.input :name,
+                    label: "Template Name",
+                    placeholder: "e.g., Frontend Expert",
+                    input_html: { class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm" },
+                    label_html: { class: "block text-sm font-medium text-gray-700 dark:text-gray-300" },
+                    wrapper_html: { class: "mb-4" } %>
+        
+        <%= f.input :description,
+                    as: :text,
+                    label: "Description",
+                    placeholder: "Describe what this template is for...",
+                    input_html: { rows: 3, class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm" },
+                    label_html: { class: "block text-sm font-medium text-gray-700 dark:text-gray-300" },
+                    wrapper_html: { class: "mb-4" } %>
+        
+        <%= f.input :category,
+                    collection: InstanceTemplate::CATEGORIES,
+                    prompt: "Select a category",
+                    input_html: { class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm" },
+                    label_html: { class: "block text-sm font-medium text-gray-700 dark:text-gray-300" },
+                    wrapper_html: { class: "mb-4" } %>
+        
+        <div class="field">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</label>
+          <input type="text" 
+                 name="instance_template[tags_string]" 
+                 value="<%= @instance_template.tags&.join(', ') %>"
+                 placeholder="e.g., react, typescript, testing (comma-separated)"
+                 class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Comma-separated list of tags</p>
+        </div>
       </div>
     </div>
 
-    <!-- Configuration -->
-    <div class="space-y-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-      <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Configuration</h3>
-      
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div class="space-y-2">
-          <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">
-            Model <span class="text-red-500">*</span>
-          </label>
-          <input type="text"
-                 name="instance_template[config][model]"
-                 value="<%= instance_template.config['model'] %>"
-                 placeholder="e.g., claude-3-5-sonnet-20241022"
-                 class="block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 focus:outline-none">
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">The AI model to use</p>
-        </div>
-        
-        <div class="space-y-2">
-          <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">
-            Provider
-          </label>
-          <select name="instance_template[config][provider]"
-                  data-action="change->instance-form#toggleProviderFields"
-                  data-instance-form-target="providerSelect"
-                  class="block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 focus:outline-none">
-            <option value="claude" <%= instance_template.config['provider'] == 'claude' ? 'selected' : '' %>>Claude</option>
-            <option value="openai" <%= instance_template.config['provider'] == 'openai' ? 'selected' : '' %>>OpenAI</option>
-          </select>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">The AI provider</p>
-        </div>
-        
-        <div class="space-y-2">
-          <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">
-            Working Directory <span class="text-red-500">*</span>
-          </label>
-          <input type="text"
-                 name="instance_template[config][directory]"
-                 value="<%= instance_template.config['directory'] %>"
-                 placeholder="e.g., ."
-                 required
-                 class="block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 font-mono focus:outline-none">
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Can be an absolute path (e.g., /home/user/project) or relative to the directory the swarm will start from (e.g., . or ./frontend)</p>
-        </div>
-        
-        <div class="space-y-2" data-provider-field="temperature" style="<%= instance_template.config['provider'] == 'claude' ? 'display: none;' : '' %>">
-          <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">
-            Temperature
-          </label>
-          <input type="number"
-                 name="instance_template[config][temperature]"
-                 value="<%= instance_template.config['temperature'] %>"
-                 step="0.1"
-                 min="0"
-                 max="2"
-                 placeholder="e.g., 0.7"
-                 class="block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 focus:outline-none">
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Response randomness (0-2)</p>
-        </div>
+    <!-- Provider Configuration -->
+    <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Provider Configuration</h3>
       </div>
-      
-      <div class="space-y-2">
-        <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">
-          System Prompt <span class="text-red-500">*</span>
-        </label>
-        <textarea name="instance_template[config][system_prompt]"
-                  rows="4"
-                  placeholder="Define the behavior and capabilities of this AI instance..."
-                  required
-                  class="block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm sm:leading-6 focus:outline-none"><%= instance_template.config['system_prompt'] %></textarea>
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Customize the behavior of this AI instance</p>
-      </div>
-      
-      <!-- Vibe Mode -->
-      <div class="space-y-2" data-provider-field="vibe-mode">
-        <label class="flex items-start cursor-pointer <%= instance_template.config['provider'] == 'openai' ? 'cursor-default' : '' %>">
-          <input type="checkbox"
-                 name="instance_template[config][vibe]"
-                 value="1"
-                 <%= 'checked' if instance_template.config['vibe'] || instance_template.config['provider'] == 'openai' %>
-                 <%= 'disabled' if instance_template.config['provider'] == 'openai' %>
-                 data-action="change->instance-form#toggleVibeMode"
-                 data-instance-form-target="vibeCheckbox"
-                 class="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-0 focus:outline-none <%= instance_template.config['provider'] == 'openai' ? 'opacity-50 cursor-default' : 'cursor-pointer' %>">
-          <div class="ml-3">
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Vibe Mode</span>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              <%= instance_template.config['provider'] == 'openai' ? 'OpenAI instances are always in vibe mode with access to all tools' : 'When enabled, this instance skips all permissions and has access to all available tools' %>
-            </p>
+      <div class="px-6 py-4 space-y-4">
+        <div class="field">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Provider</label>
+          <%= select_tag "instance_template[config][provider]",
+                         options_for_select(InstanceTemplate::PROVIDERS, @instance_template.provider),
+                         class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm",
+                         data: { action: "change->instance-template-form#providerChanged" } %>
+        </div>
+        
+        <div class="field" data-instance-template-form-target="modelField">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Model</label>
+          <% if @instance_template.claude? %>
+            <%= select_tag "instance_template[config][model]",
+                           options_for_select(InstanceTemplate::CLAUDE_MODELS, @instance_template.model),
+                           class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm" %>
+          <% else %>
+            <%= text_field_tag "instance_template[config][model]",
+                               @instance_template.model,
+                               placeholder: "e.g., gpt-4o, o1, o3-mini",
+                               class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm" %>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Common models: gpt-4o, gpt-4o-mini, o1, o1-mini, o3-mini</p>
+          <% end %>
+        </div>
+        
+        <!-- OpenAI specific fields -->
+        <div class="<%= 'hidden' if @instance_template.claude? %>" data-instance-template-form-target="openaiFields">
+          <div class="field">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Temperature</label>
+            <%= number_field_tag "instance_template[config][temperature]",
+                                 @instance_template.temperature,
+                                 step: 0.1,
+                                 min: 0,
+                                 max: 2,
+                                 placeholder: "0.7",
+                                 class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm" %>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Value between 0 and 2 (optional)</p>
           </div>
-        </label>
+          
+          <div class="field mt-4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Version</label>
+            <%= select_tag "instance_template[config][api_version]",
+                           options_for_select(InstanceTemplate::API_VERSIONS, @instance_template.api_version),
+                           include_blank: "Select API version (optional)",
+                           class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm" %>
+          </div>
+          
+          <div class="field mt-4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reasoning Effort (o-series models only)</label>
+            <%= select_tag "instance_template[config][reasoning_effort]",
+                           options_for_select(InstanceTemplate::REASONING_EFFORTS, @instance_template.reasoning_effort),
+                           include_blank: "Select reasoning effort (optional)",
+                           class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm" %>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Only applicable for o1 and o3 series models</p>
+          </div>
+          
+          <div class="field mt-4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">OpenAI API Key Environment Variable</label>
+            <%= text_field_tag "instance_template[config][openai_token_env]",
+                               @instance_template.config&.dig("openai_token_env"),
+                               placeholder: "OPENAI_API_KEY",
+                               class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm" %>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Environment variable name containing the API key (optional)</p>
+          </div>
+          
+          <div class="field mt-4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Base URL</label>
+            <%= text_field_tag "instance_template[config][base_url]",
+                               @instance_template.config&.dig("base_url"),
+                               placeholder: "https://api.openai.com/v1",
+                               class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm" %>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Custom API endpoint (optional)</p>
+          </div>
+        </div>
       </div>
-      
-      <div class="space-y-2" data-provider-field="allowed-tools" style="<%= (instance_template.config['provider'] == 'openai' || instance_template.config['vibe']) ? 'display: none;' : '' %>">
-        <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">
-          Allowed Tools
-        </label>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          Select the tools this instance can use (OpenAI has access to all tools)
-        </p>
-        <div class="mt-3 border border-gray-200 dark:border-gray-700 rounded-md p-4 bg-gray-50 dark:bg-gray-800">
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            <% available_tools = InstanceTemplate::AVAILABLE_TOOLS %>
-            <% available_tools.each do |tool| %>
-              <label class="flex items-center cursor-pointer hover:text-gray-900 dark:hover:text-gray-100">
-                <input type="checkbox"
-                       name="instance_template[config][allowed_tools][]"
-                       value="<%= tool %>"
-                       <%= 'checked' if instance_template.config['allowed_tools']&.include?(tool) %>
-                       class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-0 focus:outline-none cursor-pointer">
+    </div>
+
+    <!-- Instance Configuration -->
+    <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Instance Configuration</h3>
+      </div>
+      <div class="px-6 py-4 space-y-4">
+        <div class="field">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Working Directory <span class="text-red-500">*</span></label>
+          <%= text_field_tag "instance_template[config][directory]",
+                             @instance_template.directory,
+                             placeholder: ".",
+                             required: true,
+                             class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm font-mono" %>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Can use variables like ${PROJECT_PATH} or ${CUSTOM_VAR}</p>
+        </div>
+        
+        <div class="field">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">System Prompt <span class="text-red-500">*</span></label>
+          <%= f.input :system_prompt,
+                      as: :text,
+                      label: false,
+                      required: true,
+                      placeholder: "Enter the system prompt for this instance...",
+                      input_html: { rows: 6, class: "block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm font-mono" },
+                      wrapper: false %>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Instructions that define the agent's behavior and capabilities</p>
+        </div>
+        
+        <div class="field" data-instance-template-form-target="vibeField">
+          <label class="flex items-center">
+            <%= check_box_tag "instance_template[config][vibe]",
+                              "1",
+                              @instance_template.vibe || @instance_template.openai?,
+                              disabled: @instance_template.openai?,
+                              class: "rounded border-gray-300 dark:border-gray-600 text-orange-600 shadow-sm focus:border-orange-500 focus:ring-orange-500" %>
+            <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              Vibe Mode
+              <% if @instance_template.openai? %>
+                <span class="text-gray-500">(Always enabled for OpenAI)</span>
+              <% end %>
+            </span>
+          </label>
+          <p class="mt-1 ml-6 text-sm text-gray-500 dark:text-gray-400">Enable vibe mode for more creative responses. When enabled, has access to all tools.</p>
+        </div>
+        
+        <div class="field <%= 'hidden' if @instance_template.openai? %>" data-instance-template-form-target="worktreeField">
+          <label class="flex items-center">
+            <%= check_box_tag "instance_template[config][worktree]",
+                              "1",
+                              @instance_template.worktree,
+                              class: "rounded border-gray-300 dark:border-gray-600 text-orange-600 shadow-sm focus:border-orange-500 focus:ring-orange-500" %>
+            <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Enable Worktree</span>
+          </label>
+          <p class="mt-1 ml-6 text-sm text-gray-500 dark:text-gray-400">Use git worktree for safer file operations</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Allowed Tools -->
+    <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 <%= 'hidden' if @instance_template.vibe || @instance_template.openai? %>" data-instance-template-form-target="toolsSection">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Allowed Tools</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Select which tools this instance can use</p>
+      </div>
+      <div class="px-6 py-4">
+        <div class="space-y-3">
+          <div class="flex items-center mb-4">
+            <button type="button"
+                    onclick="document.querySelectorAll('[name=\'instance_template[config][allowed_tools][]\']').forEach(cb => cb.checked = true)"
+                    class="text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 mr-4">
+              Select All
+            </button>
+            <button type="button"
+                    onclick="document.querySelectorAll('[name=\'instance_template[config][allowed_tools][]\']').forEach(cb => cb.checked = false)"
+                    class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+              Clear All
+            </button>
+          </div>
+          
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <% InstanceTemplate::AVAILABLE_TOOLS.each do |tool| %>
+              <label class="flex items-center">
+                <%= check_box_tag "instance_template[config][allowed_tools][]",
+                                  tool,
+                                  @instance_template.allowed_tools&.include?(tool),
+                                  id: "tool_#{tool}",
+                                  class: "rounded border-gray-300 dark:border-gray-600 text-orange-600 shadow-sm focus:border-orange-500 focus:ring-orange-500" %>
                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><%= tool %></span>
               </label>
             <% end %>
@@ -147,10 +218,89 @@
         </div>
       </div>
     </div>
-    
-    <div class="mt-8 flex items-center justify-end gap-x-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-      <%= link_to "Cancel", instance_templates_path, class: "inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200" %>
-      <%= f.submit instance_template.persisted? ? "Update Template" : "Create Template", class: "rounded-md bg-orange-600 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 dark:focus-visible:outline-orange-900 transition-colors duration-200" %>
+
+    <!-- Form Actions -->
+    <div class="flex justify-end gap-3">
+      <%= link_to "Cancel", instance_templates_path, class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" %>
+      <%= f.button :submit, class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" %>
     </div>
   </div>
 <% end %>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.querySelector('form');
+  if (!form) return;
+  
+  const providerSelect = document.querySelector('[name="instance_template[config][provider]"]');
+  const vibeCheckbox = document.querySelector('[name="instance_template[config][vibe]"]');
+  const openaiFields = document.querySelector('[data-instance-template-form-target="openaiFields"]');
+  const worktreeField = document.querySelector('[data-instance-template-form-target="worktreeField"]');
+  const toolsSection = document.querySelector('[data-instance-template-form-target="toolsSection"]');
+  const modelField = document.querySelector('[data-instance-template-form-target="modelField"]');
+  
+  function updateFormFields() {
+    const isOpenAI = providerSelect.value === 'openai';
+    const isVibe = vibeCheckbox.checked;
+    
+    // Show/hide OpenAI fields
+    if (openaiFields) {
+      openaiFields.classList.toggle('hidden', !isOpenAI);
+    }
+    
+    // Show/hide worktree (hidden for OpenAI)
+    if (worktreeField) {
+      worktreeField.classList.toggle('hidden', isOpenAI);
+    }
+    
+    // Show/hide tools section (hidden for vibe or OpenAI)
+    if (toolsSection) {
+      toolsSection.classList.toggle('hidden', isVibe || isOpenAI);
+    }
+    
+    // Update vibe checkbox state for OpenAI
+    if (vibeCheckbox) {
+      vibeCheckbox.checked = isOpenAI || isVibe;
+      vibeCheckbox.disabled = isOpenAI;
+    }
+    
+    // Update model field based on provider
+    if (modelField) {
+      const currentModel = modelField.querySelector('input, select').value;
+      if (isOpenAI) {
+        modelField.innerHTML = `
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Model</label>
+          <input type="text" name="instance_template[config][model]" value="${currentModel}" 
+                 placeholder="e.g., gpt-4o, o1, o3-mini"
+                 class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Common models: gpt-4o, gpt-4o-mini, o1, o1-mini, o3-mini</p>
+        `;
+      } else {
+        const claudeModels = ['opus', 'sonnet'];
+        const options = claudeModels.map(m => 
+          `<option value="${m}" ${currentModel === m ? 'selected' : ''}>${m}</option>`
+        ).join('');
+        modelField.innerHTML = `
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Model</label>
+          <select name="instance_template[config][model]" 
+                  class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+            ${options}
+          </select>
+        `;
+      }
+    }
+  }
+  
+  // Add event listeners
+  if (providerSelect) {
+    providerSelect.addEventListener('change', updateFormFields);
+  }
+  
+  if (vibeCheckbox) {
+    vibeCheckbox.addEventListener('change', updateFormFields);
+  }
+  
+  // Initial update
+  updateFormFields();
+});
+</script>

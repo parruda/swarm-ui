@@ -55,6 +55,34 @@
             </div>
           <% end %>
         </div>
+        
+        <!-- Resources Dropdown -->
+        <div class="relative" data-controller="dropdown-hover" data-dropdown-hover-has-items-value="true">
+          <%= link_to "#", 
+              class: "flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors duration-200 #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if params[:controller] == 'instance_templates'}",
+              data: { 
+                "dropdown-hover-target": "trigger",
+                action: "mouseenter->dropdown-hover#show mouseleave->dropdown-hover#hide click->dropdown-hover#triggerClick"
+              } do %>
+            <%= heroicon "cube", variant: :outline, options: { class: "h-4 w-4 mr-1" } %>
+            Resources
+          <% end %>
+          
+          <div class="absolute left-0 mt-1 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 hidden z-50"
+               data-dropdown-hover-target="menu"
+               data-action="mouseenter->dropdown-hover#menuEnter mouseleave->dropdown-hover#menuLeave click->dropdown-hover#menuClick">
+            <div class="py-1">
+              <%= link_to instance_templates_path,
+                  class: "block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-150",
+                  data: { turbo_frame: "_top" } do %>
+                <div class="flex items-center">
+                  <%= heroicon "cube", variant: :solid, options: { class: "h-4 w-4 mr-2 text-orange-600 dark:text-orange-400" } %>
+                  <span>Instance Templates</span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
       </div>
       
       <% if controller_name == 'sessions' && action_name == 'show' && @session %>
@@ -148,6 +176,11 @@
             <%= active_sessions.count %>
           </span>
         <% end %>
+      <% end %>
+      
+      <%= link_to instance_templates_path, class: "flex items-center px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:text-orange-900 dark:hover:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md #{'bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-400' if params[:controller] == 'instance_templates'}" do %>
+        <%= heroicon "cube", variant: :outline, options: { class: "h-5 w-5 mr-2" } %>
+        Instance Templates
       <% end %>
     </div>
   </div>

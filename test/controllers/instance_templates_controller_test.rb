@@ -42,7 +42,7 @@ class InstanceTemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Should show usage count
-    assert_match "Used in 1 swarm", @response.body
+    assert_match "1 swarm", @response.body
   end
 
   # Library tests
@@ -98,7 +98,6 @@ class InstanceTemplatesControllerTest < ActionDispatch::IntegrationTest
 
     # Should have default values
     assert_select "select[name='instance_template[config][provider]'] option[selected]", /claude/i
-    assert_select "input[name='instance_template[config][model]'][value='sonnet']"
     assert_select "input[name='instance_template[config][directory]'][value='.']"
   end
 
@@ -109,12 +108,12 @@ class InstanceTemplatesControllerTest < ActionDispatch::IntegrationTest
         instance_template: {
           name: "Test Template",
           description: "Test description",
+          system_prompt: "You are a helpful assistant",
           category: "general",
           config: {
             provider: "claude",
             model: "sonnet",
             directory: ".",
-            system_prompt: "You are a helpful assistant",
             allowed_tools: ["Read", "Write"],
             vibe: "0",
           },
@@ -153,12 +152,12 @@ class InstanceTemplatesControllerTest < ActionDispatch::IntegrationTest
       instance_template: {
         name: "Tagged Template",
         description: "Test",
+        system_prompt: "Test",
         tags_string: "Ruby, TESTING, ruby", # Should normalize and dedupe
         config: {
           provider: "claude",
           model: "sonnet",
           directory: ".",
-          system_prompt: "Test",
         },
       },
     }
@@ -172,11 +171,11 @@ class InstanceTemplatesControllerTest < ActionDispatch::IntegrationTest
       instance_template: {
         name: "Vibe Template",
         description: "Test",
+        system_prompt: "Test",
         config: {
           provider: "claude",
           model: "sonnet",
           directory: ".",
-          system_prompt: "Test",
           vibe: "1", # Checkbox checked
         },
       },

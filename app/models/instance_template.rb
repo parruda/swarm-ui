@@ -32,6 +32,7 @@ class InstanceTemplate < ApplicationRecord
   # Validations
   validates :name, presence: true, uniqueness: true
   validates :description, presence: true
+  validates :system_prompt, presence: true
   validates :category, inclusion: { in: CATEGORIES }, allow_nil: true
   validates :config, presence: true
   validate :config_structure
@@ -77,9 +78,8 @@ class InstanceTemplate < ApplicationRecord
     config&.dig("allowed_tools") || []
   end
 
-  def prompt
-    config&.dig("prompt")
-  end
+  # Use the database column directly
+  # (prompt was renamed to system_prompt in migration)
 
   def worktree
     config&.dig("worktree") || false
@@ -116,6 +116,13 @@ class InstanceTemplate < ApplicationRecord
   def to_instance_config(instance_key = nil, overrides = {})
     base_config = config.merge(overrides)
     base_config["description"] ||= description
+
+    # Use the system_prompt column value for the YAML 'prompt' field
+    # This is required for claude-swarm compatibility
+    base_config["prompt"] = system_prompt if system_prompt.present?
+    
+    # Remove any system_prompt from config to avoid duplication
+    base_config.delete("system_prompt")
 
     # Remove provider-specific fields for wrong provider
     if claude?
@@ -207,10 +214,6 @@ class InstanceTemplate < ApplicationRecord
     if config["directory"].blank?
       errors.add(:config, "must include 'directory'")
     end
-
-    if config["system_prompt"].blank?
-      errors.add(:config, "must include 'system_prompt'")
-    end
   end
 
   def set_openai_defaults
@@ -241,9 +244,9 @@ class InstanceTemplate < ApplicationRecord
       end
     end
 
-    # Extract from prompt
-    if prompt.present? && prompt.include?("${")
-      prompt.scan(/\$\{([^}:]+)(?::=[^}]*)?\}/) do |var|
+    # Extract from system_prompt
+    if system_prompt.present? && system_prompt.include?("${")
+      system_prompt.scan(/\$\{([^}:]+)(?::=[^}]*)?\}/) do |var|
         vars << var[0]
       end
     end

@@ -87,6 +87,7 @@ class InstanceTemplatesController < ApplicationController
     permitted = params.require(:instance_template).permit(
       :name,
       :description,
+      :system_prompt,
       :category,
       :tags_string,
       config: {},

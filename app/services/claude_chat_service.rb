@@ -3,12 +3,10 @@
 require "claude_sdk"
 
 class ClaudeChatService
-  def initialize(project:, file_path:, conversation_id: nil)
+  def initialize(project:, file_path:, session_id: nil)
     @project = project
     @file_path = file_path
-    # This is the existing session_id to resume, not create new
-    @conversation_id = conversation_id
-    @actual_session_id = nil  # Will be set from the Result message
+    @session_id = session_id  # This is the Claude session ID from previous message
   end
 
   def chat(prompt, &block)
@@ -28,15 +26,18 @@ class ClaudeChatService
         model: "opus"  # Use Opus model
       )
       
-      # Only resume if we have an existing conversation_id from Claude
-      # The controller passes nil for new conversations
-      if @conversation_id.present?
-        options.resume = @conversation_id
+      # If we have a session_id from a previous message, use resume to continue the conversation
+      if @session_id.present?
+        options.resume = @session_id
+        Rails.logger.info "[ClaudeChatService] Resuming session: #{@session_id}"
+      else
+        Rails.logger.info "[ClaudeChatService] Starting new conversation"
       end
 
       # Track state
       accumulated_text = ""
       pending_tools = {}
+      actual_session_id = nil
       
       # Stream the response using the SDK
       ClaudeSDK.query(prompt, options: options) do |message|
@@ -127,13 +128,13 @@ class ClaudeChatService
           
         when ClaudeSDK::Messages::Result
           # Final result with session info - this means Claude is DONE
-          @actual_session_id = message.session_id
+          actual_session_id = message.session_id
           Rails.logger.info "[ClaudeChatService] Session complete: #{message.session_id}, duration: #{message.duration_ms}ms"
           
-          # Yield completion info
+          # Yield completion info with the NEW session_id for the next message
           yield({ 
             type: "complete",
-            session_id: message.session_id,
+            session_id: message.session_id,  # This is the session ID to use for the next message!
             duration_ms: message.duration_ms,
             cost: message.total_cost_usd,
             turns: message.num_turns,

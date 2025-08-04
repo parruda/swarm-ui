@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["messages", "input", "sendButton", "status", "form", "conversationIdField"]
+  static targets = ["messages", "input", "sendButton", "status", "form", "trackingIdField", "sessionIdField"]
   static values = { 
     projectId: String, 
     filePath: String,
@@ -10,17 +10,19 @@ export default class extends Controller {
   
   connect() {
     
-    // Generate conversation ID if not present (use UUID format)
+    // Generate tracking ID if not present (use UUID format)
     if (!this.conversationIdValue || !this.isValidUUID(this.conversationIdValue)) {
       this.conversationIdValue = this.generateUUID()
-      if (this.hasConversationIdFieldTarget) {
-        this.conversationIdFieldTarget.value = this.conversationIdValue
-      }
     }
     
-    // Store the original tracking ID for channel subscription
+    // Store the tracking ID for channel subscription (never changes)
     this.trackingId = this.conversationIdValue
     this.sessionId = null  // Will be set when we get a response from Claude
+    
+    // Set initial tracking ID in form
+    if (this.hasTrackingIdFieldTarget) {
+      this.trackingIdFieldTarget.value = this.trackingId
+    }
     
     // Listen for canvas refresh events
     this.handleCanvasRefresh = this.handleCanvasRefresh.bind(this)
@@ -65,6 +67,12 @@ export default class extends Controller {
     // Store the session ID from Claude for resume functionality
     if (event.detail?.sessionId) {
       this.sessionId = event.detail.sessionId
+      console.log("[Chat] Session ID received from Claude:", this.sessionId)
+      
+      // Update the session ID field in the form for the next message
+      if (this.hasSessionIdFieldTarget) {
+        this.sessionIdFieldTarget.value = this.sessionId
+      }
     }
   }
   
@@ -93,15 +101,12 @@ export default class extends Controller {
     
     this.isWaitingForResponse = true
     
-    // Update the conversation field with the latest session info
-    if (this.hasConversationIdFieldTarget) {
-      if (this.sessionId) {
-        // We have a session, send both tracking and session IDs
-        this.conversationIdFieldTarget.value = `${this.trackingId}:${this.sessionId}`
-      } else {
-        // First message, just send tracking ID
-        this.conversationIdFieldTarget.value = this.trackingId
-      }
+    // Session ID field is already updated in handleSessionUpdate
+    // Just log what we're sending
+    if (this.sessionId) {
+      console.log("[Chat] Sending with session resume - Tracking:", this.trackingId, "Session:", this.sessionId)
+    } else {
+      console.log("[Chat] Sending new conversation - Tracking:", this.trackingId)
     }
     
     // Hide welcome message on first message

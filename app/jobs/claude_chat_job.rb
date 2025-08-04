@@ -3,19 +3,19 @@
 class ClaudeChatJob < ApplicationJob
   queue_as :default
 
-  def perform(project_id:, file_path:, prompt:, conversation_id:, message_id:, tracking_id:)
+  def perform(project_id:, file_path:, prompt:, tracking_id:, session_id:, message_id:)
     project = Project.find(project_id)
-    actual_session_id = nil
     current_tool_id = nil
     typing_indicator_removed = false
+    new_session_id = nil
     
-    # Use tracking_id for all broadcasts (this stays constant)
+    # Use tracking_id for all broadcasts (stays constant)
     broadcast_id = tracking_id
     
     service = ClaudeChatService.new(
       project: project,
       file_path: file_path,
-      conversation_id: conversation_id,  # This will be nil for new conversations
+      session_id: session_id  # Pass the Claude session ID to resume conversation
     )
 
     service.chat(prompt) do |message|
@@ -72,9 +72,10 @@ class ClaudeChatJob < ApplicationJob
           current_tool_id = nil
         end
         
-        # Claude is done! Capture session ID
-        actual_session_id = message[:session_id]
-        broadcast_session_update(project_id, broadcast_id, actual_session_id)
+        # Claude is done! Capture the NEW session ID for the next message
+        new_session_id = message[:session_id]
+        Rails.logger.info "[ClaudeChatJob] Broadcasting new session ID: #{new_session_id}"
+        broadcast_session_update(project_id, broadcast_id, new_session_id)
         broadcast_enable_input(project_id, broadcast_id)
 
       when "error"

@@ -337,7 +337,8 @@
                           class: "flex gap-2" do |f| %>
               <%= f.hidden_field :project_id, value: @swarm_data[:visual_data][:project_id] || @project&.id %>
               <%= f.hidden_field :file_path, value: @swarm_data[:visual_data][:file_path] %>
-              <%= f.hidden_field :conversation_id, value: @conversation_id, data: { claude_chat_target: "conversationIdField" } %>
+              <%= f.hidden_field :tracking_id, value: @conversation_id, data: { claude_chat_target: "trackingIdField" } %>
+              <%= f.hidden_field :session_id, value: "", data: { claude_chat_target: "sessionIdField" } %>
               
               <%= f.text_area :prompt,
                               data: { 

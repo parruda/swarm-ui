@@ -3,22 +3,25 @@
 class ClaudeChatJob < ApplicationJob
   queue_as :default
 
-  def perform(project_id:, file_path:, prompt:, conversation_id:, message_id:)
+  def perform(project_id:, file_path:, prompt:, conversation_id:, message_id:, tracking_id:)
     project = Project.find(project_id)
     actual_session_id = nil
     current_tool_id = nil
     typing_indicator_removed = false
     
+    # Use tracking_id for all broadcasts (this stays constant)
+    broadcast_id = tracking_id
+    
     service = ClaudeChatService.new(
       project: project,
       file_path: file_path,
-      conversation_id: conversation_id,
+      conversation_id: conversation_id,  # This will be nil for new conversations
     )
 
     service.chat(prompt) do |message|
       # Remove typing indicator on first response
       unless typing_indicator_removed
-        broadcast_remove_typing_indicator(project_id, conversation_id, message_id)
+        broadcast_remove_typing_indicator(project_id, broadcast_id, message_id)
         typing_indicator_removed = true
       end
       
@@ -26,26 +29,26 @@ class ClaudeChatJob < ApplicationJob
       when "text"
         # Mark previous tool as complete if there was one
         if current_tool_id
-          broadcast_tool_complete(project_id, conversation_id, current_tool_id)
+          broadcast_tool_complete(project_id, broadcast_id, current_tool_id)
           current_tool_id = nil
         end
         
         # Append text as a new message, don't update
-        broadcast_assistant_message(project_id, conversation_id, message[:content])
+        broadcast_assistant_message(project_id, broadcast_id, message[:content])
 
       when "tool_use"
         # Mark previous tool as complete if there was one
         if current_tool_id
-          broadcast_tool_complete(project_id, conversation_id, current_tool_id)
+          broadcast_tool_complete(project_id, broadcast_id, current_tool_id)
         end
         
         # Track current tool
         current_tool_id = message[:id]
-        broadcast_tool_use(project_id, conversation_id, message)
+        broadcast_tool_use(project_id, broadcast_id, message)
 
       when "tool_result"
         # Mark the tool as complete with result
-        broadcast_tool_result(project_id, conversation_id, message)
+        broadcast_tool_result(project_id, broadcast_id, message)
         
         # Clear current tool if it matches
         if current_tool_id == message[:tool_use_id]
@@ -53,8 +56,8 @@ class ClaudeChatJob < ApplicationJob
         end
         
       when "file_modified"
-        broadcast_file_modified(project_id, conversation_id, file_path)
-        broadcast_canvas_refresh(project_id, conversation_id, file_path)
+        broadcast_file_modified(project_id, broadcast_id, file_path)
+        broadcast_canvas_refresh(project_id, broadcast_id, file_path)
         
       when "usage"
         # Skip usage info - not needed in UI
@@ -65,23 +68,23 @@ class ClaudeChatJob < ApplicationJob
       when "complete"
         # Mark any pending tool as complete
         if current_tool_id
-          broadcast_tool_complete(project_id, conversation_id, current_tool_id)
+          broadcast_tool_complete(project_id, broadcast_id, current_tool_id)
           current_tool_id = nil
         end
         
         # Claude is done! Capture session ID
         actual_session_id = message[:session_id]
-        broadcast_session_update(project_id, conversation_id, actual_session_id)
-        broadcast_enable_input(project_id, conversation_id)
+        broadcast_session_update(project_id, broadcast_id, actual_session_id)
+        broadcast_enable_input(project_id, broadcast_id)
 
       when "error"
         # Mark any pending tool as error
         if current_tool_id
-          broadcast_tool_error(project_id, conversation_id, current_tool_id)
+          broadcast_tool_error(project_id, broadcast_id, current_tool_id)
           current_tool_id = nil
         end
         
-        broadcast_error(project_id, conversation_id, message[:content])
+        broadcast_error(project_id, broadcast_id, message[:content])
       end
     end
   end

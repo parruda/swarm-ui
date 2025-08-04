@@ -6,8 +6,20 @@ module Api
       @project = Project.find(params[:project_id])
       @file_path = params[:file_path]
       @prompt = params[:prompt]
-      @conversation_id = params[:conversation_id].presence || SecureRandom.uuid
+      received_conversation_id = params[:conversation_id].presence
       @message_id = SecureRandom.hex(8)
+      
+      # Parse the conversation data which may contain both tracking_id and session_id
+      # Format: "tracking_id:session_id" or just "tracking_id" for first message
+      if received_conversation_id&.include?(":")
+        tracking_id, session_id = received_conversation_id.split(":", 2)
+        @conversation_id = tracking_id  # For broadcasts
+        service_conversation_id = session_id  # For Claude SDK resume
+      else
+        # First message or legacy format
+        @conversation_id = received_conversation_id || SecureRandom.uuid
+        service_conversation_id = nil  # Don't resume for first message
+      end
 
       # Validate file exists
       unless File.exist?(@file_path)
@@ -26,8 +38,9 @@ module Api
         project_id: @project.id,
         file_path: @file_path,
         prompt: @prompt,
-        conversation_id: @conversation_id,
+        conversation_id: service_conversation_id,  # Pass nil for new conversations
         message_id: @message_id,
+        tracking_id: @conversation_id,  # Pass the tracking ID separately
       )
 
       head :ok

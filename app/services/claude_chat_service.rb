@@ -6,8 +6,8 @@ class ClaudeChatService
   def initialize(project:, file_path:, conversation_id: nil)
     @project = project
     @file_path = file_path
-    # Convert conversation_id to proper UUID format or generate new one
-    @conversation_id = format_session_id(conversation_id)
+    # This is the existing session_id to resume, not create new
+    @conversation_id = conversation_id
     @actual_session_id = nil  # Will be set from the Result message
   end
 
@@ -22,12 +22,17 @@ class ClaudeChatService
       # Configure options for Claude SDK
       options = ClaudeSDK::ClaudeCodeOptions.new(
         cwd: @project.path,
-        session_id: @conversation_id,
         system_prompt: build_system_prompt,
         allowed_tools: ["Read", "Write", "Edit", "MultiEdit", "Bash", "LS", "Grep"],
         permission_mode: :accept_edits,
         model: "opus"  # Use Opus model
       )
+      
+      # Only resume if we have an existing conversation_id from Claude
+      # The controller passes nil for new conversations
+      if @conversation_id.present?
+        options.resume = @conversation_id
+      end
 
       # Track state
       accumulated_text = ""
@@ -154,18 +159,6 @@ class ClaudeChatService
   end
 
   private
-
-  def format_session_id(conversation_id)
-    return SecureRandom.uuid if conversation_id.nil? || conversation_id.empty?
-    
-    # If it's already a valid UUID, use it
-    if conversation_id =~ /\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i
-      return conversation_id
-    end
-    
-    # Otherwise generate a new UUID
-    SecureRandom.uuid
-  end
 
   def build_system_prompt
     <<~PROMPT

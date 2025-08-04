@@ -18,6 +18,10 @@ export default class extends Controller {
       }
     }
     
+    // Store the original tracking ID for channel subscription
+    this.trackingId = this.conversationIdValue
+    this.sessionId = null  // Will be set when we get a response from Claude
+    
     // Listen for canvas refresh events
     this.handleCanvasRefresh = this.handleCanvasRefresh.bind(this)
     window.addEventListener('canvas:refresh', this.handleCanvasRefresh)
@@ -35,12 +39,20 @@ export default class extends Controller {
     
     // Track if we're waiting for a response
     this.isWaitingForResponse = false
+    
+    // Set up mutation observer for auto-scroll
+    this.setupAutoScroll()
   }
   
   disconnect() {
     window.removeEventListener('canvas:refresh', this.handleCanvasRefresh)
     window.removeEventListener('session:update', this.handleSessionUpdate)
     window.removeEventListener('chat:complete', this.handleChatComplete)
+    
+    // Clean up mutation observer
+    if (this.messageObserver) {
+      this.messageObserver.disconnect()
+    }
   }
   
   handleCanvasRefresh(event) {
@@ -50,12 +62,9 @@ export default class extends Controller {
   }
   
   handleSessionUpdate(event) {
-    // Update the conversation ID with the actual session ID from Claude
+    // Store the session ID from Claude for resume functionality
     if (event.detail?.sessionId) {
-      this.conversationIdValue = event.detail.sessionId
-      if (this.hasConversationIdFieldTarget) {
-        this.conversationIdFieldTarget.value = event.detail.sessionId
-      }
+      this.sessionId = event.detail.sessionId
     }
   }
   
@@ -84,6 +93,17 @@ export default class extends Controller {
     
     this.isWaitingForResponse = true
     
+    // Update the conversation field with the latest session info
+    if (this.hasConversationIdFieldTarget) {
+      if (this.sessionId) {
+        // We have a session, send both tracking and session IDs
+        this.conversationIdFieldTarget.value = `${this.trackingId}:${this.sessionId}`
+      } else {
+        // First message, just send tracking ID
+        this.conversationIdFieldTarget.value = this.trackingId
+      }
+    }
+    
     // Hide welcome message on first message
     if (!this.welcomeHidden) {
       const welcomeMessage = document.getElementById("welcome_message")
@@ -103,11 +123,22 @@ export default class extends Controller {
   }
   
   afterSend() {
-    // Clear input immediately after sending
-    this.inputTarget.value = ""
+    // Clear the input through direct access and through the target
+    if (this.hasInputTarget) {
+      this.inputTarget.value = ""
+    }
     
-    // Scroll to bottom to see the new message
-    this.scrollToBottom()
+    // Also try to clear via direct query selector as backup
+    const textArea = this.element.querySelector('textarea[name="prompt"]')
+    if (textArea) {
+      textArea.value = ""
+    }
+    
+    // Always scroll to bottom when user sends a message
+    // This ensures they see their message and the response
+    setTimeout(() => {
+      this.scrollToBottom()
+    }, 100)
     
     // Note: We don't re-enable input here anymore
     // It will be re-enabled when we receive the chat:complete event
@@ -148,14 +179,76 @@ export default class extends Controller {
     }
   }
   
-  scrollToBottom() {
-    if (this.hasMessagesTarget) {
-      // Smooth scroll to bottom
-      this.messagesTarget.scrollTo({
-        top: this.messagesTarget.scrollHeight,
-        behavior: 'smooth'
-      })
+  setupAutoScroll() {
+    if (!this.hasMessagesTarget) {
+      // Try again after a short delay
+      setTimeout(() => this.setupAutoScroll(), 100)
+      return
     }
+    
+    // Create mutation observer to watch for new messages
+    this.messageObserver = new MutationObserver((mutations) => {
+      // Check if any actual nodes were added (not just text changes)
+      const hasNewNodes = mutations.some(mutation => 
+        mutation.type === 'childList' && mutation.addedNodes.length > 0
+      )
+      
+      if (hasNewNodes) {
+        this.autoScrollIfNeeded()
+      }
+    })
+    
+    // Observe changes to the messages container
+    this.messageObserver.observe(this.messagesTarget, {
+      childList: true,
+      subtree: true
+    })
+    
+    // Initially scroll to bottom if chat is empty or near bottom
+    this.autoScrollIfNeeded()
+  }
+  
+  getScrollContainer() {
+    // The parent div with overflow-y-auto is the actual scroll container
+    return this.messagesTarget.parentElement
+  }
+  
+  isNearBottom() {
+    const scrollContainer = this.getScrollContainer()
+    if (!scrollContainer) return true // Default to true if no container
+    
+    const threshold = 50 // pixels from bottom to consider "near bottom"
+    
+    // Check if scrolled near the bottom
+    const scrollPosition = scrollContainer.scrollTop + scrollContainer.clientHeight
+    const scrollHeight = scrollContainer.scrollHeight
+    
+    const nearBottom = scrollHeight - scrollPosition <= threshold
+    
+    return nearBottom
+  }
+  
+  autoScrollIfNeeded() {
+    if (!this.hasMessagesTarget) return
+    
+    // Add a small delay to ensure content is rendered
+    setTimeout(() => {
+      // Only scroll if user is already near the bottom
+      if (this.isNearBottom()) {
+        this.scrollToBottom()
+      }
+    }, 50)
+  }
+  
+  scrollToBottom() {
+    const scrollContainer = this.getScrollContainer()
+    if (!scrollContainer) return
+    
+    // Smooth scroll to bottom
+    scrollContainer.scrollTo({
+      top: scrollContainer.scrollHeight,
+      behavior: 'smooth'
+    })
   }
   
   refreshCanvas() {

@@ -25,7 +25,13 @@ export default class extends Controller {
     "emptyState",
     "importInput",
     "rightSidebar",
-    "resizeHandle"
+    "resizeHandle",
+    "instancesTab",
+    "instancesTabButton",
+    "mcpServersTab",
+    "mcpServersTabButton",
+    "mcpSearchInput",
+    "mcpServersList"
   ]
   
   static values = {
@@ -193,8 +199,25 @@ export default class extends Controller {
           provider: JSON.parse(e.target.dataset.templateConfig).provider
         }
         e.dataTransfer.setData('template', JSON.stringify(templateData))
+        e.dataTransfer.setData('type', 'template')
       }
     })
+    
+    // Drag and drop for MCP servers
+    if (this.hasMcpServersListTarget) {
+      this.mcpServersListTarget.addEventListener('dragstart', (e) => {
+        if (e.target.hasAttribute('data-mcp-card')) {
+          const mcpData = {
+            id: e.target.dataset.mcpId,
+            name: e.target.dataset.mcpName,
+            type: e.target.dataset.mcpType,
+            config: JSON.parse(e.target.dataset.mcpConfig)
+          }
+          e.dataTransfer.setData('mcp', JSON.stringify(mcpData))
+          e.dataTransfer.setData('type', 'mcp')
+        }
+      })
+    }
     
     this.viewport.addEventListener('dragover', (e) => {
       e.preventDefault()
@@ -202,29 +225,46 @@ export default class extends Controller {
     
     this.viewport.addEventListener('drop', (e) => {
       e.preventDefault()
-      const templateData = JSON.parse(e.dataTransfer.getData('template'))
-      if (templateData) {
-        // Get the viewport's bounding rect (which is scaled)
-        const viewportRect = this.viewport.getBoundingClientRect()
-        
-        // Mouse position relative to the scaled viewport
-        const mouseX = e.clientX - viewportRect.left
-        const mouseY = e.clientY - viewportRect.top
-        
-        // Convert from scaled pixels to actual viewport pixels
-        const viewportX = mouseX / this.zoomLevel
-        const viewportY = mouseY / this.zoomLevel
-        
-        // Node dimensions (matching what's set in createNodeElement)
-        const nodeWidth = 250
-        const nodeHeight = 120 // Approximate height based on content
-        
-        // Convert to canvas coordinates (relative to center)
-        // Center the node on the mouse cursor
-        const x = viewportX - this.canvasCenter - (nodeWidth / 2)
-        const y = viewportY - this.canvasCenter - (nodeHeight / 2)
-        
-        this.addNode(templateData, x, y)
+      
+      const dragType = e.dataTransfer.getData('type')
+      
+      if (dragType === 'template') {
+        const templateData = JSON.parse(e.dataTransfer.getData('template'))
+        if (templateData) {
+          // Get the viewport's bounding rect (which is scaled)
+          const viewportRect = this.viewport.getBoundingClientRect()
+          
+          // Mouse position relative to the scaled viewport
+          const mouseX = e.clientX - viewportRect.left
+          const mouseY = e.clientY - viewportRect.top
+          
+          // Convert from scaled pixels to actual viewport pixels
+          const viewportX = mouseX / this.zoomLevel
+          const viewportY = mouseY / this.zoomLevel
+          
+          // Node dimensions (matching what's set in createNodeElement)
+          const nodeWidth = 250
+          const nodeHeight = 120 // Approximate height based on content
+          
+          // Convert to canvas coordinates (relative to center)
+          // Center the node on the mouse cursor
+          const x = viewportX - this.canvasCenter - (nodeWidth / 2)
+          const y = viewportY - this.canvasCenter - (nodeHeight / 2)
+          
+          this.addNode(templateData, x, y)
+        }
+      } else if (dragType === 'mcp') {
+        const mcpData = JSON.parse(e.dataTransfer.getData('mcp'))
+        if (mcpData) {
+          // Find the node under the cursor
+          const element = document.elementFromPoint(e.clientX, e.clientY)
+          const nodeEl = element?.closest('.swarm-node')
+          
+          if (nodeEl) {
+            const nodeId = parseInt(nodeEl.dataset.nodeId)
+            this.addMcpToNode(nodeId, mcpData)
+          }
+        }
       }
     })
     
@@ -729,6 +769,49 @@ export default class extends Controller {
             </label>
           </div>
           
+          <!-- MCP Servers -->
+          <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">MCP Servers</h4>
+            ${nodeData.mcps && nodeData.mcps.length > 0 ? `
+              <div class="space-y-2">
+                ${nodeData.mcps.map(mcp => `
+                  <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-gray-900 dark:text-gray-100">${mcp.name}</span>
+                        <span class="text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded">
+                          ${mcp.type ? mcp.type.toUpperCase() : 'UNKNOWN'}
+                        </span>
+                      </div>
+                      ${mcp.type === 'stdio' && mcp.command ? `
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">${mcp.command}</p>
+                      ` : ''}
+                      ${mcp.type === 'sse' && mcp.url ? `
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">${mcp.url}</p>
+                      ` : ''}
+                    </div>
+                    <button type="button"
+                            data-action="click->swarm-visual-builder#removeMcpFromNode"
+                            data-node-id="${node.id}"
+                            data-mcp-name="${mcp.name}"
+                            class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                Drag MCP servers from the left panel to add more
+              </p>
+            ` : `
+              <p class="text-xs text-gray-500 dark:text-gray-400 italic">
+                No MCP servers configured. Drag from the MCP Servers tab to add.
+              </p>
+            `}
+          </div>
+          
           <!-- Connections -->
           <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
             <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Connections</h4>
@@ -1088,6 +1171,34 @@ export default class extends Controller {
       console.error('Error saving template:', error)
       this.showFlashMessage('Failed to save template: ' + error.message, 'error')
     }
+  }
+  
+  showFlashMessage(message, type = 'info') {
+    // Create flash message element
+    const flash = document.createElement('div')
+    flash.className = `fixed top-20 right-4 px-6 py-4 rounded-lg shadow-lg z-50 transition-all transform translate-x-0 ${
+      type === 'success' ? 'bg-green-600 text-white' :
+      type === 'error' ? 'bg-red-600 text-white' :
+      type === 'warning' ? 'bg-yellow-500 text-white' :
+      'bg-blue-600 text-white'
+    }`
+    flash.textContent = message
+    
+    // Add to DOM
+    document.body.appendChild(flash)
+    
+    // Animate in
+    setTimeout(() => {
+      flash.classList.add('opacity-100')
+    }, 10)
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      flash.classList.add('opacity-0', 'translate-x-full')
+      setTimeout(() => {
+        flash.remove()
+      }, 300)
+    }, 3000)
   }
   
   async promptForTemplateName(defaultName) {
@@ -1828,6 +1939,119 @@ export default class extends Controller {
     this.updateYamlPreview()
   }
   
+  // Tab switching for left sidebar
+  switchToInstancesTab() {
+    // Update tab buttons
+    this.instancesTabButtonTarget.classList.add('text-orange-600', 'dark:text-orange-400', 'border-orange-600', 'dark:border-orange-400')
+    this.instancesTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent')
+    this.mcpServersTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-orange-600', 'dark:border-orange-400')
+    this.mcpServersTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent')
+    
+    // Show/hide tab content
+    this.instancesTabTarget.classList.remove('hidden')
+    this.mcpServersTabTarget.classList.add('hidden')
+  }
+  
+  switchToMcpServersTab() {
+    // Update tab buttons
+    this.mcpServersTabButtonTarget.classList.add('text-orange-600', 'dark:text-orange-400', 'border-orange-600', 'dark:border-orange-400')
+    this.mcpServersTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent')
+    this.instancesTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-orange-600', 'dark:border-orange-400')
+    this.instancesTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent')
+    
+    // Show/hide tab content
+    this.mcpServersTabTarget.classList.remove('hidden')
+    this.instancesTabTarget.classList.add('hidden')
+  }
+  
+  // MCP server filtering
+  filterMcpServers(e) {
+    const searchTerm = e.target.value.toLowerCase()
+    const mcpServers = this.mcpServersListTarget.querySelectorAll('[data-mcp-card]')
+    
+    mcpServers.forEach(card => {
+      const name = card.dataset.mcpName.toLowerCase()
+      const type = card.dataset.mcpType.toLowerCase()
+      const element = card.querySelector('p')
+      const description = element ? element.textContent.toLowerCase() : ''
+      
+      const matches = name.includes(searchTerm) || 
+                     type.includes(searchTerm) || 
+                     description.includes(searchTerm)
+      
+      card.style.display = matches ? 'block' : 'none'
+    })
+  }
+  
+  // Add MCP server to node
+  addMcpToNode(nodeId, mcpData) {
+    const node = this.nodeManager.findNode(nodeId)
+    if (!node) return
+    
+    // Initialize mcps array if not exists
+    if (!node.data.mcps) {
+      node.data.mcps = []
+    }
+    
+    // Check if this MCP is already added
+    const exists = node.data.mcps.some(mcp => mcp.name === mcpData.name)
+    if (exists) {
+      this.showFlashMessage(`MCP server "${mcpData.name}" is already configured for this instance`, 'warning')
+      return
+    }
+    
+    // Convert server_type to type for claude-swarm compatibility
+    const mcpConfig = {
+      name: mcpData.config.name,
+      type: mcpData.config.type === 'stdio' || mcpData.config.type === 'sse' ? mcpData.config.type : mcpData.type
+    }
+    
+    // Add type-specific fields
+    if (mcpConfig.type === 'stdio') {
+      if (mcpData.config.command) mcpConfig.command = mcpData.config.command
+      if (mcpData.config.args && mcpData.config.args.length > 0) mcpConfig.args = mcpData.config.args
+      if (mcpData.config.env && Object.keys(mcpData.config.env).length > 0) mcpConfig.env = mcpData.config.env
+    } else if (mcpConfig.type === 'sse') {
+      if (mcpData.config.url) mcpConfig.url = mcpData.config.url
+      if (mcpData.config.headers && Object.keys(mcpData.config.headers).length > 0) mcpConfig.headers = mcpData.config.headers
+    }
+    
+    // Add to node's MCP list
+    node.data.mcps.push(mcpConfig)
+    
+    // Update properties panel if this node is selected
+    if (this.selectedNode?.id === nodeId) {
+      this.showNodeProperties(node)
+    }
+    
+    // Update YAML preview
+    this.updateYamlPreview()
+    
+    this.showFlashMessage(`Added MCP server "${mcpData.name}" to instance`, 'success')
+  }
+  
+  // Remove MCP server from node
+  removeMcpFromNode(e) {
+    const nodeId = parseInt(e.currentTarget.dataset.nodeId)
+    const mcpName = e.currentTarget.dataset.mcpName
+    
+    const node = this.nodeManager.findNode(nodeId)
+    if (!node || !node.data.mcps) return
+    
+    // Remove the MCP
+    node.data.mcps = node.data.mcps.filter(mcp => mcp.name !== mcpName)
+    
+    // Update properties panel
+    if (this.selectedNode?.id === nodeId) {
+      this.showNodeProperties(node)
+    }
+    
+    // Update YAML preview
+    this.updateYamlPreview()
+    
+    this.showFlashMessage(`Removed MCP server "${mcpName}" from instance`, 'info')
+  }
+  
   // YAML preview and export
   updateYamlPreview() {
     const swarmData = this.buildSwarmData()
@@ -1969,6 +2193,11 @@ export default class extends Controller {
         } else if (node.data.allowed_tools?.length > 0 || node.data.config?.allowed_tools?.length > 0) {
           instance.allowed_tools = node.data.allowed_tools || node.data.config.allowed_tools
         }
+      }
+      
+      // Add MCP servers if present
+      if (node.data.mcps && node.data.mcps.length > 0) {
+        instance.mcps = node.data.mcps
       }
       
       instances[key] = instance

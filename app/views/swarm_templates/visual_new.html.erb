@@ -98,50 +98,121 @@
 
   <!-- Main Layout -->
   <div class="flex-1 flex min-h-0">
-    <!-- Left Panel - Instance Library -->
-    <div class="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto flex-shrink-0">
-      <div class="p-4">
-        <button type="button"
-                data-action="click->swarm-visual-builder#addBlankInstance"
-                class="w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-          <%= heroicon "plus", variant: :outline, options: { class: "h-4 w-4 inline mr-2" } %>
-          Add Blank Instance
-        </button>
-        
-        <div class="my-4 border-t border-gray-200 dark:border-gray-700"></div>
-        
-        <div class="mb-4">
-          <input type="text"
-                 data-swarm-visual-builder-target="searchInput"
-                 data-action="input->swarm-visual-builder#filterTemplates"
-                 placeholder="Search instances..."
-                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+    <!-- Left Panel - Instance Library with Tabs -->
+    <div class="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
+      <!-- Tabs -->
+      <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="flex">
+          <button type="button"
+                  data-swarm-visual-builder-target="instancesTabButton"
+                  data-action="click->swarm-visual-builder#switchToInstancesTab"
+                  class="flex-1 px-4 py-3 text-sm font-medium text-orange-600 dark:text-orange-400 border-b-2 border-orange-600 dark:border-orange-400">
+            Instances
+          </button>
+          <button type="button"
+                  data-swarm-visual-builder-target="mcpServersTabButton"
+                  data-action="click->swarm-visual-builder#switchToMcpServersTab"
+                  class="flex-1 px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 border-b-2 border-transparent">
+            MCP Servers
+          </button>
+        </nav>
+      </div>
+      
+      <!-- Tab Content -->
+      <div class="flex-1 overflow-y-auto">
+        <!-- Instances Tab -->
+        <div data-swarm-visual-builder-target="instancesTab" class="p-4">
+          <button type="button"
+                  data-action="click->swarm-visual-builder#addBlankInstance"
+                  class="w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+            <%= heroicon "plus", variant: :outline, options: { class: "h-4 w-4 inline mr-2" } %>
+            Add Blank Instance
+          </button>
+          
+          <div class="my-4 border-t border-gray-200 dark:border-gray-700"></div>
+          
+          <div class="mb-4">
+            <input type="text"
+                   data-swarm-visual-builder-target="searchInput"
+                   data-action="input->swarm-visual-builder#filterTemplates"
+                   placeholder="Search instances..."
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+          </div>
+          
+          <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+            Instance Templates
+          </h3>
+          
+          <div data-swarm-visual-builder-target="instanceTemplates" class="space-y-2">
+            <% @instance_templates.each do |template| %>
+              <div draggable="true"
+                   data-template-card
+                   data-template-id="<%= template.id %>"
+                   data-template-name="<%= template.name %>"
+                   data-template-description="<%= template.description %>"
+                   data-template-config='<%= template.config.merge("system_prompt" => template.system_prompt).to_json %>'
+                   class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-move hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                <div class="flex items-start justify-between">
+                  <div>
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100"><%= template.name %></h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><%= template.description %></p>
+                  </div>
+                  <span class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
+                    <%= template.model %>
+                  </span>
+                </div>
+              </div>
+            <% end %>
+          </div>
         </div>
         
-        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-          Instance Templates
-        </h3>
-        
-        <div data-swarm-visual-builder-target="instanceTemplates" class="space-y-2">
-          <% @instance_templates.each do |template| %>
-            <div draggable="true"
-                 data-template-card
-                 data-template-id="<%= template.id %>"
-                 data-template-name="<%= template.name %>"
-                 data-template-description="<%= template.description %>"
-                 data-template-config='<%= template.config.merge("system_prompt" => template.system_prompt).to_json %>'
-                 class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-move hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-              <div class="flex items-start justify-between">
-                <div>
-                  <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100"><%= template.name %></h4>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><%= template.description %></p>
+        <!-- MCP Servers Tab -->
+        <div data-swarm-visual-builder-target="mcpServersTab" class="p-4 hidden">
+          <div class="mb-4">
+            <input type="text"
+                   data-swarm-visual-builder-target="mcpSearchInput"
+                   data-action="input->swarm-visual-builder#filterMcpServers"
+                   placeholder="Search MCP servers..."
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+          </div>
+          
+          <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+            Available MCP Servers
+          </h3>
+          
+          <div data-swarm-visual-builder-target="mcpServersList" class="space-y-2">
+            <% McpServer.ordered.each do |mcp_server| %>
+              <div draggable="true"
+                   data-mcp-card
+                   data-mcp-id="<%= mcp_server.id %>"
+                   data-mcp-name="<%= mcp_server.name %>"
+                   data-mcp-type="<%= mcp_server.server_type %>"
+                   data-mcp-config='<%= mcp_server.to_mcp_config.to_json %>'
+                   class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-move hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100"><%= mcp_server.name %></h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><%= mcp_server.description %></p>
+                    <div class="flex items-center gap-2 mt-2">
+                      <span class="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded">
+                        <%= mcp_server.server_type.upcase %>
+                      </span>
+                      <% if mcp_server.tags.present? %>
+                        <% mcp_server.tags.first(2).each do |tag| %>
+                          <span class="text-xs px-2 py-0.5 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded">
+                            <%= tag %>
+                          </span>
+                        <% end %>
+                      <% end %>
+                    </div>
+                  </div>
+                  <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <%= heroicon "server", variant: :outline, options: { class: "h-4 w-4 text-gray-400" } %>
+                  </div>
                 </div>
-                <span class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
-                  <%= template.model %>
-                </span>
               </div>
-            </div>
-          <% end %>
+            <% end %>
+          </div>
         </div>
       </div>
     </div>

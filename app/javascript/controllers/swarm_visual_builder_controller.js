@@ -2845,6 +2845,26 @@ export default class extends Controller {
     this.removeResizeOverlay()
   }
   
+  // Expand sidebar to max width with animation
+  expandSidebarToMax() {
+    if (!this.hasRightSidebarTarget) return
+    
+    const maxWidth = 800
+    const currentWidth = this.rightSidebarTarget.offsetWidth
+    
+    // Only expand if not already at max
+    if (currentWidth >= maxWidth) return
+    
+    // Add transition for smooth animation
+    this.rightSidebarTarget.style.transition = 'width 0.3s ease-out'
+    this.rightSidebarTarget.style.width = `${maxWidth}px`
+    
+    // Remove transition after animation completes
+    setTimeout(() => {
+      this.rightSidebarTarget.style.transition = ''
+    }, 300)
+  }
+  
   createResizeOverlay() {
     // Create an invisible overlay to capture all mouse events during resize
     this.resizeOverlay = document.createElement('div')

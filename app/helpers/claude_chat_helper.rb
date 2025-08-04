@@ -45,8 +45,8 @@ module ClaudeChatHelper
       # Add the text before the code block
       parts << format_text_content(before) if before.present?
 
-      # Add the code block
-      parts << %(<pre class="bg-gray-900 dark:bg-gray-950 p-4 rounded-lg overflow-x-auto my-3 border border-gray-700 dark:border-gray-600"><code class="text-sm text-gray-100 font-mono whitespace-pre">#{h(code_content.strip)}</code></pre>)
+      # Add the code block with smaller font
+      parts << %(<pre class="bg-gray-900 dark:bg-gray-950 p-3 rounded-lg overflow-x-auto my-3 border border-gray-700 dark:border-gray-600"><code class="text-xs text-gray-100 font-mono whitespace-pre leading-relaxed">#{h(code_content.strip)}</code></pre>)
 
       remaining = after
     end

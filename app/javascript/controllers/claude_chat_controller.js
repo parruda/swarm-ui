@@ -179,13 +179,16 @@ export default class extends Controller {
     
     // Session ID field is already updated in handleSessionUpdate
     
-    // Hide welcome message on first message
+    // Hide welcome message on first message and expand sidebar
     if (!this.welcomeHidden) {
       const welcomeMessage = document.getElementById("welcome_message")
       if (welcomeMessage) {
         welcomeMessage.style.display = "none"
       }
       this.welcomeHidden = true
+      
+      // Expand the sidebar to max width on first message
+      this.expandSidebarToMax()
     }
     
     // Update status
@@ -470,5 +473,17 @@ export default class extends Controller {
   isValidUUID(str) {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     return uuidRegex.test(str)
+  }
+  
+  expandSidebarToMax() {
+    // Find the swarm visual builder controller and call its expand method
+    const visualBuilder = this.application.getControllerForElementAndIdentifier(
+      document.querySelector('[data-controller~="swarm-visual-builder"]'),
+      'swarm-visual-builder'
+    )
+    
+    if (visualBuilder && visualBuilder.expandSidebarToMax) {
+      visualBuilder.expandSidebarToMax()
+    }
   }
 }

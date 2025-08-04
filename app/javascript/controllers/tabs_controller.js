@@ -14,7 +14,7 @@ export default class extends Controller {
   }
   
   showTab(selectedTab) {
-    const panelName = selectedTab.dataset.panel
+    const panelName = selectedTab.dataset.tab
     
     // Update tab styles
     this.tabTargets.forEach(tab => {
@@ -31,7 +31,7 @@ export default class extends Controller {
     
     // Show/hide panels
     this.panelTargets.forEach(panel => {
-      if (panel.dataset.panelName === panelName) {
+      if (panel.dataset.panel === panelName) {
         panel.classList.remove("hidden")
       } else {
         panel.classList.add("hidden")
@@ -46,7 +46,7 @@ export default class extends Controller {
     // Check if there's a hash in the URL and switch to that tab
     if (window.location.hash) {
       const targetPanel = window.location.hash.substring(1)
-      const targetTab = this.tabTargets.find(tab => tab.dataset.panel === targetPanel)
+      const targetTab = this.tabTargets.find(tab => tab.dataset.tab === targetPanel)
       if (targetTab) {
         this.showTab(targetTab)
       }

@@ -1951,14 +1951,28 @@ export default class extends Controller {
       return
     }
     
-    // Extract just the filename from the path
-    const filename = this.filePathValue.split('/').pop()
+    // Get the relative path from the project directory
+    const projectPath = this.projectPathValue
+    const filePath = this.filePathValue
+    let relativePath = filePath
+    
+    // If the file path starts with the project path, make it relative
+    if (filePath.startsWith(projectPath)) {
+      relativePath = filePath.substring(projectPath.length)
+      // Remove leading slash if present
+      if (relativePath.startsWith('/')) {
+        relativePath = relativePath.substring(1)
+      }
+    } else {
+      // If not within project path, just use the filename
+      relativePath = filePath.split('/').pop()
+    }
     
     // Navigate to the new session page with the swarm config pre-selected
     const projectId = this.projectIdValue
     if (projectId) {
       // Build the URL with the swarm config pre-selected
-      const newSessionUrl = `/sessions/new?project_id=${projectId}&default_config=${encodeURIComponent(filename)}`
+      const newSessionUrl = `/sessions/new?project_id=${projectId}&config=${encodeURIComponent(relativePath)}`
       window.location.href = newSessionUrl
     } else {
       this.showFlashMessage('Cannot launch swarm: project not found', 'error')

@@ -247,9 +247,19 @@ export default class extends Controller {
         // Scan for configs
         await this.scanForSwarmConfigs()
         
-        // If there's a default config path and it exists in the options, select it
-        if (defaultConfigPath) {
-          // Check if the default config exists in the select options
+        // Check if there's a pre-selected value from data-current-value (e.g., from visual builder launch)
+        const currentValue = this.configSelectTarget.dataset.currentValue
+        
+        if (currentValue) {
+          // Use the pre-selected value
+          const options = Array.from(this.configSelectTarget.options)
+          const matchingOption = options.find(opt => opt.value === currentValue || opt.value.endsWith(`/${currentValue}`))
+          
+          if (matchingOption) {
+            this.configSelectTarget.value = matchingOption.value
+          }
+        } else if (defaultConfigPath) {
+          // Otherwise, use the project's default config if it exists
           const options = Array.from(this.configSelectTarget.options)
           const defaultOption = options.find(opt => opt.value === defaultConfigPath || opt.value.endsWith(`/${defaultConfigPath}`))
           

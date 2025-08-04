@@ -5,6 +5,7 @@ class InstanceTemplatesController < ApplicationController
 
   def index
     @instance_templates = InstanceTemplate.includes(:swarm_template_instances).ordered
+    @instance_templates = @instance_templates.search(params[:search]) if params[:search].present?
     @instance_templates = @instance_templates.by_category(params[:category]) if params[:category].present?
     
     respond_to do |format|

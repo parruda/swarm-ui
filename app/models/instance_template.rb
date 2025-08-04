@@ -48,6 +48,15 @@ class InstanceTemplate < ApplicationRecord
   scope :ordered, -> { order(:name) }
   scope :system, -> { where(system_template: true) }
   scope :custom, -> { where(system_template: false) }
+  scope :search, ->(query) {
+    return all if query.blank?
+    
+    query = query.downcase
+    where(
+      "LOWER(name) LIKE :query OR LOWER(description) LIKE :query OR LOWER(CAST(tags AS TEXT)) LIKE :query OR LOWER(system_prompt) LIKE :query",
+      query: "%#{query}%"
+    )
+  }
   scope :by_category, ->(category) { where(category: category) }
   scope :claude, -> { where("config->>'provider' = ?", "claude") }
   scope :openai, -> { where("config->>'provider' = ?", "openai") }

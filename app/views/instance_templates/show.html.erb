@@ -39,8 +39,11 @@
           <% end %>
           
           <% unless @instance_template.swarm_template_instances.any? %>
-            <%= link_to instance_template_path(@instance_template), method: :delete,
-                data: { confirm: "Are you sure you want to delete this template?" },
+            <%= link_to instance_template_path(@instance_template),
+                data: { 
+                  "turbo-method": :delete,
+                  "turbo-confirm": "Are you sure you want to delete this template?" 
+                },
                 class: "inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 transition-colors duration-200" do %>
               <%= heroicon "trash", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
               Delete

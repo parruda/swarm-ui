@@ -18,21 +18,15 @@
                   wrapper: :tailwind,
                   input_html: { rows: 3 } %>
       
-      <%= f.input :category,
-                  collection: InstanceTemplate::CATEGORIES,
-                  prompt: "Select a category",
-                  label: "Category",
-                  hint: "Choose the category that best fits this template",
-                  wrapper: :tailwind %>
-      
       <div class="space-y-2">
-        <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Tags</label>
+        <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Tags <span class="text-red-500">*</span></label>
         <input type="text" 
                name="instance_template[tags_string]" 
                value="<%= @instance_template.tags&.join(', ') %>"
-               placeholder="e.g., react, typescript, testing (comma-separated)"
+               placeholder="e.g., frontend, react, typescript, backend, python, api, database, testing (comma-separated)"
+               required
                class="block w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:outline-none focus:border-orange-500 dark:focus:border-orange-400 focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 sm:text-sm sm:leading-6 transition-colors duration-200">
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Comma-separated list of tags</p>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Add tags to organize and filter templates (comma-separated). At least one tag is recommended.</p>
       </div>
     </div>
 

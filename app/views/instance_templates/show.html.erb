@@ -74,12 +74,6 @@
         </span>
       <% end %>
       
-      <% if @instance_template.category.present? %>
-        <span class="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 ring-indigo-600/20 dark:ring-indigo-400/30 px-3 py-1 text-sm font-medium ring-1 ring-inset">
-          <%= heroicon "folder", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
-          <%= @instance_template.category.capitalize %>
-        </span>
-      <% end %>
       
       <% if @instance_template.vibe %>
         <span class="inline-flex items-center rounded-md bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 ring-orange-600/20 dark:ring-orange-400/30 px-3 py-1 text-sm font-medium ring-1 ring-inset">
@@ -121,10 +115,6 @@
                 <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 font-mono bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded"><%= @instance_template.directory || "." %></dd>
               </div>
               
-              <div>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Category</dt>
-                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100"><%= @instance_template.category&.capitalize || "Not categorized" %></dd>
-              </div>
               
               <% if @instance_template.temperature.present? %>
               <div>

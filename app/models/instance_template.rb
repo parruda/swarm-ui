@@ -7,7 +7,6 @@ class InstanceTemplate < ApplicationRecord
   OPENAI_MODELS = ["gpt-4o", "gpt-4o-mini", "o1", "o1-mini", "o3-mini"].freeze
   API_VERSIONS = ["chat_completion", "responses"].freeze
   REASONING_EFFORTS = ["low", "medium", "high"].freeze
-  CATEGORIES = ["frontend", "backend", "security", "database", "devops", "testing", "general"].freeze
   AVAILABLE_TOOLS = [
     "Bash",
     "Edit",
@@ -33,7 +32,6 @@ class InstanceTemplate < ApplicationRecord
   validates :name, presence: true, uniqueness: true
   validates :description, presence: true
   validates :system_prompt, presence: true
-  validates :category, inclusion: { in: CATEGORIES }, allow_nil: true
   validates :config, presence: true
   validate :config_structure
   # validate :model_matches_provider # Allow any model name for flexibility
@@ -57,7 +55,6 @@ class InstanceTemplate < ApplicationRecord
       query: "%#{query}%"
     )
   }
-  scope :by_category, ->(category) { where(category: category) }
   scope :claude, -> { where("config->>'provider' = ?", "claude") }
   scope :openai, -> { where("config->>'provider' = ?", "openai") }
   scope :with_tag, ->(tag) { where("tags LIKE ?", "%#{tag}%") }

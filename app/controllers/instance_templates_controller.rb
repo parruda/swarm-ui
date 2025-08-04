@@ -111,7 +111,6 @@ class InstanceTemplatesController < ApplicationController
       :name,
       :description,
       :system_prompt,
-      :category,
       :tags_string,
       tags: [],
       metadata: {}

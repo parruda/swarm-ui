@@ -1713,8 +1713,8 @@ export default class extends Controller {
       return
     }
     
-    // Clear existing canvas
-    this.clearAll()
+    // Clear existing canvas (skip confirmation for programmatic refresh)
+    this.clearAll(true)
     
     // Set name and tags
     if (swarmName) {
@@ -1829,8 +1829,8 @@ export default class extends Controller {
         return
       }
       
-      // Import the swarm
-      this.clearAll()
+      // Import the swarm (skip confirmation for programmatic refresh)
+      this.clearAll(true)
       
       // Set name and tags
       this.nameInputTarget.value = swarmName
@@ -2529,8 +2529,8 @@ export default class extends Controller {
     this.updateYamlPreview()
   }
   
-  clearAll() {
-    if (this.nodeManager.getNodes().length > 0 && !confirm('Clear all nodes and connections?')) {
+  clearAll(skipConfirm = false) {
+    if (!skipConfirm && this.nodeManager.getNodes().length > 0 && !confirm('Clear all nodes and connections?')) {
       return
     }
     

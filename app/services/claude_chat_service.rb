@@ -171,19 +171,52 @@ class ClaudeChatService
 
       The file defines a swarm configuration for claude-swarm, which orchestrates multiple AI agents.
 
-      Key concepts:
-      - Each instance represents an AI agent with a specific role
-      - Instances can have connections to route conversations between agents
-      - The main instance is the entry point for the swarm
+      YAML Structure:
+      ```yaml
+      version: 1
+      swarm:
+        name: "Swarm Name"
+        instances:
+          instance_name:
+            description: "Role description"
+            model: opus/sonnet/haiku
+            directory: .
+            prompt: |
+              Detailed prompt for this agent
+            vibe: true
+            connections:
+              - other_instance_name
+        main: instance_name  # Entry point instance
+      ```
 
-      When modifying the file:
-      1. Preserve the existing structure and formatting
-      2. Explain your changes briefly
-      3. Follow YAML best practices
-      4. Ensure all instance references in connections are valid
+      CRITICAL RULES FOR MODIFICATIONS:
+      1. ALWAYS use the Read tool FIRST to see the current file content
+      2. NEVER duplicate existing instances - check if an instance already exists before adding
+      3. When updating an instance, use Edit to REPLACE the entire instance block, not append
+      4. Instance names must be unique identifiers (snake_case preferred)
+      5. The 'main' field must reference a valid instance name
+      6. Connections must reference valid instance names that exist in the file
+      7. Use proper YAML indentation (2 spaces per level)
+      8. Preserve multiline prompt formatting with | indicator
+
+      Common operations:
+      - Adding a new instance: Check it doesn't exist, then add to instances section
+      - Updating an instance: Use Edit to replace the ENTIRE instance definition
+      - Adding connections: Edit the connections list of the specific instance
+      - Changing main instance: Edit the main field at swarm level
+
+      BEFORE ANY MODIFICATION:
+      1. Use Read to see the current file
+      2. Check if the instance/connection already exists
+      3. Use Edit with enough context to ensure unique match
+      4. For complex changes, use MultiEdit to make multiple precise edits
+
+      Example of CORRECT instance update:
+      - Use Edit to replace from "instance_name:" to the end of that instance block
+      - Include enough context to uniquely identify the section being replaced
 
       You have access to file editing tools to modify the swarm configuration.
-      Use the Read tool first to understand the current content, then use Write/Edit/MultiEdit to make changes.
+      Always explain what changes you're making and why.
     PROMPT
   end
 end

@@ -2065,8 +2065,9 @@ export default class extends Controller {
   
   async promptForFilename(defaultName) {
     return new Promise((resolve) => {
-      // Ensure default name ends with .yml
-      const normalizedDefault = defaultName.replace(/\.(yaml|yml)$/i, '') + '.yml'
+      // Ensure default name ends with .yml (not .yaml)
+      let normalizedDefault = defaultName.replace(/\.(yaml|yml)$/i, '')
+      normalizedDefault = normalizedDefault + '.yml'
       
       // Create modal overlay
       const overlay = document.createElement('div')
@@ -2082,13 +2083,10 @@ export default class extends Controller {
           <br/>
           <span class="text-xs">It will be saved in: ${this.projectPathValue}/</span>
         </p>
-        <div class="relative">
-          <input type="text" 
-                 value="${normalizedDefault}" 
-                 class="w-full px-3 py-2 pr-12 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent"
-                 placeholder="filename.yml">
-          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm pointer-events-none">.yml</span>
-        </div>
+        <input type="text" 
+               value="${normalizedDefault}" 
+               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent"
+               placeholder="filename.yml">
         <div class="flex justify-end gap-3 mt-6">
           <button type="button" 
                   class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
@@ -2114,31 +2112,76 @@ export default class extends Controller {
       const baseName = normalizedDefault.replace('.yml', '')
       input.setSelectionRange(0, baseName.length)
       
-      // Ensure .yml extension on input change
+      // Store cursor position for maintaining it after manipulation
+      let lastCursorPos = baseName.length
+      
+      // Ensure .yml extension on every input change
       input.addEventListener('input', (e) => {
+        // Get current cursor position
+        const cursorPos = e.target.selectionStart
         let value = e.target.value
-        // Remove any existing extension
+        
+        // Remove any .yaml or .yml the user might have typed
         value = value.replace(/\.(yaml|yml)$/i, '')
-        // Update the input to show without extension (the .yml is shown as static text)
+        
+        // Always append .yml
+        value = value + '.yml'
+        
+        // Set the new value
         e.target.value = value
+        
+        // Restore cursor position (but not past the basename)
+        const newCursorPos = Math.min(cursorPos, value.length - 4) // -4 for '.yml'
+        e.target.setSelectionRange(newCursorPos, newCursorPos)
+      })
+      
+      // Prevent cursor from going into the .yml extension
+      input.addEventListener('keydown', (e) => {
+        const cursorPos = input.selectionStart
+        const value = input.value
+        const baseLength = value.length - 4 // -4 for '.yml'
+        
+        // If cursor is at the end of basename and user presses right arrow, prevent default
+        if (e.key === 'ArrowRight' && cursorPos >= baseLength) {
+          e.preventDefault()
+        }
+        
+        // If user tries to select all (Ctrl+A or Cmd+A), select only basename
+        if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+          e.preventDefault()
+          input.setSelectionRange(0, baseLength)
+        }
+      })
+      
+      // Prevent clicking into the .yml extension
+      input.addEventListener('click', (e) => {
+        const cursorPos = input.selectionStart
+        const value = input.value
+        const baseLength = value.length - 4 // -4 for '.yml'
+        
+        if (cursorPos > baseLength) {
+          input.setSelectionRange(baseLength, baseLength)
+        }
       })
       
       // Handle actions
       const handleSave = () => {
         let filename = input.value.trim()
         
-        // Remove any extension the user might have typed
-        filename = filename.replace(/\.(yaml|yml)$/i, '')
+        // The filename should already have .yml, but ensure it
+        if (!filename.endsWith('.yml')) {
+          filename = filename.replace(/\.(yaml|yml)$/i, '') + '.yml'
+        }
+        
+        // Get just the basename for validation
+        const basename = filename.replace('.yml', '')
         
         // Validate filename (not empty and not just dots/spaces)
-        if (!filename || filename === '' || /^\.+$/.test(filename)) {
+        if (!basename || basename === '' || /^\.+$/.test(basename)) {
           input.classList.add('ring-2', 'ring-red-500')
           setTimeout(() => input.classList.remove('ring-2', 'ring-red-500'), 2000)
           return
         }
-        
-        // Add .yml extension
-        filename = filename + '.yml'
         
         document.body.removeChild(overlay)
         resolve(filename)
@@ -2154,8 +2197,14 @@ export default class extends Controller {
       
       // Handle enter key
       input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') handleSave()
-        if (e.key === 'Escape') handleCancel()
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          handleSave()
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          handleCancel()
+        }
       })
       
       // Handle clicking outside

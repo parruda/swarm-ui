@@ -147,8 +147,13 @@ export default class extends Controller {
   }
   
   handleChatTabVisible(event) {
-    // When chat tab becomes visible, check if we should scroll
+    // When chat tab becomes visible, focus on the input and check if we should scroll
     setTimeout(() => {
+      // Focus on the message input
+      if (this.hasInputTarget && !this.inputTarget.disabled) {
+        this.inputTarget.focus()
+      }
+      
       // Force recalculation of scroll position when tab becomes visible
       this.autoScrollIfNeeded()
     }, 100)

@@ -142,11 +142,16 @@
         <nav class="-mb-px flex space-x-8" aria-label="Tabs">
           <button type="button"
                   data-tabs-target="tab"
-                  data-panel="overview"
+                  data-panel="swarms"
                   data-action="click->tabs#switchTab"
                   class="border-orange-500 dark:border-orange-400 text-orange-600 dark:text-orange-400 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
-            <%= heroicon "information-circle", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
-            Overview
+            <%= heroicon "cube", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
+            Swarms
+            <% if @swarm_files && @swarm_files.any? %>
+              <span class="ml-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 text-xs font-medium">
+                <%= @swarm_files.count %>
+              </span>
+            <% end %>
           </button>
           
           <button type="button"
@@ -159,20 +164,6 @@
             <% if @project.active_sessions_count > 0 %>
               <span class="ml-2 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-400 px-2 py-0.5 text-xs font-medium">
                 <%= @project.active_sessions_count %>
-              </span>
-            <% end %>
-          </button>
-          
-          <button type="button"
-                  data-tabs-target="tab"
-                  data-panel="swarms"
-                  data-action="click->tabs#switchTab"
-                  class="border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
-            <%= heroicon "cube", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
-            Swarms
-            <% if @swarm_files && @swarm_files.any? %>
-              <span class="ml-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 text-xs font-medium">
-                <%= @swarm_files.count %>
               </span>
             <% end %>
           </button>
@@ -197,119 +188,8 @@
 
       <!-- Tab Panels -->
       <div class="mt-6">
-        <!-- Overview Tab -->
-        <div data-tabs-target="panel" data-panel-name="overview">
-        <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200">
-          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Project Details</h2>
-          </div>
-          
-          <div class="px-6 py-4">
-            <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-              <div>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Version Control</dt>
-                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  <% if @project.git? %>
-                    <span class="inline-flex items-center rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                      <%= heroicon "code-bracket", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
-                      Git Repository
-                    </span>
-                  <% else %>
-                    <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                      <%= heroicon "folder", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
-                      Local Directory
-                    </span>
-                  <% end %>
-                </dd>
-              </div>
-              
-              <div>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Default Config</dt>
-                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  <%= @project.default_config_path || "None" %>
-                </dd>
-              </div>
-              
-              <div>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Use Worktree by Default</dt>
-                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  <% if @project.default_use_worktree? %>
-                    <span class="inline-flex items-center rounded-md bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-green-600/20 dark:ring-green-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">Yes</span>
-                  <% else %>
-                    <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">No</span>
-                  <% end %>
-                </dd>
-              </div>
-              
-              <div>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Sessions</dt>
-                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  <span class="text-green-600 dark:text-green-400"><%= @project.active_sessions_count %> active</span> / 
-                  <span><%= @project.total_sessions_count %> total</span>
-                </dd>
-              </div>
-              
-              <% if @project.last_session_at %>
-                <div>
-                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Activity</dt>
-                  <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                    <%= time_ago_in_words(@project.last_session_at) %> ago
-                  </dd>
-                </div>
-              <% end %>
-              
-              <div>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Created</dt>
-                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  <%= @project.created_at.strftime("%B %d, %Y") %>
-                </dd>
-              </div>
-              
-              <div>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Project Path</dt>
-                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 font-mono truncate">
-                  <%= @project.path %>
-                </dd>
-              </div>
-            </dl>
-          </div>
-        </div>
-      </div>
-
-      <!-- Sessions Tab -->
-      <div data-tabs-target="panel" data-panel-name="sessions" class="hidden">
-        <div class="sm:flex sm:items-center sm:justify-between mb-4">
-          <h2 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100">Active Sessions</h2>
-          <div class="mt-3 sm:mt-0">
-            <%= link_to sessions_path(project_id: @project.id), class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300" do %>
-              View all sessions →
-            <% end %>
-          </div>
-        </div>
-        
-        <% if @sessions.any? %>
-          <div class="space-y-4">
-            <%= render partial: "sessions/session", collection: @sessions %>
-          </div>
-        <% else %>
-          <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center border-2 border-dashed border-gray-300 dark:border-gray-700">
-            <div class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500">
-              <%= heroicon "command-line", variant: :outline, options: { class: "h-12 w-12" } %>
-            </div>
-            <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">No active sessions</h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Sessions running for this project will appear here.</p>
-            <div class="mt-6">
-              <%= link_to new_session_path(project_id: @project.id), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
-                <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
-                Create Session
-              <% end %>
-            </div>
-          </div>
-        <% end %>
-      </div>
-
-      <!-- Swarms Tab -->
-      <div data-tabs-target="panel" data-panel-name="swarms" class="hidden">
+        <!-- Swarms Tab (default visible) -->
+        <div data-tabs-target="panel" data-panel-name="swarms">
         <div class="sm:flex sm:items-center sm:justify-between mb-4">
           <h2 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100">Swarm Files</h2>
           <div class="mt-3 sm:mt-0">
@@ -402,6 +282,38 @@
               <%= link_to new_project_swarm_template_path(@project), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
                 <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
                 Create First Swarm
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      
+      <!-- Sessions Tab -->
+      <div data-tabs-target="panel" data-panel-name="sessions" class="hidden">
+        <div class="sm:flex sm:items-center sm:justify-between mb-4">
+          <h2 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100">Active Sessions</h2>
+          <div class="mt-3 sm:mt-0">
+            <%= link_to sessions_path(project_id: @project.id), class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300" do %>
+              View all sessions →
+            <% end %>
+          </div>
+        </div>
+        
+        <% if @sessions.any? %>
+          <div class="space-y-4">
+            <%= render partial: "sessions/session", collection: @sessions %>
+          </div>
+        <% else %>
+          <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-8 text-center border-2 border-dashed border-gray-300 dark:border-gray-700">
+            <div class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500">
+              <%= heroicon "command-line", variant: :outline, options: { class: "h-12 w-12" } %>
+            </div>
+            <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">No active sessions</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Sessions running for this project will appear here.</p>
+            <div class="mt-6">
+              <%= link_to new_session_path(project_id: @project.id), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+                <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
+                Create Session
               <% end %>
             </div>
           </div>

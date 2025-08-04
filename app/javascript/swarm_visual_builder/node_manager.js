@@ -138,10 +138,22 @@ export default class NodeManager {
       const x = startX + col * (nodeWidth + nodeSpacing) - this.controller.canvasCenter
       const y = startY + row * (nodeHeight + nodeSpacing) - this.controller.canvasCenter
       
+      // Map the swarm YAML format to the visual builder format
+      const mappedConfig = {
+        ...config,
+        system_prompt: config.prompt || config.system_prompt || '',  // Map 'prompt' to 'system_prompt'
+        temperature: config.temperature,
+        allowed_tools: config.allowed_tools,
+        parallel_tool_calls: config.parallel_tool_calls,
+        response_format: config.response_format,
+        vibe: config.vibe,
+        directory: config.directory
+      }
+      
       const node = this.createNode({
         name: name,
         description: config.description || '',
-        config: config,
+        config: mappedConfig,
         model: config.model || 'Unknown',
         provider: config.provider || 'Unknown'
       }, { x, y })

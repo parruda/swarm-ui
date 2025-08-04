@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["messages", "input", "sendButton", "status", "form", "trackingIdField", "sessionIdField"]
+  static targets = ["messages", "input", "sendButton", "status", "form", "trackingIdField", "sessionIdField", "nodeContextField"]
   static values = { 
     projectId: String, 
     filePath: String,
@@ -185,14 +185,7 @@ export default class extends Controller {
     
     // Session ID field is already updated in handleSessionUpdate
     
-    // Add selected nodes context to the prompt if any nodes are selected
-    if (this.selectedNodes.length > 0 && this.hasInputTarget) {
-      const context = this.getSelectedNodesContextString()
-      if (context) {
-        // Append context to the input value
-        this.inputTarget.value = this.inputTarget.value + context
-      }
-    }
+    // No need to modify input here - context is already in the hidden field
     
     // Hide welcome message on first message and expand sidebar
     if (!this.welcomeHidden) {
@@ -520,6 +513,27 @@ export default class extends Controller {
     
     // Update visual indicator in chat panel
     this.updateSelectionIndicator()
+    
+    // Update hidden context field if it exists
+    this.updateNodeContextField()
+  }
+  
+  updateNodeContextField() {
+    // Find or create hidden field for node context
+    let contextField = this.element.querySelector('input[name="node_context"]')
+    
+    if (!contextField && this.hasFormTarget) {
+      // Create the hidden field if it doesn't exist
+      contextField = document.createElement('input')
+      contextField.type = 'hidden'
+      contextField.name = 'node_context'
+      this.formTarget.appendChild(contextField)
+    }
+    
+    if (contextField) {
+      // Set the context value
+      contextField.value = this.getSelectedNodesContextString()
+    }
   }
   
   updateSelectionIndicator() {
@@ -552,7 +566,7 @@ export default class extends Controller {
               <span class="text-xs font-medium text-gray-600 dark:text-gray-400 mr-2">Context:</span>
               ${nodeNames}
             </div>
-            <button onclick="this.closest('[data-claude-chat-target=selectionIndicator]').style.display='none'" 
+            <button data-action="click->claude-chat#clearNodeContext" 
                     class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
               Clear
             </button>
@@ -574,5 +588,19 @@ export default class extends Controller {
     ).join('\n')
     
     return `\n\n[Context: This message is about the following selected instance${this.selectedNodes.length > 1 ? 's' : ''}:\n${nodeDescriptions}]`
+  }
+  
+  clearNodeContext() {
+    // Clear selected nodes
+    this.selectedNodes = []
+    
+    // Update visual indicator
+    this.updateSelectionIndicator()
+    
+    // Clear hidden field
+    this.updateNodeContextField()
+    
+    // Notify visual builder to deselect all nodes
+    window.dispatchEvent(new CustomEvent('chat:clearNodeSelection'))
   }
 }

@@ -89,12 +89,17 @@ export default class extends Controller {
     // Listen for sidebar expansion request
     this.handleSidebarExpand = this.expandSidebarToMax.bind(this)
     window.addEventListener('sidebar:expandToMax', this.handleSidebarExpand)
+    
+    // Listen for chat clear selection request
+    this.handleClearSelection = () => this.deselectAll()
+    window.addEventListener('chat:clearNodeSelection', this.handleClearSelection)
   }
   
   disconnect() {
     // Clean up event listeners
     window.removeEventListener('canvas:refresh', this.handleCanvasRefresh)
     window.removeEventListener('sidebar:expandToMax', this.handleSidebarExpand)
+    window.removeEventListener('chat:clearNodeSelection', this.handleClearSelection)
   }
   
   async initializeVisualBuilder() {

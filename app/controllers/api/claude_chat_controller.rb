@@ -6,11 +6,13 @@ module Api
       @project = Project.find(params[:project_id])
       @file_path = params[:file_path]
       @prompt = params[:prompt]
+      @node_context = params[:node_context].presence
       @tracking_id = params[:tracking_id].presence || SecureRandom.uuid
       @session_id = params[:session_id].presence # Claude session ID from previous message
       @message_id = SecureRandom.hex(8)
 
       Rails.logger.info("[ClaudeChatController] Tracking ID: #{@tracking_id}, Session ID: #{@session_id}")
+      Rails.logger.info("[ClaudeChatController] Node context: #{@node_context}") if @node_context.present?
 
       # Validate file exists
       unless File.exist?(@file_path)
@@ -18,7 +20,14 @@ module Api
         return
       end
 
-      # Add user message to chat
+      # Append node context to prompt if present
+      full_prompt = if @node_context.present?
+                      "#{@prompt}#{@node_context}"
+                    else
+                      @prompt
+                    end
+
+      # Add user message to chat (show original prompt without context for cleaner UI)
       broadcast_user_message(@prompt)
 
       # Show typing indicator
@@ -28,7 +37,7 @@ module Api
       ClaudeChatJob.perform_later(
         project_id: @project.id,
         file_path: @file_path,
-        prompt: @prompt,
+        prompt: full_prompt,
         tracking_id: @tracking_id,
         session_id: @session_id,
         message_id: @message_id,

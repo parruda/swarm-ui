@@ -2646,9 +2646,6 @@ export default class extends Controller {
         // Load connections
         this.connectionManager.load(data.connections)
         
-        // Mark destination sockets based on loaded connections
-        this.updateSocketStates()
-        
         // Set main node
         if (data.mainNodeId) {
           this.mainNodeId = data.mainNodeId
@@ -2661,8 +2658,10 @@ export default class extends Controller {
           this.renderTags()
         }
         
-        // Update UI
+        // Update UI - this renders the connections
         this.updateConnections()
+        // NOW mark destination sockets after connections are rendered
+        this.updateSocketStates()
         this.updateEmptyState()
         this.updateYamlPreview()
       }
@@ -2716,11 +2715,14 @@ export default class extends Controller {
             }
           })
           
-          // Update socket states to mark destinations
-          this.updateSocketStates()
-          
           // Auto-layout for better visual
           this.autoLayout()
+          
+          // Update connections first to render them
+          this.updateConnections()
+          
+          // Then update socket states after connections are rendered
+          this.updateSocketStates()
         }
       }
     } catch (error) {

@@ -172,9 +172,14 @@ export default class extends Controller {
         const viewportX = mouseX / this.zoomLevel
         const viewportY = mouseY / this.zoomLevel
         
+        // Node dimensions (matching what's set in createNodeElement)
+        const nodeWidth = 250
+        const nodeHeight = 120 // Approximate height based on content
+        
         // Convert to canvas coordinates (relative to center)
-        const x = viewportX - this.canvasCenter
-        const y = viewportY - this.canvasCenter
+        // Center the node on the mouse cursor
+        const x = viewportX - this.canvasCenter - (nodeWidth / 2)
+        const y = viewportY - this.canvasCenter - (nodeHeight / 2)
         
         this.addNode(templateData, x, y)
       }
@@ -1232,8 +1237,13 @@ export default class extends Controller {
     const viewportRect = this.viewport.getBoundingClientRect()
     const containerRect = this.container.getBoundingClientRect()
     
-    const centerX = (containerRect.width / 2 - viewportRect.left + this.container.scrollLeft) / this.zoomLevel - this.canvasCenter
-    const centerY = (containerRect.height / 2 - viewportRect.top + this.container.scrollTop) / this.zoomLevel - this.canvasCenter
+    // Node dimensions
+    const nodeWidth = 250
+    const nodeHeight = 120
+    
+    // Calculate center position and offset by half node size to center the node
+    const centerX = (containerRect.width / 2 - viewportRect.left + this.container.scrollLeft) / this.zoomLevel - this.canvasCenter - (nodeWidth / 2)
+    const centerY = (containerRect.height / 2 - viewportRect.top + this.container.scrollTop) / this.zoomLevel - this.canvasCenter - (nodeHeight / 2)
     
     const templateData = {
       name: 'New Instance',

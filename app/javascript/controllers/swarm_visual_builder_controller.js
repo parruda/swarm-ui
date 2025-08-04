@@ -1397,8 +1397,77 @@ export default class extends Controller {
   // YAML preview and export
   updateYamlPreview() {
     const swarmData = this.buildSwarmData()
-    const yaml = jsyaml.dump(swarmData)
+    const yaml = this.generateReadableYaml(swarmData)
     this.yamlPreviewTarget.querySelector('pre').textContent = yaml
+  }
+  
+  // Generate readable YAML with proper multiline formatting
+  generateReadableYaml(data) {
+    // Use js-yaml with custom options for better formatting
+    const yaml = jsyaml.dump(data, {
+      lineWidth: 120,
+      noRefs: true,
+      sortKeys: false,
+      quotingType: '"',
+      forceQuotes: false
+    })
+    
+    // Post-process to ensure proper | formatting for multiline strings
+    const lines = yaml.split('\n')
+    const processedLines = []
+    let i = 0
+    
+    while (i < lines.length) {
+      const line = lines[i]
+      
+      // Check if this is a prompt or description field with a long value in quotes
+      const quotedMatch = line.match(/^(\s*)(prompt|description):\s*["'](.*)["']\s*$/)
+      if (quotedMatch) {
+        const indent = quotedMatch[1]
+        const field = quotedMatch[2]
+        const value = quotedMatch[3]
+        
+        // If the value is long or contains special characters, use | literal style
+        if (value.length > 60 || value.includes('\\n')) {
+          // Unescape the string
+          const unescapedValue = value.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'")
+          
+          processedLines.push(`${indent}${field}: |`)
+          
+          // Split into lines and add with proper indentation
+          const valueLines = unescapedValue.split('\n')
+          valueLines.forEach(valueLine => {
+            processedLines.push(`${indent}  ${valueLine}`)
+          })
+          
+          i++
+          continue
+        }
+      }
+      
+      // Check for multiline string indicators from js-yaml (both > and |)
+      const multilineMatch = line.match(/^(\s*)(prompt|description):\s*[|>]-?\s*$/)
+      if (multilineMatch) {
+        const indent = multilineMatch[1]
+        const field = multilineMatch[2]
+        
+        // Replace > with | to use literal style instead of folded style
+        processedLines.push(`${indent}${field}: |`)
+        i++
+        
+        // Include the indented content lines
+        while (i < lines.length && lines[i].match(/^\s+/)) {
+          processedLines.push(lines[i])
+          i++
+        }
+        continue
+      }
+      
+      processedLines.push(line)
+      i++
+    }
+    
+    return processedLines.join('\n')
   }
   
   buildSwarmData() {
@@ -1419,7 +1488,8 @@ export default class extends Controller {
       const instance = {}
       
       // REQUIRED: description field
-      instance.description = node.data.description || node.data.config?.description || `Instance for ${node.data.name}`
+      const description = node.data.description || node.data.config?.description || `Instance for ${node.data.name}`
+      instance.description = description
       
       // Optional fields only added if they have values
       const model = node.data.model || node.data.config?.model
@@ -1666,7 +1736,7 @@ export default class extends Controller {
   
   exportYaml() {
     const swarmData = this.buildSwarmData()
-    const yaml = jsyaml.dump(swarmData)
+    const yaml = this.generateReadableYaml(swarmData)
     
     const blob = new Blob([yaml], { type: 'text/yaml' })
     const url = URL.createObjectURL(blob)
@@ -1715,7 +1785,7 @@ export default class extends Controller {
   
   async saveSwarm() {
     const swarmData = this.buildSwarmData()
-    const yaml = jsyaml.dump(swarmData)
+    const yaml = this.generateReadableYaml(swarmData)
     
     // Check if we're working with files (either editing or creating new)
     if (this.isFileEditValue || this.isNewFileValue) {

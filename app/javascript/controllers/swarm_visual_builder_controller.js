@@ -2114,26 +2114,31 @@ export default class extends Controller {
   // Sidebar resize functionality
   startResize(e) {
     e.preventDefault()
-    this.isResizing = true
+    e.stopPropagation()
     this.startX = e.pageX
     this.startWidth = this.rightSidebarTarget.offsetWidth
     
-    // Add temporary event listeners
-    this.handleMouseMove = this.doResize.bind(this)
-    this.handleMouseUp = this.stopResize.bind(this)
+    // Store bound functions so we can remove them later
+    this.boundDoResize = (e) => this.doResize(e)
+    this.boundStopResize = (e) => this.stopResize(e)
     
-    document.addEventListener('mousemove', this.handleMouseMove)
-    document.addEventListener('mouseup', this.handleMouseUp)
+    // Add temporary event listeners with capture to ensure they run first
+    document.addEventListener('mousemove', this.boundDoResize, true)
+    document.addEventListener('mouseup', this.boundStopResize, true)
     
     // Add resize cursor to body during resize
     document.body.style.cursor = 'ew-resize'
     
     // Prevent text selection during resize
     document.body.style.userSelect = 'none'
+    
+    // Add a transparent overlay to prevent other interactions
+    this.createResizeOverlay()
   }
   
   doResize(e) {
-    if (!this.isResizing) return
+    e.preventDefault()
+    e.stopPropagation()
     
     const diff = this.startX - e.pageX  // Reverse because we're resizing from the left edge
     const newWidth = this.startWidth + diff
@@ -2147,15 +2152,44 @@ export default class extends Controller {
     }
   }
   
-  stopResize() {
-    this.isResizing = false
+  stopResize(e) {
+    e.preventDefault()
+    e.stopPropagation()
     
-    // Remove temporary event listeners
-    document.removeEventListener('mousemove', this.handleMouseMove)
-    document.removeEventListener('mouseup', this.handleMouseUp)
+    // Remove temporary event listeners (with capture flag)
+    document.removeEventListener('mousemove', this.boundDoResize, true)
+    document.removeEventListener('mouseup', this.boundStopResize, true)
+    
+    // Clean up bound functions
+    this.boundDoResize = null
+    this.boundStopResize = null
     
     // Reset cursor
     document.body.style.cursor = ''
     document.body.style.userSelect = ''
+    
+    // Remove overlay
+    this.removeResizeOverlay()
+  }
+  
+  createResizeOverlay() {
+    // Create an invisible overlay to capture all mouse events during resize
+    this.resizeOverlay = document.createElement('div')
+    this.resizeOverlay.style.position = 'fixed'
+    this.resizeOverlay.style.top = '0'
+    this.resizeOverlay.style.left = '0'
+    this.resizeOverlay.style.width = '100%'
+    this.resizeOverlay.style.height = '100%'
+    this.resizeOverlay.style.zIndex = '9999'
+    this.resizeOverlay.style.cursor = 'ew-resize'
+    this.resizeOverlay.style.userSelect = 'none'
+    document.body.appendChild(this.resizeOverlay)
+  }
+  
+  removeResizeOverlay() {
+    if (this.resizeOverlay) {
+      document.body.removeChild(this.resizeOverlay)
+      this.resizeOverlay = null
+    }
   }
 }

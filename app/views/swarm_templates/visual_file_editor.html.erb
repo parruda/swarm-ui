@@ -199,7 +199,15 @@
     </div>
 
     <!-- Right Panel - Properties/YAML -->
-    <div class="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
+    <div class="bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0 relative" 
+         data-swarm-visual-builder-target="rightSidebar"
+         style="width: 384px; min-width: 300px; max-width: 600px;">
+      <!-- Resize Handle -->
+      <div class="absolute left-0 top-0 bottom-0 w-2 -ml-1 cursor-ew-resize group"
+           data-swarm-visual-builder-target="resizeHandle"
+           data-action="mousedown->swarm-visual-builder#startResize">
+        <div class="absolute left-1/2 top-0 bottom-0 w-0.5 -ml-px bg-gray-300 dark:bg-gray-600 group-hover:bg-orange-500 dark:group-hover:bg-orange-400 transition-colors"></div>
+      </div>
       <!-- Tabs -->
       <div class="border-b border-gray-200 dark:border-gray-700">
         <nav class="flex">

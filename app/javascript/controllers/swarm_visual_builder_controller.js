@@ -21,7 +21,9 @@ export default class extends Controller {
     "yamlTabButton",
     "zoomLevel",
     "emptyState",
-    "importInput"
+    "importInput",
+    "rightSidebar",
+    "resizeHandle"
   ]
   
   static values = {
@@ -2037,5 +2039,53 @@ export default class extends Controller {
     this.updateEmptyState()
     this.updateYamlPreview()
     this.deselectAll()
+  }
+  
+  // Sidebar resize functionality
+  startResize(e) {
+    e.preventDefault()
+    this.isResizing = true
+    this.startX = e.pageX
+    this.startWidth = this.rightSidebarTarget.offsetWidth
+    
+    // Add temporary event listeners
+    this.handleMouseMove = this.doResize.bind(this)
+    this.handleMouseUp = this.stopResize.bind(this)
+    
+    document.addEventListener('mousemove', this.handleMouseMove)
+    document.addEventListener('mouseup', this.handleMouseUp)
+    
+    // Add resize cursor to body during resize
+    document.body.style.cursor = 'ew-resize'
+    
+    // Prevent text selection during resize
+    document.body.style.userSelect = 'none'
+  }
+  
+  doResize(e) {
+    if (!this.isResizing) return
+    
+    const diff = this.startX - e.pageX  // Reverse because we're resizing from the left edge
+    const newWidth = this.startWidth + diff
+    
+    // Respect min and max width
+    const minWidth = 300
+    const maxWidth = 600
+    
+    if (newWidth >= minWidth && newWidth <= maxWidth) {
+      this.rightSidebarTarget.style.width = `${newWidth}px`
+    }
+  }
+  
+  stopResize() {
+    this.isResizing = false
+    
+    // Remove temporary event listeners
+    document.removeEventListener('mousemove', this.handleMouseMove)
+    document.removeEventListener('mouseup', this.handleMouseUp)
+    
+    // Reset cursor
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
   }
 }

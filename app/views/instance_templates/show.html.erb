@@ -214,16 +214,17 @@
         <!-- Raw Configuration -->
         <div class="mt-6 bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Raw Configuration (JSON)</h2>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Raw Configuration (YAML)</h2>
             <button type="button" 
-                    onclick="navigator.clipboard.writeText(JSON.stringify(<%= @instance_template.config.to_json %>, null, 2))"
+                    onclick="navigator.clipboard.writeText(this.dataset.yaml)"
+                    data-yaml="<%= @instance_template.to_instance_config.to_yaml.html_safe %>"
                     class="inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-2.5 py-1.5 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200">
               <%= heroicon "clipboard-document", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
               Copy
             </button>
           </div>
           <div class="px-6 py-4">
-            <pre class="text-sm text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto font-mono"><%= JSON.pretty_generate(@instance_template.config) %></pre>
+            <pre class="text-sm text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto font-mono"><%= @instance_template.to_instance_config.to_yaml %></pre>
           </div>
         </div>
       </div>

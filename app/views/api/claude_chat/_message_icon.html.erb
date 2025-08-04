@@ -1,0 +1,16 @@
+<% case role %>
+<% when "user" %>
+  <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+    <%= heroicon "user", variant: :solid, options: { class: "w-4 h-4 text-white" } %>
+  </div>
+<% when "assistant" %>
+  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+    <%= heroicon "sparkles", variant: :solid, options: { class: "w-4 h-4 text-white" } %>
+  </div>
+<% when "error" %>
+  <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center">
+    <%= heroicon "exclamation-circle", variant: :solid, options: { class: "w-4 h-4 text-white" } %>
+  </div>
+<% else %>
+  <div class="w-8 h-8 rounded-full bg-gray-400"></div>
+<% end %>

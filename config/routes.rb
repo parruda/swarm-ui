@@ -27,6 +27,13 @@ Rails.application.routes.draw do
       post :git_status_poll
     end
   end
+  
+  # API routes
+  namespace :api do
+    post "claude_chat", to: "claude_chat#create"
+    get "swarm_files/read", to: "swarm_files#read"
+    post "swarm_files/notify_change", to: "swarm_files#notify_change"
+  end
 
   resources :projects do
     member do

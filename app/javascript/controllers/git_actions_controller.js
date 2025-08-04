@@ -573,7 +573,6 @@ export default class extends Controller {
       // Get the Stimulus controller instance
       const controller = this.application.getControllerForElementAndIdentifier(gitStatusController, 'git-status-visibility')
       if (controller && controller.manualRefresh) {
-        console.log('[GitActions] Triggering git status refresh after successful operation')
         controller.manualRefresh()
       }
     }

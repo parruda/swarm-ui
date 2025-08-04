@@ -1,0 +1,21 @@
+<div id="message_<%= message_id %>" class="<%= message_classes(role) %>">
+  <div class="flex-shrink-0">
+    <%= render "api/claude_chat/message_icon", role: role %>
+  </div>
+  
+  <div class="flex-1 min-w-0">
+    <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+      <%= message_role_label(role) %>
+    </div>
+    
+    <div id="message_<%= message_id %>_content" class="text-sm text-gray-900 dark:text-gray-100 overflow-hidden">
+      <%= render "api/claude_chat/message_content", content: content, role: role %>
+    </div>
+    
+    <% if defined?(streaming) && streaming %>
+      <div id="message_<%= message_id %>_status" class="mt-2">
+        <%= render "api/claude_chat/message_status", streaming: true %>
+      </div>
+    <% end %>
+  </div>
+</div>

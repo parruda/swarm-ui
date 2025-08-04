@@ -1,0 +1,27 @@
+<% if is_error %>
+  <div class="flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
+    <%= heroicon "x-circle", variant: :solid, options: { class: "h-4 w-4" } %>
+    <span>Error</span>
+  </div>
+  <% if content.present? %>
+    <details class="mt-2">
+      <summary class="cursor-pointer text-xs text-red-600 dark:text-red-400 hover:underline">View error details</summary>
+      <pre class="mt-1 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs overflow-x-auto"><%= content %></pre>
+    </details>
+  <% end %>
+<% else %>
+  <div class="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+    <%= heroicon "check-circle", variant: :solid, options: { class: "h-4 w-4" } %>
+    <span>Complete</span>
+  </div>
+  <% if content.present? && content.to_s.length > 100 %>
+    <details class="mt-2">
+      <summary class="cursor-pointer text-xs text-gray-600 dark:text-gray-400 hover:underline">View output</summary>
+      <pre class="mt-1 p-2 bg-gray-900 text-green-400 rounded text-xs overflow-x-auto max-h-48 overflow-y-auto"><%= content %></pre>
+    </details>
+  <% elsif content.present? %>
+    <div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+      <pre class="p-2 bg-gray-900 text-green-400 rounded overflow-x-auto"><%= content %></pre>
+    </div>
+  <% end %>
+<% end %>

@@ -1,0 +1,20 @@
+<div id="<%= indicator_id %>" class="flex gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+  <div class="flex-shrink-0">
+    <%= render "api/claude_chat/message_icon", role: "assistant" %>
+  </div>
+  
+  <div class="flex-1">
+    <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+      Claude
+    </div>
+    
+    <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 italic">
+      <div class="flex gap-0.5">
+        <span class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>
+        <span class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></span>
+        <span class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></span>
+      </div>
+      <span>Claude is typing...</span>
+    </div>
+  </div>
+</div>

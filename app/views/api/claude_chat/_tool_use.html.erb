@@ -1,0 +1,57 @@
+<div id="tool_<%= tool_id %>" class="ml-12 mb-1 bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/50 rounded-md p-2 text-xs">
+  <div class="flex items-center gap-1.5">
+    <!-- Tool icon -->
+    <div class="flex-shrink-0">
+      <% case tool_name %>
+      <% when "Read" %>
+        <%= heroicon "eye", variant: :outline, options: { class: "h-3 w-3 text-amber-600 dark:text-amber-500" } %>
+      <% when "Write", "Edit", "MultiEdit" %>
+        <%= heroicon "pencil-square", variant: :outline, options: { class: "h-3 w-3 text-amber-600 dark:text-amber-500" } %>
+      <% when "Bash" %>
+        <%= heroicon "command-line", variant: :outline, options: { class: "h-3 w-3 text-amber-600 dark:text-amber-500" } %>
+      <% when "Grep" %>
+        <%= heroicon "magnifying-glass", variant: :outline, options: { class: "h-3 w-3 text-amber-600 dark:text-amber-500" } %>
+      <% when "LS" %>
+        <%= heroicon "folder-open", variant: :outline, options: { class: "h-3 w-3 text-amber-600 dark:text-amber-500" } %>
+      <% else %>
+        <%= heroicon "wrench", variant: :outline, options: { class: "h-3 w-3 text-amber-600 dark:text-amber-500" } %>
+      <% end %>
+    </div>
+    
+    <!-- Tool name and details -->
+    <div class="flex-1 min-w-0">
+      <span class="font-medium text-gray-700 dark:text-gray-300">
+        <%= tool_name %>
+      </span>
+      
+      <!-- Tool input details -->
+      <span class="text-gray-500 dark:text-gray-400 ml-1 truncate block">
+        <% case tool_name %>
+        <% when "Read" %>
+          <span class="font-mono truncate"><%= tool_input["file_path"] %></span>
+        <% when "Write" %>
+          <span class="truncate">Creating: <span class="font-mono"><%= File.basename(tool_input["file_path"]) %></span></span>
+        <% when "Edit", "MultiEdit" %>
+          <span class="truncate">Editing: <span class="font-mono"><%= File.basename(tool_input["file_path"]) %></span></span>
+        <% when "Bash" %>
+          <code class="truncate"><%= tool_input["command"] %></code>
+        <% when "Grep" %>
+          <span class="truncate">Pattern: <code><%= tool_input["pattern"] %></code></span>
+        <% when "LS" %>
+          <span class="font-mono truncate"><%= tool_input["path"] %></span>
+        <% end %>
+      </span>
+    </div>
+    
+    <!-- Status indicator -->
+    <div id="tool_<%= tool_id %>_status" class="flex-shrink-0">
+      <div class="flex items-center gap-0.5 text-amber-600 dark:text-amber-500">
+        <%= heroicon "arrow-path", variant: :outline, options: { class: "h-2.5 w-2.5 animate-spin" } %>
+        <span class="text-[10px]">Running</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Output container (for tool results if any) -->
+  <div id="tool_<%= tool_id %>_output"></div>
+</div>

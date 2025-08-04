@@ -1,0 +1,12 @@
+<% if Rails.env.development? %>
+  <div class="ml-12 mb-1 inline-flex items-center gap-2 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs text-gray-600 dark:text-gray-400">
+    <%= heroicon "chart-bar", variant: :outline, options: { class: "h-3 w-3" } %>
+    <span>
+      <%= number_with_delimiter(usage["input_tokens"] || 0) %> in / 
+      <%= number_with_delimiter(usage["output_tokens"] || 0) %> out
+      <% if usage["cache_read_input_tokens"].to_i > 0 %>
+        (<%= number_with_delimiter(usage["cache_read_input_tokens"]) %> cached)
+      <% end %>
+    </span>
+  </div>
+<% end %>

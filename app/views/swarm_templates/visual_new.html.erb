@@ -1,10 +1,11 @@
 <% content_for :title, "Swarm Builder" %>
+<% # Version: <%= Time.current.to_i %> %>
 
 <% content_for :full_width do %>
 <div class="fixed inset-0 top-[56px] flex flex-col bg-gray-50 dark:bg-gray-900" 
      data-controller="swarm-visual-builder"
      data-swarm-visual-builder-swarm-id-value="<%= @swarm_template.persisted? ? @swarm_template.id : '' %>"
-     data-swarm-visual-builder-existing-data-value='<%= @swarm_template.visual_data.to_json || "{}" %>'
+     data-swarm-visual-builder-existing-data-value='<%= @swarm_template.visual_data&.to_json || "{}" %>'
      data-swarm-visual-builder-existing-yaml-value='<%= @swarm_template.yaml_content || "" %>'
      data-swarm-visual-builder-project-id-value="<%= @swarm_template.visual_data&.dig('project_id') || @project&.id || '' %>"
      data-swarm-visual-builder-project-name-value="<%= @swarm_template.visual_data&.dig('project_name') || @project&.name || '' %>"
@@ -246,8 +247,14 @@
           <button type="button" 
                   data-swarm-visual-builder-target="yamlTabButton"
                   data-action="click->swarm-visual-builder#switchToYaml"
-                  class="flex-1 px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                  class="flex-1 px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 border-b-2 border-transparent">
             YAML Preview
+          </button>
+          <button type="button" 
+                  data-swarm-visual-builder-target="chatTabButton"
+                  data-action="click->swarm-visual-builder#switchToChat"
+                  class="flex-1 px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 border-b-2 border-transparent">
+            💬 Chat
           </button>
         </nav>
       </div>
@@ -277,6 +284,97 @@
           <div data-swarm-visual-builder-target="yamlPreview" 
                class="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900">
             <pre class="text-sm font-mono text-gray-700 dark:text-gray-300"></pre>
+          </div>
+        </div>
+        
+        <% @conversation_id = SecureRandom.uuid %>
+        <!-- Chat Panel -->
+        <div data-swarm-visual-builder-target="chatTab" 
+             class="hidden h-full flex flex-col"
+             data-controller="claude-chat"
+             data-claude-chat-project-id-value="<%= @swarm_template.visual_data&.dig('project_id') || @project&.id || '' %>"
+             data-claude-chat-file-path-value="<%= @swarm_template.visual_data&.dig('file_path') || '' %>"
+             data-claude-chat-conversation-id-value="<%= @conversation_id %>">
+          
+          <!-- Chat header with status -->
+          <div class="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <%= heroicon "sparkles", variant: :solid, options: { class: "h-5 w-5 text-orange-500" } %>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">AI Assistant</span>
+            </div>
+            <div data-claude-chat-target="status" class="text-xs text-gray-500 dark:text-gray-400">
+              <% if @swarm_template.visual_data&.dig('file_path').present? %>
+                Ready
+              <% else %>
+                Save file to enable chat
+              <% end %>
+            </div>
+          </div>
+          
+          <!-- Turbo Stream subscription for chat messages -->
+          <% if @swarm_template.visual_data&.dig('file_path').present? %>
+            <%= turbo_stream_from "claude_chat_#{@swarm_template.visual_data['project_id']}_#{@conversation_id}" %>
+          <% end %>
+          
+          <!-- Chat messages area -->
+          <div class="flex-1 overflow-y-auto p-4 space-y-4">
+            <div id="chat_messages" data-claude-chat-target="messages">
+              <% if @swarm_template.visual_data&.dig('file_path').blank? %>
+                <div class="text-center py-8">
+                  <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 dark:bg-yellow-900">
+                    <%= heroicon "exclamation-triangle", variant: :outline, options: { class: "h-6 w-6 text-yellow-600 dark:text-yellow-400" } %>
+                  </div>
+                  <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">File Not Saved</h3>
+                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                    Please save your swarm to a file first to enable AI assistance.
+                  </p>
+                </div>
+              <% else %>
+                <div id="welcome_message" class="text-center py-8">
+                  <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600">
+                    <%= heroicon "chat-bubble-left-right", variant: :solid, options: { class: "h-6 w-6 text-white" } %>
+                  </div>
+                  <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Start a Conversation</h3>
+                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                    Ask me to help you build your swarm configuration. I can add instances, configure connections, and explain best practices.
+                  </p>
+                </div>
+              <% end %>
+            </div>
+          </div>
+          
+          <!-- Chat input area -->
+          <div class="border-t border-gray-200 dark:border-gray-700 p-4">
+            <%= form_with url: api_claude_chat_path, 
+                          method: :post,
+                          data: { 
+                            controller: "claude-chat-form",
+                            action: "submit->claude-chat-form#submit",
+                            claude_chat_target: "form"
+                          },
+                          class: "flex gap-2" do |f| %>
+              <%= f.hidden_field :project_id, value: @swarm_template.visual_data&.dig('project_id') || @project&.id %>
+              <%= f.hidden_field :file_path, value: @swarm_template.visual_data&.dig('file_path') %>
+              <%= f.hidden_field :conversation_id, value: @conversation_id, data: { claude_chat_target: "conversationIdField" } %>
+              
+              <%= f.text_area :prompt,
+                              data: { 
+                                claude_chat_target: "input",
+                                action: "keydown->claude-chat#handleKeydown"
+                              },
+                              placeholder: @swarm_template.visual_data&.dig('file_path').present? ? 
+                                          'Ask Claude to help build your swarm...' : 
+                                          'Save file first to enable chat...',
+                              disabled: @swarm_template.visual_data&.dig('file_path').blank?,
+                              rows: 2,
+                              class: "flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:border-orange-500 dark:focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 resize-none #{@swarm_template.visual_data&.dig('file_path').blank? ? 'opacity-50 cursor-not-allowed' : ''}" %>
+              
+              <%= f.submit nil,
+                           disabled: @swarm_template.visual_data&.dig('file_path').blank?,
+                           data: { claude_chat_target: "sendButton" },
+                           class: "px-4 py-2 text-sm font-medium text-white bg-orange-600 dark:bg-orange-600 rounded-lg hover:bg-orange-700 dark:hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 #{@swarm_template.visual_data&.dig('file_path').blank? ? 'opacity-50 cursor-not-allowed' : ''}",
+                           value: "➤" %>
+            <% end %>
           </div>
         </div>
       </div>

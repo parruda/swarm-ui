@@ -19,6 +19,8 @@ export default class extends Controller {
     "propertiesTab",
     "propertiesTabButton",
     "yamlTabButton",
+    "chatTab",
+    "chatTabButton",
     "zoomLevel",
     "emptyState",
     "importInput",
@@ -39,7 +41,6 @@ export default class extends Controller {
   }
   
   async connect() {
-    console.log("Swarm visual builder connected")
     
     // Initialize managers
     this.nodeManager = new NodeManager(this)
@@ -77,6 +78,9 @@ export default class extends Controller {
     if ((this.swarmIdValue && this.existingDataValue) || this.existingYamlValue || this.isFileEditValue) {
       this.loadExistingSwarm()
     }
+    
+    // Listen for canvas refresh events from Claude chat
+    window.addEventListener('canvas:refresh', this.handleCanvasRefresh.bind(this))
   }
   
   async initializeVisualBuilder() {
@@ -1582,23 +1586,199 @@ export default class extends Controller {
   switchToProperties() {
     this.propertiesTabTarget.classList.remove('hidden')
     this.yamlPreviewTabTarget.classList.add('hidden')
+    if (this.hasChatTabTarget) {
+      this.chatTabTarget.classList.add('hidden')
+    }
     
     this.propertiesTabButtonTarget.classList.add('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
     this.propertiesTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400')
     
     this.yamlTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
     this.yamlTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
+    
+    if (this.hasChatTabButtonTarget) {
+      this.chatTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
+      this.chatTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
+    }
   }
   
   switchToYaml() {
     this.yamlPreviewTabTarget.classList.remove('hidden')
     this.propertiesTabTarget.classList.add('hidden')
+    if (this.hasChatTabTarget) {
+      this.chatTabTarget.classList.add('hidden')
+    }
     
     this.yamlTabButtonTarget.classList.add('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
     this.yamlTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400')
     
     this.propertiesTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
     this.propertiesTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
+    
+    if (this.hasChatTabButtonTarget) {
+      this.chatTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
+      this.chatTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
+    }
+    
+    this.updateYamlPreview()
+  }
+  
+  switchToChat() {
+    if (!this.hasChatTabTarget) return
+    
+    this.chatTabTarget.classList.remove('hidden')
+    this.propertiesTabTarget.classList.add('hidden')
+    this.yamlPreviewTabTarget.classList.add('hidden')
+    
+    this.chatTabButtonTarget.classList.add('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
+    this.chatTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400')
+    
+    this.propertiesTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
+    this.propertiesTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
+    
+    this.yamlTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
+    this.yamlTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
+  }
+  
+  // Handle canvas refresh when Claude modifies the file
+  async handleCanvasRefresh(event) {
+    const filePath = event.detail?.filePath
+    if (!filePath || filePath !== this.filePathValue) return
+    
+    // Refreshing canvas due to file modification by Claude
+    
+    // Reload the file content from server
+    try {
+      const response = await fetch(`/api/swarm_files/read?path=${encodeURIComponent(filePath)}`)
+      if (!response.ok) throw new Error('Failed to read file')
+      
+      const data = await response.json()
+      if (data.yaml_content) {
+        // Parse and reload the YAML content
+        const yamlData = jsyaml.load(data.yaml_content)
+        this.loadFromYamlData(yamlData)
+        this.updateYamlPreview()
+        
+        // Show a brief notification
+        this.showNotification('Canvas refreshed with latest changes')
+      }
+    } catch (error) {
+      console.error('Error refreshing canvas:', error)
+    }
+  }
+  
+  showNotification(message) {
+    // Create a simple notification
+    const notification = document.createElement('div')
+    notification.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in'
+    notification.textContent = message
+    document.body.appendChild(notification)
+    
+    setTimeout(() => {
+      notification.remove()
+    }, 3000)
+  }
+  
+  // Load swarm data from parsed YAML
+  async loadFromYamlData(data) {
+    // Handle claude-swarm format (version: 1, swarm: {...})
+    let swarmData = null
+    let swarmName = null
+    let tags = []
+    
+    if (data.version === 1 && data.swarm) {
+      // Standard claude-swarm format
+      swarmData = data.swarm
+      swarmName = swarmData.name || this.nameInputTarget.value || 'imported_swarm'
+    } else {
+      // Legacy format or SwarmUI export format - look for first object with instances
+      for (const [key, value] of Object.entries(data)) {
+        if (value && typeof value === 'object' && value.instances) {
+          swarmData = value
+          swarmName = key
+          // Extract tags if present (SwarmUI-specific)
+          if (value.tags) {
+            tags = value.tags
+          }
+          break
+        }
+      }
+    }
+    
+    if (!swarmData || !swarmData.instances) {
+      console.error('Invalid swarm data format')
+      return
+    }
+    
+    // Clear existing canvas
+    this.clearAll()
+    
+    // Set name and tags
+    if (swarmName) {
+      this.nameInputTarget.value = swarmName
+    }
+    if (tags.length > 0) {
+      this.tags = tags
+      this.renderTags()
+    }
+    
+    // Import nodes
+    const importedNodes = this.nodeManager.importNodes(swarmData)
+    
+    // Render all nodes
+    importedNodes.forEach(node => {
+      this.renderNode(node)
+    })
+    
+    // Set main node if specified
+    if (swarmData.main) {
+      const mainNode = importedNodes.find(n => 
+        n.data.name.toLowerCase().replace(/\s+/g, '_') === swarmData.main
+      )
+      if (mainNode) {
+        this.setMainNode(mainNode.id)
+      }
+    }
+    
+    // Create connections
+    Object.entries(swarmData.instances).forEach(([instanceKey, instanceData]) => {
+      if (instanceData.connections) {
+        const fromNode = importedNodes.find(n => 
+          n.data.name.toLowerCase().replace(/\s+/g, '_') === instanceKey
+        )
+        
+        if (fromNode) {
+          instanceData.connections.forEach(toKey => {
+            const toNode = importedNodes.find(n => 
+              n.data.name.toLowerCase().replace(/\s+/g, '_') === toKey
+            )
+            
+            if (toNode) {
+              const { fromSide, toSide } = this.connectionManager.findBestSocketPair(fromNode, toNode)
+              this.connectionManager.createConnection(fromNode.id, fromSide, toNode.id, toSide)
+              
+              // Mark socket as used
+              const socket = toNode.element.querySelector(`.socket[data-socket-side="${toSide}"]`)
+              if (socket) socket.classList.add('used-as-destination')
+            }
+          })
+        }
+      }
+    })
+    
+    // Auto-layout and update
+    await this.autoLayout()
+    
+    // Center view on imported nodes if any
+    if (importedNodes.length > 0) {
+      const bounds = this.nodeManager.getNodesBounds()
+      const centerX = (bounds.minX + bounds.maxX) / 2 + this.canvasCenter
+      const centerY = (bounds.minY + bounds.maxY) / 2 + this.canvasCenter
+      
+      const containerRect = this.container.getBoundingClientRect()
+      this.container.scrollLeft = centerX * this.zoomLevel - containerRect.width / 2
+      this.container.scrollTop = centerY * this.zoomLevel - containerRect.height / 2
+    }
     
     this.updateYamlPreview()
   }
@@ -2229,10 +2409,6 @@ export default class extends Controller {
   }
   
   loadExistingSwarm() {
-    console.log('Loading existing swarm...')
-    console.log('existingDataValue:', this.existingDataValue)
-    console.log('existingYamlValue:', this.existingYamlValue)
-    console.log('isFileEditValue:', this.isFileEditValue)
     
     if (!this.existingDataValue && !this.existingYamlValue) return
     

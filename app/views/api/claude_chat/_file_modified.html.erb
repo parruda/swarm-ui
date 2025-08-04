@@ -1,0 +1,12 @@
+<div class="ml-12 mb-2 flex items-center gap-2 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+  <%= heroicon "document-check", variant: :solid, options: { class: "h-5 w-5 text-purple-600 dark:text-purple-400" } %>
+  <span class="text-sm font-medium text-purple-900 dark:text-purple-100">
+    File modified: <span class="font-mono"><%= File.basename(file_path) %></span>
+  </span>
+  <button type="button"
+          onclick="window.dispatchEvent(new CustomEvent('canvas:refresh', { detail: { filePath: '<%= file_path %>' }}))"
+          class="ml-auto px-3 py-1 text-xs font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors flex items-center gap-1">
+    <%= heroicon "arrow-path", variant: :outline, options: { class: "h-3 w-3" } %>
+    Refresh Canvas
+  </button>
+</div>

@@ -26,10 +26,8 @@ export default class extends Controller {
 
   handleVisibilityChange = () => {
     if (document.hidden) {
-      console.log("[GitStatus] Tab became hidden, stopping polling")
       this.stopPolling()
     } else {
-      console.log("[GitStatus] Tab became visible, starting polling")
       this.startPolling()
     }
   }
@@ -87,8 +85,6 @@ export default class extends Controller {
   
   // Method to manually trigger refresh (called by refresh button)
   async manualRefresh() {
-    console.log("[GitStatus] Manual refresh triggered")
-    
     try {
       const response = await fetch(`/sessions/${this.sessionIdValue}/refresh_git_status`, {
         method: "POST",

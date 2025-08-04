@@ -1,0 +1,11 @@
+<% if Rails.env.development? %>
+  <details class="ml-12 mb-2 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg">
+    <summary class="cursor-pointer text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+      <%= heroicon "light-bulb", variant: :outline, options: { class: "h-4 w-4" } %>
+      Claude's thinking process
+    </summary>
+    <div class="mt-2 p-2 text-xs text-gray-600 dark:text-gray-400 italic">
+      <%= simple_format(content) %>
+    </div>
+  </details>
+<% end %>

@@ -38,6 +38,10 @@ Rails.application.routes.draw do
       get :environment_variables
       get :edit_swarm_file
       delete :delete_swarm_file
+      # Tab content endpoints
+      get "tabs/swarms", to: "project_tabs#swarms", as: :tab_swarms
+      get "tabs/sessions", to: "project_tabs#sessions", as: :tab_sessions
+      get "tabs/git", to: "project_tabs#git", as: :tab_git
     end
     
     collection do

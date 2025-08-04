@@ -19,11 +19,9 @@ class ProjectsController < ApplicationController
   end
 
   def show
-    # Only show active sessions on project show page
-    @sessions = @project.sessions.active.order(started_at: :desc)
-    
-    # Load swarm files from the project directory
-    @swarm_files = @project.find_swarm_files
+    # Only load swarm files count for the badge, not the full data
+    # The actual swarm files will be loaded via turbo frame
+    @swarm_files = @project.find_swarm_files if request.format.html?
 
     respond_to do |format|
       format.html

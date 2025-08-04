@@ -24,6 +24,12 @@ export default class extends Controller {
     "importInput"
   ]
   
+  static values = {
+    swarmId: String,
+    existingData: String,
+    existingYaml: String
+  }
+  
   async connect() {
     console.log("Swarm visual builder connected")
     
@@ -58,6 +64,11 @@ export default class extends Controller {
     await this.initializeVisualBuilder()
     this.setupEventListeners()
     this.setupKeyboardShortcuts()
+    
+    // Load existing data if editing
+    if (this.swarmIdValue && this.existingDataValue) {
+      this.loadExistingSwarm()
+    }
   }
   
   async initializeVisualBuilder() {
@@ -1698,9 +1709,13 @@ export default class extends Controller {
     const swarmData = this.buildSwarmData()
     const yaml = jsyaml.dump(swarmData)
     
+    const isUpdate = !!this.swarmIdValue
+    const url = isUpdate ? `/swarm_templates/${this.swarmIdValue}` : '/swarm_templates'
+    const method = isUpdate ? 'PATCH' : 'POST'
+    
     try {
-      const response = await fetch('/swarm_templates', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
@@ -1713,7 +1728,8 @@ export default class extends Controller {
             visual_data: JSON.stringify({
               nodes: this.nodeManager.serialize(),
               connections: this.connectionManager.serialize(),
-              mainNodeId: this.mainNodeId
+              mainNodeId: this.mainNodeId,
+              tags: this.tags
             })
           }
         })
@@ -1721,13 +1737,108 @@ export default class extends Controller {
       
       if (response.ok) {
         const result = await response.json()
-        window.location.href = result.redirect_url
+        window.location.href = result.redirect_url || '/swarm_templates'
       } else {
-        alert('Failed to save swarm')
+        alert(`Failed to ${isUpdate ? 'update' : 'save'} swarm`)
       }
     } catch (error) {
       console.error('Save error:', error)
-      alert('Failed to save swarm: ' + error.message)
+      alert(`Failed to ${isUpdate ? 'update' : 'save'} swarm: ` + error.message)
+    }
+  }
+  
+  loadExistingSwarm() {
+    if (!this.existingDataValue) return
+    
+    try {
+      const data = JSON.parse(this.existingDataValue)
+      
+      // Load visual data if available
+      if (data.nodes && data.connections) {
+        // Load nodes
+        this.nodeManager.load(data.nodes)
+        
+        // Render nodes
+        this.nodeManager.getNodes().forEach(node => {
+          this.renderNode(node)
+        })
+        
+        // Load connections
+        this.connectionManager.load(data.connections)
+        
+        // Set main node
+        if (data.mainNodeId) {
+          this.mainNodeId = data.mainNodeId
+          this.updateMainNodeBadge(data.mainNodeId)
+        }
+        
+        // Load tags
+        if (data.tags) {
+          this.tags = data.tags
+          this.renderTags()
+        }
+        
+        // Update UI
+        this.updateConnections()
+        this.updateEmptyState()
+        this.updateYamlPreview()
+      }
+      
+      // If we have YAML but no visual data, import it
+      else if (this.existingYamlValue) {
+        const yamlData = jsyaml.load(this.existingYamlValue)
+        
+        // Handle claude-swarm format
+        if (yamlData.version === 1 && yamlData.swarm) {
+          const swarmData = yamlData.swarm
+          this.nameInputTarget.value = swarmData.name || ''
+          
+          // Import nodes
+          const importedNodes = this.nodeManager.importNodes(swarmData)
+          
+          // Render all nodes
+          importedNodes.forEach(node => {
+            this.renderNode(node)
+          })
+          
+          // Set main node if specified
+          if (swarmData.main) {
+            const mainNode = importedNodes.find(n => 
+              n.data.name.toLowerCase().replace(/\s+/g, '_') === swarmData.main
+            )
+            if (mainNode) {
+              this.setMainNode(mainNode.id)
+            }
+          }
+          
+          // Create connections from instance data
+          Object.entries(swarmData.instances).forEach(([instanceKey, instanceData]) => {
+            if (instanceData.connections) {
+              const fromNode = importedNodes.find(n => 
+                n.data.name.toLowerCase().replace(/\s+/g, '_') === instanceKey
+              )
+              
+              if (fromNode) {
+                instanceData.connections.forEach(toKey => {
+                  const toNode = importedNodes.find(n => 
+                    n.data.name.toLowerCase().replace(/\s+/g, '_') === toKey
+                  )
+                  
+                  if (toNode) {
+                    const { fromSide, toSide } = this.connectionManager.findBestSocketPair(fromNode, toNode)
+                    this.connectionManager.createConnection(fromNode.id, fromSide, toNode.id, toSide)
+                  }
+                })
+              }
+            }
+          })
+          
+          // Auto-layout for better visual
+          this.autoLayout()
+        }
+      }
+    } catch (error) {
+      console.error('Error loading existing swarm:', error)
     }
   }
   

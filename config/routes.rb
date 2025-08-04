@@ -36,6 +36,12 @@ Rails.application.routes.draw do
       post :toggle_webhook
       get :webhook_status
       get :environment_variables
+      get :edit_swarm_file
+      delete :delete_swarm_file
+    end
+    
+    collection do
+      post :save_swarm_file
     end
 
     # Nested swarm templates under projects

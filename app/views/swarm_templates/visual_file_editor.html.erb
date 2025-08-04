@@ -3,44 +3,35 @@
 <% content_for :full_width do %>
 <div class="fixed inset-0 top-[56px] flex flex-col bg-gray-50 dark:bg-gray-900" 
      data-controller="swarm-visual-builder"
-     data-swarm-visual-builder-swarm-id-value="<%= @swarm_template.persisted? ? @swarm_template.id : '' %>"
-     data-swarm-visual-builder-existing-data-value='<%= @swarm_template.visual_data.to_json || "{}" %>'
-     data-swarm-visual-builder-existing-yaml-value='<%= @swarm_template.yaml_content || "" %>'
-     data-swarm-visual-builder-project-id-value="<%= @swarm_template.visual_data&.dig('project_id') || @project&.id || '' %>"
-     data-swarm-visual-builder-project-name-value="<%= @swarm_template.visual_data&.dig('project_name') || @project&.name || '' %>"
-     data-swarm-visual-builder-project-path-value="<%= @swarm_template.visual_data&.dig('project_path') || @project&.path || '' %>"
-     data-swarm-visual-builder-is-file-edit-value="<%= @swarm_template.visual_data&.dig('is_file_edit') || false %>"
-     data-swarm-visual-builder-is-new-file-value="<%= @swarm_template.visual_data&.dig('is_new_file') || false %>"
-     data-swarm-visual-builder-file-path-value="<%= @swarm_template.visual_data&.dig('file_path') || '' %>">
+     data-swarm-visual-builder-swarm-id-value=""
+     data-swarm-visual-builder-existing-data-value='<%= @swarm_data[:visual_data].to_json %>'
+     data-swarm-visual-builder-existing-yaml-value="<%= html_escape(@swarm_data[:yaml_content] || '') %>"
+     data-swarm-visual-builder-project-id-value="<%= @swarm_data[:visual_data][:project_id] %>"
+     data-swarm-visual-builder-project-name-value="<%= @swarm_data[:visual_data][:project_name] %>"
+     data-swarm-visual-builder-project-path-value="<%= @swarm_data[:visual_data][:project_path] %>"
+     data-swarm-visual-builder-is-file-edit-value="<%= @swarm_data[:visual_data][:is_file_edit] || false %>"
+     data-swarm-visual-builder-is-new-file-value="<%= @swarm_data[:visual_data][:is_new_file] || false %>"
+     data-swarm-visual-builder-file-path-value="<%= @swarm_data[:visual_data][:file_path] || '' %>">
   <!-- Header -->
   <div class="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
     <div class="px-6 py-5">
       <div class="flex items-center justify-between gap-6">
         <!-- Left section -->
         <div class="flex items-center gap-5 flex-shrink-0">
-          <% back_path = if @swarm_template.visual_data&.dig('is_file_edit') || @swarm_template.visual_data&.dig('is_new_file')
-               project_path(@swarm_template.visual_data['project_id'] || @project)
-             else
-               swarm_templates_path
-             end %>
-          <%= link_to back_path, class: "p-2 -m-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" do %>
+          <%= link_to project_path(@swarm_data[:visual_data][:project_id]), class: "p-2 -m-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" do %>
             <%= heroicon "arrow-left", variant: :outline, options: { class: "h-5 w-5" } %>
           <% end %>
           <div class="flex items-center gap-3">
             <div class="w-px h-8 bg-gray-300 dark:bg-gray-600"></div>
             <div>
               <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Swarm Builder</h1>
-              <% if @swarm_template.visual_data&.dig('project_name') %>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                  <% if @swarm_template.visual_data&.dig('is_file_edit') %>
-                    Editing: <%= File.basename(@swarm_template.visual_data['file_path']) %>
-                  <% elsif @swarm_template.visual_data&.dig('is_new_file') %>
-                    Creating new swarm for: <%= @swarm_template.visual_data['project_name'] %>
-                  <% else %>
-                    Project: <%= @swarm_template.visual_data['project_name'] %>
-                  <% end %>
-                </p>
-              <% end %>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                <% if @swarm_data[:visual_data][:is_file_edit] %>
+                  Editing: <%= File.basename(@swarm_data[:visual_data][:file_path]) %>
+                <% else %>
+                  Creating new swarm for: <%= @swarm_data[:visual_data][:project_name] %>
+                <% end %>
+              </p>
             </div>
           </div>
         </div>
@@ -71,15 +62,7 @@
                   data-action="click->swarm-visual-builder#saveSwarm"
                   class="inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-green-800 dark:bg-green-800 rounded-lg hover:bg-green-700 dark:hover:bg-green-700 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200">
             <%= heroicon "check-circle", variant: :solid, options: { class: "h-5 w-5 mr-2" } %>
-            <% if @swarm_template.visual_data&.dig('is_file_edit') %>
-              Save to File
-            <% elsif @swarm_template.visual_data&.dig('is_new_file') %>
-              Save as File
-            <% elsif @swarm_template.persisted? %>
-              Update Swarm
-            <% else %>
-              Save Swarm
-            <% end %>
+            <%= @swarm_data[:visual_data][:is_file_edit] ? 'Save to File' : 'Save as File' %>
           </button>
         </div>
       </div>

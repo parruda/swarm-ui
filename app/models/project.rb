@@ -207,7 +207,72 @@ class Project < ApplicationRecord
     self.vcs_type = File.directory?(File.join(path, ".git")) ? "git" : "none"
   end
 
+  # Find all swarm YAML files in the project directory
+  def find_swarm_files
+    return [] unless File.directory?(path)
+    
+    swarm_files = []
+    
+    # Scan directory for YAML files
+    Dir.glob(File.join(path, "**/*.{yml,yaml}")).each do |file|
+      next unless valid_swarm_config?(file)
+      
+      begin
+        config = YAML.load_file(file)
+        swarm = config["swarm"]
+        
+        swarm_files << {
+          path: file,
+          relative_path: file.sub("#{path}/", ""),
+          name: swarm["name"],
+          instance_count: swarm["instances"].size,
+          main_instance: swarm["main"],
+          instances: swarm["instances"].keys,
+        }
+      rescue StandardError => e
+        Rails.logger.warn("Error reading swarm file #{file}: #{e.message}")
+      end
+    end
+    
+    swarm_files.sort_by { |f| f[:relative_path] }
+  end
+
   private
+  
+  def valid_swarm_config?(file_path)
+    return false unless File.exist?(file_path)
+
+    begin
+      config = YAML.load_file(file_path)
+
+      # Basic structure checks
+      return false unless config.is_a?(Hash)
+      return false unless config["version"] == 1
+      return false unless config["swarm"].is_a?(Hash)
+
+      swarm = config["swarm"]
+      return false unless swarm["name"].is_a?(String)
+      return false unless swarm["instances"].is_a?(Hash)
+      return false if swarm["instances"].empty?
+
+      # Check main instance exists if specified
+      if swarm["main"].present?
+        return false unless swarm["instances"].key?(swarm["main"])
+      end
+
+      # Check each instance has description
+      swarm["instances"].each do |_name, instance|
+        return false unless instance.is_a?(Hash)
+        return false unless instance["description"].is_a?(String)
+      end
+
+      true
+    rescue Psych::SyntaxError
+      false
+    rescue StandardError
+      false
+    end
+  end
 
   def notify_webhook_change
     return unless self.class.column_names.include?("github_webhook_enabled")

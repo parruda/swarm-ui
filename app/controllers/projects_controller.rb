@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class ProjectsController < ApplicationController
-  before_action :set_project, only: [:show, :edit, :update, :destroy, :archive, :unarchive, :sync, :toggle_webhook, :webhook_status]
+  before_action :set_project, only: [:show, :edit, :update, :destroy, :archive, :unarchive, :sync, :toggle_webhook, :webhook_status, :edit_swarm_file, :delete_swarm_file]
 
   def index
     @filter = params[:filter] || "active"
@@ -21,6 +21,9 @@ class ProjectsController < ApplicationController
   def show
     # Only show active sessions on project show page
     @sessions = @project.sessions.active.order(started_at: :desc)
+    
+    # Load swarm files from the project directory
+    @swarm_files = @project.find_swarm_files
 
     respond_to do |format|
       format.html
@@ -162,6 +165,96 @@ class ProjectsController < ApplicationController
   def environment_variables
     project = Project.find(params[:id])
     render(json: { environment_variables: project.environment_variables })
+  end
+
+  def edit_swarm_file
+    file_path = params[:file_path]
+    
+    unless file_path && File.exist?(file_path)
+      redirect_back(fallback_location: @project, alert: "Swarm file not found.")
+      return
+    end
+    
+    # Read the YAML file
+    begin
+      yaml_content = File.read(file_path)
+      config = YAML.load(yaml_content)
+      
+      # Create a simple data structure for the view (no model needed)
+      @swarm_data = {
+        name: config["swarm"]["name"],
+        yaml_content: yaml_content,
+        visual_data: { 
+          file_path: file_path,
+          project_id: @project.id,
+          project_name: @project.name,
+          project_path: @project.path,
+          is_file_edit: true
+        }
+      }
+      
+      @instance_templates = InstanceTemplate.ordered
+      @editing_file = true
+      
+      # Render the visual builder
+      render("swarm_templates/visual_file_editor")
+    rescue StandardError => e
+      redirect_back(fallback_location: @project, alert: "Error loading swarm file: #{e.message}")
+    end
+  end
+
+  def delete_swarm_file
+    file_path = params[:file_path]
+    
+    unless file_path && File.exist?(file_path)
+      redirect_back(fallback_location: @project, alert: "Swarm file not found.")
+      return
+    end
+    
+    # Security check: ensure file is within project directory
+    unless file_path.start_with?(@project.path)
+      redirect_back(fallback_location: @project, alert: "Cannot delete files outside of project directory.")
+      return
+    end
+    
+    begin
+      File.delete(file_path)
+      redirect_to(@project, notice: "Swarm file deleted successfully.")
+    rescue StandardError => e
+      redirect_back(fallback_location: @project, alert: "Error deleting swarm file: #{e.message}")
+    end
+  end
+
+  def save_swarm_file
+    file_path = params[:file_path]
+    yaml_content = params[:yaml_content]
+    
+    unless file_path && yaml_content
+      render(json: { success: false, message: "Missing file path or content" }, status: :unprocessable_entity)
+      return
+    end
+    
+    # Find the project that owns this file
+    project = Project.all.find { |p| file_path.start_with?(p.path) }
+    
+    unless project
+      render(json: { success: false, message: "File is not within any project directory" }, status: :unprocessable_entity)
+      return
+    end
+    
+    begin
+      # Validate YAML
+      YAML.load(yaml_content)
+      
+      # Write to file
+      File.write(file_path, yaml_content)
+      
+      render(json: { success: true, redirect_url: project_path(project) })
+    rescue Psych::SyntaxError => e
+      render(json: { success: false, message: "Invalid YAML: #{e.message}" }, status: :unprocessable_entity)
+    rescue StandardError => e
+      render(json: { success: false, message: "Error saving file: #{e.message}" }, status: :unprocessable_entity)
+    end
   end
 
   private

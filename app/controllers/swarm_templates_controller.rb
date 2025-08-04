@@ -67,10 +67,26 @@ class SwarmTemplatesController < ApplicationController
   def new
     @project = Project.find(params[:project_id]) if params[:project_id]
 
-    @swarm_template = @project ? @project.swarm_templates.build : SwarmTemplate.new
-    @instance_templates = InstanceTemplate.ordered
-    # Always render the visual builder
-    render(:visual_new)
+    if @project
+      # For project files, use simple data structure
+      @swarm_data = {
+        name: '',
+        yaml_content: '',
+        visual_data: {
+          project_id: @project.id,
+          project_name: @project.name,
+          project_path: @project.path,
+          is_new_file: true
+        }
+      }
+      @instance_templates = InstanceTemplate.ordered
+      render("visual_file_editor")
+    else
+      # For non-project swarms, use the model
+      @swarm_template = SwarmTemplate.new
+      @instance_templates = InstanceTemplate.ordered
+      render(:visual_new)
+    end
   end
 
   def create

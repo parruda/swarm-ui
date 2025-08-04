@@ -27,7 +27,13 @@ export default class extends Controller {
   static values = {
     swarmId: String,
     existingData: String,
-    existingYaml: String
+    existingYaml: String,
+    projectId: String,
+    projectName: String,
+    projectPath: String,
+    isFileEdit: Boolean,
+    isNewFile: Boolean,
+    filePath: String
   }
   
   async connect() {
@@ -66,7 +72,7 @@ export default class extends Controller {
     this.setupKeyboardShortcuts()
     
     // Load existing data if editing
-    if (this.swarmIdValue && this.existingDataValue) {
+    if ((this.swarmIdValue && this.existingDataValue) || this.existingYamlValue || this.isFileEditValue) {
       this.loadExistingSwarm()
     }
   }
@@ -1709,6 +1715,18 @@ export default class extends Controller {
     const swarmData = this.buildSwarmData()
     const yaml = jsyaml.dump(swarmData)
     
+    // Check if we're working with files (either editing or creating new)
+    if (this.isFileEditValue || this.isNewFileValue) {
+      if (this.isFileEditValue && this.filePathValue) {
+        // Editing existing file - save to same path
+        await this.saveToFile(this.filePathValue, yaml)
+      } else if (this.isNewFileValue && this.projectPathValue) {
+        // Creating new file - prompt for filename
+        await this.saveAsNewFile(yaml)
+      }
+      return
+    }
+    
     const isUpdate = !!this.swarmIdValue
     const url = isUpdate ? `/swarm_templates/${this.swarmIdValue}` : '/swarm_templates'
     const method = isUpdate ? 'PATCH' : 'POST'
@@ -1747,11 +1765,137 @@ export default class extends Controller {
     }
   }
   
+  async saveToFile(filePath, yaml) {
+    try {
+      const response = await fetch('/projects/save_swarm_file', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+          file_path: filePath,
+          yaml_content: yaml
+        })
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        window.location.href = result.redirect_url || `/projects/${this.projectIdValue}`
+      } else {
+        const error = await response.json()
+        alert('Failed to save swarm file: ' + (error.message || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Save error:', error)
+      alert('Failed to save swarm file: ' + error.message)
+    }
+  }
+  
+  async saveAsNewFile(yaml) {
+    // Generate default filename from swarm name
+    const swarmName = this.nameInputTarget.value || 'swarm'
+    const defaultFilename = swarmName.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '.yaml'
+    
+    // Prompt for filename
+    const filename = await this.promptForFilename(defaultFilename)
+    if (!filename) return // User cancelled
+    
+    // Ensure .yaml or .yml extension
+    const finalFilename = filename.match(/\.(yaml|yml)$/i) ? filename : filename + '.yaml'
+    
+    // Build full path
+    const filePath = `${this.projectPathValue}/${finalFilename}`
+    
+    // Save to file
+    await this.saveToFile(filePath, yaml)
+  }
+  
+  async promptForFilename(defaultName) {
+    return new Promise((resolve) => {
+      // Create modal overlay
+      const overlay = document.createElement('div')
+      overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
+      
+      // Create modal
+      const modal = document.createElement('div')
+      modal.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4'
+      modal.innerHTML = `
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Save Swarm File</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Enter a filename for the swarm configuration.
+          <br/>
+          <span class="text-xs">It will be saved in: ${this.projectPathValue}/</span>
+        </p>
+        <input type="text" 
+               value="${defaultName}" 
+               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent"
+               placeholder="filename.yaml">
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" 
+                  class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+                  data-action="cancel">
+            Cancel
+          </button>
+          <button type="button" 
+                  class="px-4 py-2 text-sm font-medium text-white bg-orange-600 dark:bg-orange-600 rounded-md hover:bg-orange-700 dark:hover:bg-orange-700"
+                  data-action="save">
+            Save
+          </button>
+        </div>
+      `
+      
+      overlay.appendChild(modal)
+      document.body.appendChild(overlay)
+      
+      // Focus input and select text
+      const input = modal.querySelector('input')
+      input.focus()
+      input.select()
+      
+      // Handle actions
+      const handleSave = () => {
+        const filename = input.value.trim()
+        if (filename) {
+          document.body.removeChild(overlay)
+          resolve(filename)
+        } else {
+          input.classList.add('ring-2', 'ring-red-500')
+          setTimeout(() => input.classList.remove('ring-2', 'ring-red-500'), 2000)
+        }
+      }
+      
+      const handleCancel = () => {
+        document.body.removeChild(overlay)
+        resolve(null)
+      }
+      
+      modal.querySelector('[data-action="save"]').addEventListener('click', handleSave)
+      modal.querySelector('[data-action="cancel"]').addEventListener('click', handleCancel)
+      
+      // Handle enter key
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleSave()
+        if (e.key === 'Escape') handleCancel()
+      })
+      
+      // Handle clicking outside
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) handleCancel()
+      })
+    })
+  }
+  
   loadExistingSwarm() {
-    if (!this.existingDataValue) return
+    console.log('Loading existing swarm...')
+    console.log('existingDataValue:', this.existingDataValue)
+    console.log('existingYamlValue:', this.existingYamlValue)
+    console.log('isFileEditValue:', this.isFileEditValue)
+    
+    if (!this.existingDataValue && !this.existingYamlValue) return
     
     try {
-      const data = JSON.parse(this.existingDataValue)
+      const data = this.existingDataValue ? JSON.parse(this.existingDataValue) : {}
       
       // Load visual data if available
       if (data.nodes && data.connections) {

@@ -495,12 +495,12 @@ export default class extends Controller {
     
     // Create node content
     const content = `
+      ${node.id === this.mainNodeId ? '<span class="absolute top-1 right-1 text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded z-10">Main</span>' : ''}
       <div class="node-header mb-2">
         <h3 class="node-title flex items-center justify-between">
-          <span>${node.data.name}</span>
+          <span class="pr-12">${node.data.name}</span>
           <div class="flex items-center gap-1">
-            ${mcpCount > 0 ? `<span class="text-xs bg-purple-500 text-white px-2 py-1 rounded" title="${mcpCount} MCP server${mcpCount > 1 ? 's' : ''}">MCP: ${mcpCount}</span>` : ''}
-            ${node.id === this.mainNodeId ? '<span class="text-xs bg-orange-500 text-white px-2 py-1 rounded">Main</span>' : ''}
+            ${mcpCount > 0 ? `<span class="text-[10px] bg-purple-500 text-white px-1.5 py-0.5 rounded" title="${mcpCount} MCP server${mcpCount > 1 ? 's' : ''}">MCP: ${mcpCount}</span>` : ''}
           </div>
         </h3>
         ${node.data.description ? `<p class="node-description">${node.data.description}</p>` : ''}
@@ -1128,9 +1128,8 @@ export default class extends Controller {
     this.mainNodeId = nodeId
     if (node.element) {
       node.element.classList.add('main-node')
-      const titleEl = node.element.querySelector('.node-title span')
-      if (titleEl && !node.element.querySelector('.bg-orange-500')) {
-        titleEl.insertAdjacentHTML('afterend', '<span class="text-xs bg-orange-500 text-white px-2 py-1 rounded ml-2">Main</span>')
+      if (!node.element.querySelector('.bg-orange-500')) {
+        node.element.insertAdjacentHTML('afterbegin', '<span class="absolute top-1 right-1 text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded z-10">Main</span>')
       }
     }
     
@@ -1166,6 +1165,11 @@ export default class extends Controller {
         vibe: node.data.vibe || node.data.config?.vibe || false,
         worktree: node.data.worktree || node.data.config?.worktree || false
       }
+    }
+    
+    // Add MCP servers if present
+    if (node.data.mcps && node.data.mcps.length > 0) {
+      templateData.config.mcps = node.data.mcps
     }
     
     // Add OpenAI specific fields if applicable
@@ -2045,7 +2049,6 @@ export default class extends Controller {
     // Check if this MCP is already added
     const exists = node.data.mcps.some(mcp => mcp.name === mcpData.name)
     if (exists) {
-      this.showFlashMessage(`MCP server "${mcpData.name}" is already configured for this instance`, 'warning')
       return
     }
     
@@ -2078,8 +2081,6 @@ export default class extends Controller {
     
     // Update YAML preview
     this.updateYamlPreview()
-    
-    this.showFlashMessage(`Added MCP server "${mcpData.name}" to instance`, 'success')
   }
   
   // Remove MCP server from node
@@ -2103,8 +2104,6 @@ export default class extends Controller {
     
     // Update YAML preview
     this.updateYamlPreview()
-    
-    this.showFlashMessage(`Removed MCP server "${mcpName}" from instance`, 'info')
   }
   
   // Update node's visual representation
@@ -2129,7 +2128,7 @@ export default class extends Controller {
         if (!mcpBadge) {
           // Create new MCP badge
           mcpBadge = document.createElement('span')
-          mcpBadge.className = 'text-xs bg-purple-500 text-white px-2 py-1 rounded'
+          mcpBadge.className = 'text-[10px] bg-purple-500 text-white px-1.5 py-0.5 rounded text-xs'
           // Insert before Main badge if it exists
           const mainBadge = badgesContainer.querySelector('.bg-orange-500')
           if (mainBadge) {

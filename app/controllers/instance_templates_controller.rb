@@ -132,7 +132,8 @@ class InstanceTemplatesController < ApplicationController
         :reasoning_effort,
         :openai_token_env,
         :base_url,
-        allowed_tools: []
+        allowed_tools: [],
+        mcps: [:name, :type, :command, :url, { args: [], env: {}, headers: {} }]
       )
       permitted[:config] = config_params.to_h
     end

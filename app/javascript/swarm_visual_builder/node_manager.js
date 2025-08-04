@@ -48,7 +48,8 @@ export default class NodeManager {
         directory: config.directory,
         allowed_tools: config.allowed_tools,
         vibe: config.vibe,
-        temperature: config.temperature
+        temperature: config.temperature,
+        mcps: config.mcps || []  // Preserve MCP servers from template
       }
     }
     
@@ -163,6 +164,11 @@ export default class NodeManager {
       // Add system_prompt to the config for createNode to extract
       cleanConfig.system_prompt = system_prompt
       
+      // Preserve MCPs if present
+      if (config.mcps) {
+        cleanConfig.mcps = config.mcps
+      }
+      
       const node = this.createNode({
         name: name,
         description: config.description || '',
@@ -193,7 +199,8 @@ export default class NodeManager {
         directory: node.data.directory,
         allowed_tools: node.data.allowed_tools,
         vibe: node.data.vibe,
-        temperature: node.data.temperature
+        temperature: node.data.temperature,
+        mcps: node.data.mcps || []  // Include MCPs in serialization
       }
     }))
   }

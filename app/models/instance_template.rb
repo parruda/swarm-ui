@@ -83,6 +83,10 @@ class InstanceTemplate < ApplicationRecord
   def allowed_tools
     config&.dig("allowed_tools") || []
   end
+  
+  def mcps
+    config&.dig("mcps") || []
+  end
 
   # Use the database column directly
   # (prompt was renamed to system_prompt in migration)
@@ -129,6 +133,11 @@ class InstanceTemplate < ApplicationRecord
 
     # Remove any system_prompt from config to avoid duplication
     base_config.delete("system_prompt")
+    
+    # Include MCP servers if present
+    if config["mcps"].present?
+      base_config["mcps"] = config["mcps"]
+    end
 
     # Remove provider-specific fields for wrong provider
     if claude?

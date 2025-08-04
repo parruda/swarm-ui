@@ -1853,14 +1853,94 @@ export default class extends Controller {
       
       if (response.ok) {
         const result = await response.json()
-        window.location.href = result.redirect_url || `/projects/${this.projectIdValue}`
+        
+        // Update the file path for future saves
+        this.filePathValue = result.file_path
+        this.isFileEditValue = true
+        this.isNewFileValue = false
+        
+        // Show success message
+        this.showFlashMessage(result.message || 'Swarm file saved successfully', 'success')
+        
+        // Enable the Launch button
+        this.enableLaunchButton()
+        
+        // Don't redirect - stay on the page
+        if (result.redirect_url) {
+          // Only redirect if explicitly requested
+          window.location.href = result.redirect_url
+        }
       } else {
         const error = await response.json()
-        alert('Failed to save swarm file: ' + (error.message || 'Unknown error'))
+        this.showFlashMessage('Failed to save swarm file: ' + (error.message || 'Unknown error'), 'error')
       }
     } catch (error) {
       console.error('Save error:', error)
-      alert('Failed to save swarm file: ' + error.message)
+      this.showFlashMessage('Failed to save swarm file: ' + error.message, 'error')
+    }
+  }
+  
+  showFlashMessage(message, type = 'success') {
+    // Remove any existing flash messages
+    const existingFlash = document.querySelector('.flash-message')
+    if (existingFlash) {
+      existingFlash.remove()
+    }
+    
+    // Create flash message element
+    const flash = document.createElement('div')
+    flash.className = `flash-message fixed top-20 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transition-all transform translate-x-0 ${
+      type === 'success' 
+        ? 'bg-green-500 text-white' 
+        : 'bg-red-500 text-white'
+    }`
+    
+    flash.innerHTML = `
+      <div class="flex items-center">
+        ${type === 'success' 
+          ? '<svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>'
+          : '<svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>'
+        }
+        <span>${message}</span>
+      </div>
+    `
+    
+    document.body.appendChild(flash)
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      flash.classList.add('translate-x-full', 'opacity-0')
+      setTimeout(() => flash.remove(), 300)
+    }, 5000)
+  }
+  
+  enableLaunchButton() {
+    const launchButton = document.getElementById('launch-swarm')
+    if (launchButton) {
+      launchButton.disabled = false
+      launchButton.classList.remove('opacity-50', 'cursor-not-allowed')
+      launchButton.classList.add('hover:bg-blue-700', 'dark:hover:bg-blue-700')
+    }
+  }
+  
+  async launchSwarm() {
+    // Check if we have a saved file path
+    if (!this.filePathValue) {
+      this.showFlashMessage('Please save the swarm file first before launching', 'error')
+      return
+    }
+    
+    // Extract just the filename from the path
+    const filename = this.filePathValue.split('/').pop()
+    
+    // Navigate to the new session page with the swarm config pre-selected
+    const projectId = this.projectIdValue
+    if (projectId) {
+      // Build the URL with the swarm config pre-selected
+      const newSessionUrl = `/sessions/new?project_id=${projectId}&default_config=${encodeURIComponent(filename)}`
+      window.location.href = newSessionUrl
+    } else {
+      this.showFlashMessage('Cannot launch swarm: project not found', 'error')
     }
   }
   

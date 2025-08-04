@@ -169,6 +169,7 @@ class ProjectsController < ApplicationController
 
   def edit_swarm_file
     file_path = params[:file_path]
+    as_template = params[:as_template] == "true"
     
     unless file_path && File.exist?(file_path)
       redirect_back(fallback_location: @project, alert: "Swarm file not found.")
@@ -185,11 +186,12 @@ class ProjectsController < ApplicationController
         name: config["swarm"]["name"],
         yaml_content: yaml_content,
         visual_data: { 
-          file_path: file_path,
+          file_path: as_template ? nil : file_path,  # Clear file path if using as template
           project_id: @project.id,
           project_name: @project.name,
           project_path: @project.path,
-          is_file_edit: true
+          is_file_edit: !as_template,  # Not editing if using as template
+          is_new_file: as_template      # Creating new file if using as template
         }
       }
       
@@ -246,10 +248,19 @@ class ProjectsController < ApplicationController
       # Validate YAML
       YAML.load(yaml_content)
       
+      # Create directory if it doesn't exist
+      dir = File.dirname(file_path)
+      FileUtils.mkdir_p(dir) unless File.directory?(dir)
+      
       # Write to file
       File.write(file_path, yaml_content)
       
-      render(json: { success: true, redirect_url: project_path(project) })
+      render(json: { 
+        success: true, 
+        message: "Swarm file saved successfully",
+        file_path: file_path,  # Return the file path for the Launch button
+        redirect_url: nil  # Don't redirect, stay on the page
+      })
     rescue Psych::SyntaxError => e
       render(json: { success: false, message: "Invalid YAML: #{e.message}" }, status: :unprocessable_entity)
     rescue StandardError => e

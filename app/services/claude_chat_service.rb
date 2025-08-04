@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "claude_sdk"
+require "erb"
 
 class ClaudeChatService
   def initialize(project:, file_path:, session_id: nil)
@@ -20,7 +21,7 @@ class ClaudeChatService
       # Configure options for Claude SDK
       options = ClaudeSDK::ClaudeCodeOptions.new(
         cwd: @project.path,
-        system_prompt: build_system_prompt,
+        append_system_prompt: build_append_system_prompt,
         allowed_tools: ["Read", "Write", "Edit", "MultiEdit", "Bash", "LS", "Grep"],
         permission_mode: :accept_edits,
         model: "opus", # Use Opus model
@@ -164,59 +165,31 @@ class ClaudeChatService
     yield({ type: "file_modified", path: @file_path })
   end
 
-  def build_system_prompt
-    <<~PROMPT
-      You are a swarm configuration assistant helping to build and modify a YAML swarm configuration file.
-      You are currently working with the file: #{@file_path}
-
-      The file defines a swarm configuration for claude-swarm, which orchestrates multiple AI agents.
-
-      YAML Structure:
-      ```yaml
-      version: 1
-      swarm:
-        name: "Swarm Name"
-        instances:
-          instance_name:
-            description: "Role description"
-            model: opus/sonnet/haiku
-            directory: .
-            prompt: |
-              Detailed prompt for this agent
-            vibe: true
-            connections:
-              - other_instance_name
-        main: instance_name  # Entry point instance
-      ```
-
-      CRITICAL RULES FOR MODIFICATIONS:
-      1. ALWAYS use the Read tool FIRST to see the current file content
-      2. NEVER duplicate existing instances - check if an instance already exists before adding
-      3. When updating an instance, use Edit to REPLACE the entire instance block, not append
-      4. Instance names must be unique identifiers (snake_case preferred)
-      5. The 'main' field must reference a valid instance name
-      6. Connections must reference valid instance names that exist in the file
-      7. Use proper YAML indentation (2 spaces per level)
-      8. Preserve multiline prompt formatting with | indicator
-
-      Common operations:
-      - Adding a new instance: Check it doesn't exist, then add to instances section
-      - Updating an instance: Use Edit to replace the ENTIRE instance definition
-      - Adding connections: Edit the connections list of the specific instance
-      - Changing main instance: Edit the main field at swarm level
-
-      BEFORE ANY MODIFICATION:
-      1. Use Read to see the current file
-      2. Check if the instance/connection already exists
-      3. Use Edit with enough context to ensure unique match
-      4. For complex changes, use MultiEdit to make multiple precise edits
-
-      Example of CORRECT instance update:
-      - Use Edit to replace from "instance_name:" to the end of that instance block
-      - Include enough context to uniquely identify the section being replaced
-
-      You have access to file editing tools to modify the swarm configuration.
-      Always explain what changes you're making and why.
-    PROMPT
+  def build_append_system_prompt
+    # Find the claude_swarm gem directory
+    gem_spec = Gem::Specification.find_by_name("claude_swarm")
+    gem_dir = gem_spec.gem_dir
+    
+    # Read the ERB template from the gem
+    template_path = File.join(gem_dir, "lib", "claude_swarm", "templates", "generation_prompt.md.erb")
+    raise "Template not found at #{template_path}" unless File.exist?(template_path)
+    
+    # Read the README.md from the gem
+    readme_path = File.join(gem_dir, "README.md")
+    readme_content = if File.exist?(readme_path)
+                       File.read(readme_path)
+                     else
+                       "README.md not found in claude-swarm gem"
+                     end
+    
+    # Set up variables for ERB rendering
+    output_file = @file_path
+    
+    # Read and render the ERB template
+    template_content = File.read(template_path)
+    erb = ERB.new(template_content)
+    
+    # Render with binding that includes the required variables
+    erb.result(binding)
   end
 end

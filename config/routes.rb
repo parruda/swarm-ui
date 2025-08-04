@@ -35,6 +35,7 @@ Rails.application.routes.draw do
       post :sync
       post :toggle_webhook
       get :webhook_status
+      get :git_status
       get :environment_variables
       get :edit_swarm_file
       delete :delete_swarm_file

@@ -304,6 +304,11 @@ iframe::-webkit-scrollbar {
   border-color: #1f2937;
 }
 
+/* Enhanced selected node - stronger shadow for multi-select */
+.swarm-node.selected {
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3);
+}
+
 .socket:hover {
   transform: scale(1.2);
 }
@@ -342,6 +347,11 @@ iframe::-webkit-scrollbar {
 
 .connection:hover {
   stroke: #ea580c;
+  stroke-width: 3px;
+}
+
+.connection.selected {
+  stroke: #f97316;
   stroke-width: 3px;
 }
 

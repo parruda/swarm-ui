@@ -50,7 +50,8 @@ export default class extends Controller {
     
     // Initialize state
     this.tags = []
-    this.selectedNode = null
+    this.selectedNodes = [] // Changed to array for multi-select
+    this.selectedNode = null // Keep for backward compatibility
     this.selectedConnection = null
     this.mainNodeId = null
     this.nodeKeyMap = new Map()
@@ -84,6 +85,7 @@ export default class extends Controller {
   }
   
   async initializeVisualBuilder() {
+    
     // Create container
     const container = document.createElement('div')
     container.style.width = '100%'
@@ -311,10 +313,28 @@ export default class extends Controller {
     if (target.classList.contains('socket')) {
       this.startConnection(e)
     } else if (target.closest('.swarm-node')) {
-      if (!this.shiftPressed) {
-        this.startNodeDrag(e)
+      const nodeEl = target.closest('.swarm-node')
+      const nodeId = parseInt(nodeEl.dataset.nodeId)
+      
+      if (this.shiftPressed) {
+        // Shift-click for multi-select
+        this.toggleNodeSelection(nodeId)
+      } else {
+        // Check if clicking on already selected node in multi-select
+        if (this.selectedNodes.length > 1 && this.isNodeSelected(nodeId)) {
+          // Start dragging all selected nodes
+          this.startMultiNodeDrag(e)
+        } else {
+          // Single select and drag
+          this.selectNode(nodeId)
+          this.startNodeDrag(e)
+        }
       }
-    } else if (this.shiftPressed || e.target === this.viewport) {
+    } else if (e.target === this.viewport || e.target === this.svg) {
+      // Click on canvas - deselect all and start panning
+      this.deselectAll()
+      this.startPanning(e)
+    } else if (this.shiftPressed) {
       this.startPanning(e)
     }
   }
@@ -396,7 +416,7 @@ export default class extends Controller {
     nodeEl.addEventListener('click', (e) => {
       if (!e.target.classList.contains('socket')) {
         e.stopPropagation()
-        this.selectNode(node.id)
+        // Handler is now in handleMouseDown for better control
       }
     })
     
@@ -413,21 +433,81 @@ export default class extends Controller {
   }
   
   selectNode(nodeId) {
-    this.deselectAll()
+    // Clear previous selection unless shift is held
+    if (!this.shiftPressed) {
+      this.deselectAll()
+    }
     
     const node = this.nodeManager.findNode(nodeId)
     if (!node) return
     
+    // Add to selected nodes array
+    if (!this.selectedNodes.find(n => n.id === nodeId)) {
+      this.selectedNodes.push(node)
+      node.element.classList.add('selected')
+    }
+    
+    // Keep single selectedNode for backward compatibility
     this.selectedNode = node
-    node.element.classList.add('selected')
-    this.showNodeProperties(node)
+    
+    // Show properties only for single selection
+    if (this.selectedNodes.length === 1) {
+      this.showNodeProperties(node)
+    } else {
+      this.showMultiSelectMessage()
+    }
+  }
+  
+  toggleNodeSelection(nodeId) {
+    const node = this.nodeManager.findNode(nodeId)
+    if (!node) return
+    
+    const index = this.selectedNodes.findIndex(n => n.id === nodeId)
+    
+    if (index > -1) {
+      // Node is selected - deselect it
+      this.selectedNodes.splice(index, 1)
+      node.element.classList.remove('selected')
+      
+      // Update selectedNode for backward compatibility
+      this.selectedNode = this.selectedNodes[this.selectedNodes.length - 1] || null
+    } else {
+      // Node is not selected - select it
+      this.selectedNodes.push(node)
+      node.element.classList.add('selected')
+      this.selectedNode = node
+    }
+    
+    // Update properties panel
+    if (this.selectedNodes.length === 0) {
+      this.clearPropertiesPanel()
+    } else if (this.selectedNodes.length === 1) {
+      this.showNodeProperties(this.selectedNodes[0])
+    } else {
+      this.showMultiSelectMessage()
+    }
+  }
+  
+  isNodeSelected(nodeId) {
+    return this.selectedNodes.some(n => n.id === nodeId)
+  }
+  
+  showMultiSelectMessage() {
+    this.propertiesPanelTarget.innerHTML = `
+      <div class="p-4 text-center text-gray-500 dark:text-gray-400">
+        <p class="font-medium mb-2">${this.selectedNodes.length} nodes selected</p>
+        <p class="text-sm">Select a single node to view/edit its properties</p>
+      </div>
+    `
   }
   
   deselectAll() {
-    if (this.selectedNode) {
-      this.selectedNode.element?.classList.remove('selected')
-      this.selectedNode = null
-    }
+    // Clear all selected nodes
+    this.selectedNodes.forEach(node => {
+      node.element?.classList.remove('selected')
+    })
+    this.selectedNodes = []
+    this.selectedNode = null
     
     if (this.selectedConnection !== null) {
       const connections = this.svg.querySelectorAll('.connection.selected')
@@ -834,6 +914,7 @@ export default class extends Controller {
     const nodeId = parseInt(e.currentTarget.dataset.nodeId)
     this.connectionManager.clearNodeConnections(nodeId)
     this.updateConnections()
+    this.updateSocketStates() // Update socket states after clearing connections
     this.updateYamlPreview()
     
     // Refresh properties panel
@@ -887,7 +968,12 @@ export default class extends Controller {
   }
   
   deleteSelectedNode() {
-    if (this.selectedNode) {
+    // Delete all selected nodes
+    if (this.selectedNodes.length > 0) {
+      const nodeIds = this.selectedNodes.map(n => n.id)
+      nodeIds.forEach(id => this.deleteNodeById(id))
+    } else if (this.selectedNode) {
+      // Fallback for backward compatibility
       this.deleteNodeById(this.selectedNode.id)
     }
   }
@@ -904,6 +990,9 @@ export default class extends Controller {
     
     // Remove from nodes
     this.nodeManager.removeNode(nodeId)
+    
+    // Update socket states after removing node's connections
+    this.updateSocketStates()
     
     // Clear selection and properties panel if this was the selected node
     if (this.selectedNode?.id === nodeId) {
@@ -929,6 +1018,7 @@ export default class extends Controller {
       this.connectionManager.removeConnection(this.selectedConnection)
       this.selectedConnection = null
       this.updateConnections()
+      this.updateSocketStates() // Update socket states after removing connection
       this.updateYamlPreview()
     }
   }
@@ -940,7 +1030,7 @@ export default class extends Controller {
     const nodeId = parseInt(socket.dataset.nodeId)
     const side = socket.dataset.socketSide
     
-    // Check if socket is already used as destination
+    // Check if socket is already used as destination - can't use destination as source
     if (socket.classList.contains('used-as-destination')) {
       return
     }
@@ -989,27 +1079,35 @@ export default class extends Controller {
       const targetNodeId = parseInt(element.dataset.nodeId)
       const targetSide = element.dataset.socketSide
       
-      // Don't connect to self or to used destination socket
+      // Don't connect to self or to main node
       if (targetNodeId !== this.pendingConnection.nodeId && 
-          !element.classList.contains('used-as-destination')) {
+          targetNodeId !== this.mainNodeId) {
         
-        const fromNode = this.nodeManager.findNode(this.pendingConnection.nodeId)
-        const toNode = this.nodeManager.findNode(targetNodeId)
+        // Check if this exact connection already exists
+        const isDuplicate = this.connectionManager.getConnections().some(conn => 
+          conn.from === this.pendingConnection.nodeId && 
+          conn.to === targetNodeId
+        )
         
-        if (fromNode && toNode) {
-          // Create connection
-          this.connectionManager.createConnection(
-            this.pendingConnection.nodeId, 
-            this.pendingConnection.side,
-            targetNodeId, 
-            targetSide
-          )
+        if (isDuplicate) {
+          console.log('Connection already exists between these nodes')
+        } else {
+          const fromNode = this.nodeManager.findNode(this.pendingConnection.nodeId)
+          const toNode = this.nodeManager.findNode(targetNodeId)
           
-          // Mark socket as used
-          element.classList.add('used-as-destination')
-          
-          this.updateConnections()
-          this.updateYamlPreview()
+          if (fromNode && toNode) {
+            // Create connection
+            this.connectionManager.createConnection(
+              this.pendingConnection.nodeId, 
+              this.pendingConnection.side,
+              targetNodeId, 
+              targetSide
+            )
+            
+            this.updateConnections()
+            this.updateSocketStates() // Update socket states after creating connection
+            this.updateYamlPreview()
+          }
         }
       }
     } else {
@@ -1020,7 +1118,8 @@ export default class extends Controller {
         const fromId = this.pendingConnection.nodeId
         const fromSide = this.pendingConnection.side
         
-        if (targetNodeId !== fromId) {
+        // Don't connect to self or to main node
+        if (targetNodeId !== fromId && targetNodeId !== this.mainNodeId) {
           const fromNode = this.nodeManager.findNode(fromId)
           const toNode = this.nodeManager.findNode(targetNodeId)
           
@@ -1028,13 +1127,21 @@ export default class extends Controller {
             // Use intelligent socket selection
             const { toSide } = this.connectionManager.findBestSocketPairForDrag(fromNode, toNode, fromSide)
             
-            // Check if target socket is available
-            const targetSocket = targetNode.querySelector(`.socket[data-socket-side="${toSide}"]:not(.used-as-destination)`)
-            if (targetSocket) {
-              this.connectionManager.createConnection(fromId, fromSide, targetNodeId, toSide)
-              targetSocket.classList.add('used-as-destination')
-              this.updateConnections()
-              this.updateYamlPreview()
+            // Check if this exact connection already exists
+            const isDuplicate = this.connectionManager.getConnections().some(conn => 
+              conn.from === fromId && 
+              conn.to === targetNodeId
+            )
+            
+            if (!isDuplicate) {
+              // Get target socket - destinations can accept multiple connections
+              const targetSocket = targetNode.querySelector(`.socket[data-socket-side="${toSide}"]`)
+              if (targetSocket) {
+                this.connectionManager.createConnection(fromId, fromSide, targetNodeId, toSide)
+                this.updateConnections()
+                this.updateSocketStates() // Update socket states after creating connection
+                this.updateYamlPreview()
+              }
             }
           }
         }
@@ -1062,7 +1169,12 @@ export default class extends Controller {
     if (!element || !this.pendingConnection) return
     
     const targetNode = element.closest('.swarm-node')
-    if (targetNode && parseInt(targetNode.dataset.nodeId) !== this.pendingConnection.nodeId) {
+    const targetNodeId = targetNode ? parseInt(targetNode.dataset.nodeId) : null
+    
+    // Don't highlight self or main node
+    if (targetNode && 
+        targetNodeId !== this.pendingConnection.nodeId &&
+        targetNodeId !== this.mainNodeId) {
       targetNode.classList.add('connection-target')
     }
   }
@@ -1079,6 +1191,24 @@ export default class extends Controller {
         e.stopPropagation()
         this.selectConnection(index)
       })
+    })
+  }
+  
+  updateSocketStates() {
+    // First clear all socket states
+    this.viewport.querySelectorAll('.socket.used-as-destination').forEach(socket => {
+      socket.classList.remove('used-as-destination')
+    })
+    
+    // Then mark sockets that are used as destinations
+    this.connectionManager.getConnections().forEach(conn => {
+      const toNode = this.viewport.querySelector(`.swarm-node[data-node-id="${conn.to}"]`)
+      if (toNode) {
+        const toSocket = toNode.querySelector(`.socket[data-socket-side="${conn.toSide}"]`)
+        if (toSocket) {
+          toSocket.classList.add('used-as-destination')
+        }
+      }
     })
   }
   
@@ -1106,7 +1236,9 @@ export default class extends Controller {
     const node = this.nodeManager.findNode(nodeId)
     if (!node) return
     
+    // For single node drag
     this.draggedNode = node
+    this.draggedNodes = [node] // Store as array for consistency
     
     // Store initial positions
     this.dragStartMouseX = e.clientX
@@ -1128,8 +1260,43 @@ export default class extends Controller {
     e.preventDefault()
   }
   
+  startMultiNodeDrag(e) {
+    const nodeEl = e.target.closest('.swarm-node')
+    if (!nodeEl) return
+    
+    // Store all selected nodes for dragging
+    this.draggedNodes = [...this.selectedNodes]
+    this.draggedNode = this.draggedNodes[0] // Keep for backward compatibility
+    
+    // Store initial positions for all selected nodes
+    this.dragStartMouseX = e.clientX
+    this.dragStartMouseY = e.clientY
+    this.dragStartScrollLeft = this.container.scrollLeft
+    this.dragStartScrollTop = this.container.scrollTop
+    
+    // Store initial position for each node
+    this.dragStartPositions = new Map()
+    this.draggedNodes.forEach(node => {
+      this.dragStartPositions.set(node.id, {
+        x: node.data.x,
+        y: node.data.y
+      })
+      node.element.style.zIndex = '1000'
+      node.element.style.cursor = 'grabbing'
+    })
+    
+    // Animation state
+    this.lastMouseX = e.clientX
+    this.lastMouseY = e.clientY
+    this.animationFrameId = null
+    
+    this.container.classList.add('dragging-node')
+    
+    e.preventDefault()
+  }
+  
   continueNodeDrag(e) {
-    if (!this.draggedNode) return
+    if (!this.draggedNodes || this.draggedNodes.length === 0) return
     
     this.lastMouseX = e.clientX
     this.lastMouseY = e.clientY
@@ -1141,7 +1308,7 @@ export default class extends Controller {
   }
   
   updateNodePosition() {
-    if (!this.draggedNode) return
+    if (!this.draggedNodes || this.draggedNodes.length === 0) return
     
     // Calculate mouse delta
     const deltaMouseX = this.lastMouseX - this.dragStartMouseX
@@ -1155,15 +1322,30 @@ export default class extends Controller {
     const deltaX = (deltaMouseX + deltaScrollX) / this.zoomLevel
     const deltaY = (deltaMouseY + deltaScrollY) / this.zoomLevel
     
-    // Update node position
-    const x = this.dragStartNodeX + deltaX
-    const y = this.dragStartNodeY + deltaY
-    
-    this.nodeManager.updateNodePosition(this.draggedNode.id, x, y)
-    
-    // Update element position
-    this.draggedNode.element.style.left = `${x + this.canvasCenter}px`
-    this.draggedNode.element.style.top = `${y + this.canvasCenter}px`
+    // Update all dragged nodes
+    this.draggedNodes.forEach(node => {
+      let startX, startY
+      
+      if (this.dragStartPositions && this.dragStartPositions.has(node.id)) {
+        // Multi-node drag
+        const startPos = this.dragStartPositions.get(node.id)
+        startX = startPos.x
+        startY = startPos.y
+      } else {
+        // Single node drag (backward compatibility)
+        startX = this.dragStartNodeX
+        startY = this.dragStartNodeY
+      }
+      
+      const x = startX + deltaX
+      const y = startY + deltaY
+      
+      this.nodeManager.updateNodePosition(node.id, x, y)
+      
+      // Update element position
+      node.element.style.left = `${x + this.canvasCenter}px`
+      node.element.style.top = `${y + this.canvasCenter}px`
+    })
     
     // Update connections
     this.updateConnections()
@@ -1208,7 +1390,7 @@ export default class extends Controller {
   }
   
   endNodeDrag() {
-    if (!this.draggedNode) return
+    if (!this.draggedNodes || this.draggedNodes.length === 0) return
     
     // Cancel animation
     if (this.animationFrameId) {
@@ -1216,10 +1398,16 @@ export default class extends Controller {
       this.animationFrameId = null
     }
     
-    this.draggedNode.element.style.zIndex = ''
-    this.draggedNode.element.style.cursor = ''
+    // Reset styles for all dragged nodes
+    this.draggedNodes.forEach(node => {
+      node.element.style.zIndex = ''
+      node.element.style.cursor = ''
+    })
+    
     this.container.classList.remove('dragging-node')
     this.draggedNode = null
+    this.draggedNodes = []
+    this.dragStartPositions = null
     
     this.updateYamlPreview()
   }
@@ -1794,10 +1982,6 @@ export default class extends Controller {
             if (toNode) {
               const { fromSide, toSide } = this.connectionManager.findBestSocketPair(fromNode, toNode)
               this.connectionManager.createConnection(fromNode.id, fromSide, toNode.id, toSide)
-              
-              // Mark socket as used
-              const socket = toNode.element.querySelector(`.socket[data-socket-side="${toSide}"]`)
-              if (socket) socket.classList.add('used-as-destination')
             }
           })
         }
@@ -1908,10 +2092,6 @@ export default class extends Controller {
               if (toNode) {
                 const { fromSide, toSide } = this.connectionManager.findBestSocketPair(fromNode, toNode)
                 this.connectionManager.createConnection(fromNode.id, fromSide, toNode.id, toSide)
-                
-                // Mark socket as used
-                const socket = toNode.element.querySelector(`.socket[data-socket-side="${toSide}"]`)
-                if (socket) socket.classList.add('used-as-destination')
               }
             })
           }
@@ -2466,6 +2646,9 @@ export default class extends Controller {
         // Load connections
         this.connectionManager.load(data.connections)
         
+        // Mark destination sockets based on loaded connections
+        this.updateSocketStates()
+        
         // Set main node
         if (data.mainNodeId) {
           this.mainNodeId = data.mainNodeId
@@ -2533,6 +2716,9 @@ export default class extends Controller {
             }
           })
           
+          // Update socket states to mark destinations
+          this.updateSocketStates()
+          
           // Auto-layout for better visual
           this.autoLayout()
         }
@@ -2579,6 +2765,7 @@ export default class extends Controller {
     this.connectionManager.init()
     
     // Reset state
+    this.selectedNodes = []
     this.selectedNode = null
     this.selectedConnection = null
     this.mainNodeId = null

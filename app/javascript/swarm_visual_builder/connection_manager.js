@@ -92,23 +92,12 @@ export default class ConnectionManager {
       toPreferred = ['bottom', 'left', 'right', 'top']
     }
     
-    // Check socket availability on target side and find best option
+    // Find best socket on target side based on connection count
     const toElement = toNode.element
     let toSide = toPreferred[0]
     
-    // Try to find an unused socket first
-    let foundUnused = false
-    for (const side of toPreferred) {
-      const socket = toElement?.querySelector(`.socket[data-socket-side="${side}"]`)
-      if (socket && !socket.classList.contains('used-as-destination')) {
-        toSide = side
-        foundUnused = true
-        break
-      }
-    }
-    
-    // If no unused socket found, find the least occupied one
-    if (!foundUnused && toElement) {
+    if (toElement) {
+      // Find the least occupied socket
       let minConnections = Infinity
       for (const side of toPreferred) {
         const socket = toElement.querySelector(`.socket[data-socket-side="${side}"]`)
@@ -163,19 +152,8 @@ export default class ConnectionManager {
     const toElement = toNode.element
     let toSide = toPreferred[0]
     
-    // First try to find an unused socket
-    let foundUnused = false
-    for (const side of toPreferred) {
-      const socket = toElement?.querySelector(`.socket[data-socket-side="${side}"]`)
-      if (socket && !socket.classList.contains('used-as-destination')) {
-        toSide = side
-        foundUnused = true
-        break
-      }
-    }
-    
-    // If no unused socket found, find the least occupied one
-    if (!foundUnused && toElement) {
+    if (toElement) {
+      // Find the least occupied socket
       let minConnections = Infinity
       for (const side of toPreferred) {
         const socket = toElement.querySelector(`.socket[data-socket-side="${side}"]`)
@@ -213,12 +191,7 @@ export default class ConnectionManager {
     const connection = { from: fromId, fromSide, to: toId, toSide }
     this.connections.push(connection)
     
-    // Mark destination socket as used
-    const toNode = this.controller.viewport.querySelector(`.swarm-node[data-node-id="${toId}"]`)
-    const toSocket = toNode?.querySelector(`.socket[data-socket-side="${toSide}"]`)
-    if (toSocket) {
-      toSocket.classList.add('used-as-destination')
-    }
+    // Don't mark sockets here - let updateSocketStates handle it
     
     return connection
   }
@@ -228,12 +201,7 @@ export default class ConnectionManager {
     const conn = this.connections[index]
     if (!conn) return
     
-    // Clear socket state
-    const toNode = this.controller.viewport.querySelector(`.swarm-node[data-node-id="${conn.to}"]`)
-    const toSocket = toNode?.querySelector(`.socket[data-socket-side="${conn.toSide}"]`)
-    if (toSocket) {
-      toSocket.classList.remove('used-as-destination')
-    }
+    // Don't handle socket states here - let updateSocketStates handle it
     
     this.connections.splice(index, 1)
   }

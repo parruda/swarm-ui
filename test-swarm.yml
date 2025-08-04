@@ -1,0 +1,15 @@
+version: 1
+swarm:
+  name: my_swarm
+  instances:
+    backend_expert:
+      description: Expert in backend development, APIs, databases, and server architecture
+      model: opus
+      directory: ${BACKEND_DIR:=./backend}
+      prompt: You are a helpful AI assistant for Backend Expert.
+      allowed_tools:
+        - Read
+        - Edit
+        - Write
+        - Bash
+  main: backend_expert

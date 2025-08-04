@@ -118,19 +118,22 @@ class ProjectsController < ApplicationController
 
   def toggle_webhook
     unless @project.github_configured?
-      redirect_back(fallback_location: edit_project_path(@project), alert: "Please configure GitHub repository information first.")
+      flash.now[:alert] = "Please configure GitHub repository information first."
+      render(:toggle_webhook)
       return
     end
 
     # Check if GitHub username is configured
     unless Setting.github_username_configured?
-      redirect_back(fallback_location: edit_project_path(@project, anchor: "webhook-configuration"), alert: "Please configure your GitHub username in Settings before enabling webhooks.")
+      flash.now[:alert] = "Please configure your GitHub username in Settings before enabling webhooks."
+      render(:toggle_webhook)
       return
     end
 
     # Check if any events are enabled
     if @project.github_webhook_events.enabled.empty?
-      redirect_back(fallback_location: edit_project_path(@project, anchor: "webhook-configuration"), alert: "Please select at least one webhook event before enabling webhooks.")
+      flash.now[:alert] = "Please select at least one webhook event before enabling webhooks."
+      render(:toggle_webhook)
       return
     end
 
@@ -138,10 +141,12 @@ class ProjectsController < ApplicationController
     @project.update!(github_webhook_enabled: !@project.github_webhook_enabled)
 
     if @project.github_webhook_enabled?
-      redirect_back(fallback_location: @project, notice: "GitHub webhooks enabled. The webhook forwarder will start shortly.")
+      flash.now[:notice] = "GitHub webhooks enabled. The webhook forwarder will start shortly."
     else
-      redirect_back(fallback_location: @project, notice: "GitHub webhooks disabled.")
+      flash.now[:notice] = "GitHub webhooks disabled."
     end
+    
+    render(:toggle_webhook)
   end
 
   def webhook_status

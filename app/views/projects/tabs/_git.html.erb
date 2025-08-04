@@ -1,5 +1,21 @@
 <turbo-frame id="project-tab-content">
   <div class="space-y-6">
+    <!-- Flash messages -->
+    <% if flash[:notice] || flash[:alert] %>
+      <div class="rounded-md <%= flash[:alert] ? 'bg-red-50 dark:bg-red-900/20' : 'bg-green-50 dark:bg-green-900/20' %> p-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <%= heroicon flash[:alert] ? "x-circle" : "check-circle", variant: :mini, options: { class: "h-5 w-5 #{flash[:alert] ? 'text-red-400' : 'text-green-400'}" } %>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm <%= flash[:alert] ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300' %>">
+              <%= flash[:notice] || flash[:alert] %>
+            </p>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    
     <!-- Git Repository Status -->
     <% if project.git_status %>
       <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200" data-controller="git-sync">

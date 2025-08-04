@@ -112,8 +112,8 @@
                     </p>
                   <% end %>
                   <% if project.git? %>
-                    <!-- Ahead/behind indicators loaded asynchronously -->
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 hidden">
+                    <!-- Ahead/behind indicators loaded asynchronously - always reserve space -->
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 min-h-[1rem]" data-project-git-status-target="indicatorContainer">
                       <span class="hidden inline-flex items-center">
                         <svg class="h-3 w-3 mr-1 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>

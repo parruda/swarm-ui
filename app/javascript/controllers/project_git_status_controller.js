@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static values = { projectId: Number, projectPath: String }
-  static targets = ["branch", "dirty", "ahead", "behind"]
+  static targets = ["branch", "dirty", "ahead", "behind", "indicatorContainer"]
   
   connect() {
     // Fetch git status immediately on connect
@@ -37,40 +37,38 @@ export default class extends Controller {
       // Update ahead/behind indicators
       const hasAheadBehind = data.ahead > 0 || data.behind > 0
       
-      if (hasAheadBehind) {
-        if (this.hasAheadTarget) {
-          const aheadContainer = this.aheadTarget.parentElement
+      if (this.hasAheadTarget) {
+        const aheadContainer = this.aheadTarget.parentElement
+        if (data.ahead > 0) {
+          this.aheadTarget.textContent = `${data.ahead} ahead`
+          aheadContainer.classList.remove('hidden')
+        } else {
+          aheadContainer.classList.add('hidden')
+        }
+      }
+      
+      if (this.hasBehindTarget) {
+        const behindContainer = this.behindTarget.parentElement
+        if (data.behind > 0) {
+          this.behindTarget.textContent = `${data.behind} behind`
+          behindContainer.classList.remove('hidden')
+          // If we have ahead too, ensure ml-2 is present
           if (data.ahead > 0) {
-            this.aheadTarget.textContent = `${data.ahead} ahead`
-            aheadContainer.classList.remove('hidden')
+            behindContainer.classList.add('ml-2')
           } else {
-            aheadContainer.classList.add('hidden')
+            behindContainer.classList.remove('ml-2')
           }
+        } else {
+          behindContainer.classList.add('hidden')
         }
-        
-        if (this.hasBehindTarget) {
-          const behindContainer = this.behindTarget.parentElement
-          if (data.behind > 0) {
-            this.behindTarget.textContent = `${data.behind} behind`
-            behindContainer.classList.remove('hidden')
-            // If we have ahead too, ensure ml-2 is present
-            if (data.ahead > 0) {
-              behindContainer.classList.add('ml-2')
-            } else {
-              behindContainer.classList.remove('ml-2')
-            }
-          } else {
-            behindContainer.classList.add('hidden')
-          }
-        }
-        
-        // Show the parent container for ahead/behind
-        if (this.hasAheadTarget || this.hasBehindTarget) {
-          const target = this.hasAheadTarget ? this.aheadTarget : this.behindTarget
-          const aheadBehindContainer = target.closest('p.text-xs.text-gray-500')
-          if (aheadBehindContainer) {
-            aheadBehindContainer.classList.remove('hidden')
-          }
+      }
+      
+      // If no ahead/behind data, we could optionally show a placeholder
+      // The container always stays visible to prevent layout shift
+      if (this.hasIndicatorContainerTarget && !hasAheadBehind) {
+        // Add a non-breaking space to maintain minimum height if completely empty
+        if (this.indicatorContainerTarget.textContent.trim() === '') {
+          this.indicatorContainerTarget.innerHTML = '&nbsp;'
         }
       }
       

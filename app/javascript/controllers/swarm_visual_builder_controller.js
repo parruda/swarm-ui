@@ -2378,11 +2378,16 @@ export default class extends Controller {
     const swarmData = this.buildSwarmData()
     const yaml = this.generateReadableYaml(swarmData)
     
+    // Normalize filename: lowercase and replace spaces with dashes
+    const filename = (this.nameInputTarget.value || 'swarm')
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+    
     const blob = new Blob([yaml], { type: 'text/yaml' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${this.nameInputTarget.value || 'swarm'}.yml`
+    a.download = `${filename}.yml`
     a.click()
     URL.revokeObjectURL(url)
   }

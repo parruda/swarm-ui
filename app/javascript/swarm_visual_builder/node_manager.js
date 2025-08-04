@@ -154,7 +154,7 @@ export default class NodeManager {
         name: name,
         description: config.description || '',
         config: mappedConfig,
-        model: config.model || 'sonnet',
+        model: config.model || 'opus',
         provider: config.provider || 'claude'  // Default to claude if not specified
       }, { x, y })
       

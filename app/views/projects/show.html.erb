@@ -58,38 +58,80 @@
       </div>
     </div>
 
-    <!-- Quick Stats - Always Visible -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
-      <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center">
-          <%= heroicon "command-line", variant: :outline, options: { class: "h-8 w-8 text-orange-600 dark:text-orange-400" } %>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Sessions</p>
-            <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100"><%= @project.total_sessions_count %></p>
-          </div>
-        </div>
+    <!-- Project Details (formerly Overview tab content) -->
+    <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200 mb-6">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Project Details</h2>
       </div>
       
-      <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center">
-          <%= heroicon "cube", variant: :outline, options: { class: "h-8 w-8 text-blue-600 dark:text-blue-400" } %>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Swarms</p>
-            <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100"><%= @swarm_files&.count || 0 %></p>
+      <div class="px-6 py-4">
+        <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+          <div>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Version Control</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <% if @project.git? %>
+                <span class="inline-flex items-center rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-purple-600/20 dark:ring-purple-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                  <%= heroicon "code-bracket", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                  Git Repository
+                </span>
+              <% else %>
+                <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                  <%= heroicon "folder", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
+                  Local Directory
+                </span>
+              <% end %>
+            </dd>
           </div>
-        </div>
-      </div>
-      
-      <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center">
-          <%= heroicon "clock", variant: :outline, options: { class: "h-8 w-8 text-green-600 dark:text-green-400" } %>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Last Active</p>
-            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              <%= @project.last_session_at ? time_ago_in_words(@project.last_session_at) + " ago" : "Never" %>
-            </p>
+          
+          <div>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Default Config</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <%= @project.default_config_path || "None" %>
+            </dd>
           </div>
-        </div>
+          
+          <div>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Use Worktree by Default</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <% if @project.default_use_worktree? %>
+                <span class="inline-flex items-center rounded-md bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-green-600/20 dark:ring-green-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">Yes</span>
+              <% else %>
+                <span class="inline-flex items-center rounded-md bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset">No</span>
+              <% end %>
+            </dd>
+          </div>
+          
+          <div>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Sessions</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <span class="text-green-600 dark:text-green-400"><%= @project.active_sessions_count %> active</span> / 
+              <span><%= @project.total_sessions_count %> total</span>
+            </dd>
+          </div>
+          
+          <% if @project.last_session_at %>
+            <div>
+              <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Last Activity</dt>
+              <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <%= time_ago_in_words(@project.last_session_at) %> ago
+              </dd>
+            </div>
+          <% end %>
+          
+          <div>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Created</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <%= @project.created_at.strftime("%B %d, %Y") %>
+            </dd>
+          </div>
+          
+          <div>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Project Path</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 font-mono truncate">
+              <%= @project.path %>
+            </dd>
+          </div>
+        </dl>
       </div>
     </div>
 

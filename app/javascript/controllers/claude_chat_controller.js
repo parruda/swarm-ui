@@ -67,7 +67,6 @@ export default class extends Controller {
     // Store the session ID from Claude for resume functionality
     if (event.detail?.sessionId) {
       this.sessionId = event.detail.sessionId
-      console.log("[Chat] Session ID received from Claude:", this.sessionId)
       
       // Update the session ID field in the form for the next message
       if (this.hasSessionIdFieldTarget) {
@@ -102,12 +101,6 @@ export default class extends Controller {
     this.isWaitingForResponse = true
     
     // Session ID field is already updated in handleSessionUpdate
-    // Just log what we're sending
-    if (this.sessionId) {
-      console.log("[Chat] Sending with session resume - Tracking:", this.trackingId, "Session:", this.sessionId)
-    } else {
-      console.log("[Chat] Sending new conversation - Tracking:", this.trackingId)
-    }
     
     // Hide welcome message on first message
     if (!this.welcomeHidden) {

@@ -75,9 +75,12 @@ export default class extends Controller {
     this.setupEventListeners()
     this.setupKeyboardShortcuts()
     
-    // Load existing data if editing
+    // Load existing data if editing - add small delay to ensure DOM is ready
     if ((this.swarmIdValue && this.existingDataValue) || this.existingYamlValue || this.isFileEditValue) {
-      this.loadExistingSwarm()
+      // Use requestAnimationFrame to ensure DOM updates are complete
+      requestAnimationFrame(() => {
+        this.loadExistingSwarm()
+      })
     }
     
     // Listen for canvas refresh events from Claude chat
@@ -2857,13 +2860,17 @@ export default class extends Controller {
   
   // Expand sidebar to max width with animation
   expandSidebarToMax() {
-    if (!this.hasRightSidebarTarget) return
+    if (!this.hasRightSidebarTarget) {
+      return
+    }
     
     const maxWidth = 800
     const currentWidth = this.rightSidebarTarget.offsetWidth
     
     // Only expand if not already at max
-    if (currentWidth >= maxWidth) return
+    if (currentWidth >= maxWidth) {
+      return
+    }
     
     // Add transition for smooth animation
     this.rightSidebarTarget.style.transition = 'width 0.3s ease-out'

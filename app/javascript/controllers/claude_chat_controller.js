@@ -188,7 +188,10 @@ export default class extends Controller {
       this.welcomeHidden = true
       
       // Expand the sidebar to max width on first message
-      this.expandSidebarToMax()
+      // Use a small delay to ensure DOM is ready
+      setTimeout(() => {
+        this.expandSidebarToMax()
+      }, 100)
     }
     
     // Update status
@@ -476,7 +479,23 @@ export default class extends Controller {
   }
   
   expandSidebarToMax() {
-    // Dispatch an event to request sidebar expansion
+    // Try direct approach first - find the sidebar element
+    const sidebar = document.querySelector('[data-swarm-visual-builder-target="rightSidebar"]')
+    if (sidebar) {
+      const maxWidth = 800
+      const currentWidth = sidebar.offsetWidth
+      
+      if (currentWidth < maxWidth) {
+        sidebar.style.transition = 'width 0.3s ease-out'
+        sidebar.style.width = `${maxWidth}px`
+        
+        setTimeout(() => {
+          sidebar.style.transition = ''
+        }, 300)
+      }
+    }
+    
+    // Also dispatch the event as backup
     window.dispatchEvent(new CustomEvent('sidebar:expandToMax'))
   }
 }

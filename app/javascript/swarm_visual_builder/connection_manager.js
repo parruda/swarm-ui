@@ -41,10 +41,11 @@ export default class ConnectionManager {
   
   // Find optimal socket pair for connection based on natural flow and connection load
   findBestSocketPair(fromNode, toNode) {
-    const fromX = fromNode.data.x + this.controller.canvasCenter
-    const fromY = fromNode.data.y + this.controller.canvasCenter
-    const toX = toNode.data.x + this.controller.canvasCenter
-    const toY = toNode.data.y + this.controller.canvasCenter
+    const canvasCenter = this.controller.canvasCenter || 0
+    const fromX = (fromNode.data?.x || 0) + canvasCenter
+    const fromY = (fromNode.data?.y || 0) + canvasCenter
+    const toX = (toNode.data?.x || 0) + canvasCenter
+    const toY = (toNode.data?.y || 0) + canvasCenter
     
     const dx = toX - fromX
     const dy = toY - fromY

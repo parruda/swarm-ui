@@ -154,8 +154,8 @@ export default class NodeManager {
         name: name,
         description: config.description || '',
         config: mappedConfig,
-        model: config.model || 'Unknown',
-        provider: config.provider || 'Unknown'
+        model: config.model || 'sonnet',
+        provider: config.provider || 'claude'  // Default to claude if not specified
       }, { x, y })
       
       importedNodes.push(node)

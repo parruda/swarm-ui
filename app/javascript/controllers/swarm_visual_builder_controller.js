@@ -333,9 +333,9 @@ export default class extends Controller {
     // Store reference
     node.element = nodeElement
     
-    if (!this.mainNodeId) {
-      this.mainNodeId = node.id
-      nodeElement.classList.add('main-node')
+    // Set as main if it's the first node and not OpenAI
+    if (!this.mainNodeId && node.data.provider !== 'openai') {
+      this.setMainNode(node.id)
     }
   }
   
@@ -380,8 +380,8 @@ export default class extends Controller {
     // Add double-click handler for main node
     nodeEl.addEventListener('dblclick', (e) => {
       e.stopPropagation()
-      // Only allow setting as main if no incoming connections
-      if (!this.connectionManager.hasIncomingConnections(node.id)) {
+      // Only allow setting as main if no incoming connections and not OpenAI
+      if (!this.connectionManager.hasIncomingConnections(node.id) && node.data.provider !== 'openai') {
         this.setMainNode(node.id)
       }
     })
@@ -522,20 +522,35 @@ export default class extends Controller {
           
           <!-- Vibe Mode -->
           <div id="vibe-mode-field" style="display: ${isClaude || isOpenAI ? 'block' : 'none'};">
-            <label class="flex items-start ${isOpenAI ? 'cursor-default' : 'cursor-pointer'}">
-              <input type="checkbox" 
-                     ${nodeData.vibe || nodeData.config?.vibe || isOpenAI ? 'checked' : ''}
-                     ${isOpenAI ? 'disabled' : ''}
-                     data-property="vibe"
-                     data-node-id="${node.id}"
-                     class="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-0 focus:outline-none ${isOpenAI ? 'opacity-50 cursor-default' : 'cursor-pointer'}">
-              <div class="ml-3">
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Vibe Mode</span>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  ${isOpenAI ? 'OpenAI instances are always in vibe mode with access to all tools' : 'When enabled, this instance skips all permissions and has access to all available tools'}
-                </p>
+            ${isOpenAI ? `
+              <div class="bg-blue-50 dark:bg-blue-900/20 rounded-md p-3">
+                <div class="flex items-start">
+                  <svg class="h-5 w-5 text-blue-400 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                  </svg>
+                  <div>
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Vibe Mode</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                      OpenAI instances always run in vibe mode with full access to all tools
+                    </p>
+                  </div>
+                </div>
               </div>
-            </label>
+            ` : `
+              <label class="flex items-start cursor-pointer">
+                <input type="checkbox" 
+                       ${nodeData.vibe || nodeData.config?.vibe ? 'checked' : ''}
+                       data-property="vibe"
+                       data-node-id="${node.id}"
+                       class="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 focus:ring-0 focus:outline-none cursor-pointer">
+                <div class="ml-3">
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Vibe Mode</span>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    When enabled, this instance skips all permissions and has access to all available tools
+                  </p>
+                </div>
+              </label>
+            `}
           </div>
           
           <!-- Allowed Tools (only for Claude and not in vibe mode) -->
@@ -566,12 +581,13 @@ export default class extends Controller {
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
               <input type="checkbox" 
                      ${this.mainNodeId === node.id ? 'checked' : ''}
-                     ${this.connectionManager.hasIncomingConnections(node.id) ? 'disabled' : ''}
+                     ${this.connectionManager.hasIncomingConnections(node.id) || isOpenAI ? 'disabled' : ''}
                      data-action="change->swarm-visual-builder#toggleMainNode"
                      data-node-id="${node.id}"
                      class="mr-2 disabled:opacity-50 disabled:cursor-not-allowed">
               Main Instance
               ${this.connectionManager.hasIncomingConnections(node.id) ? '<span class="text-xs text-gray-500 dark:text-gray-400 block ml-6">Cannot be main (has incoming connections)</span>' : ''}
+              ${isOpenAI ? '<span class="text-xs text-gray-500 dark:text-gray-400 block ml-6">OpenAI instances cannot be main</span>' : ''}
             </label>
           </div>
           
@@ -661,15 +677,37 @@ export default class extends Controller {
         // Update tags
         this.updateNodeTags(node)
         
-        // Show/hide temperature field for OpenAI
+        // Show/hide fields based on provider
         if (property === 'provider') {
           const tempField = this.propertiesPanelTarget.querySelector('#temperature-field')
-          const vibeField = this.propertiesPanelTarget.querySelector('#vibe-mode-field')
           const toolsField = this.propertiesPanelTarget.querySelector('#tools-field')
           
           if (tempField) tempField.style.display = e.target.value === 'openai' ? 'block' : 'none'
-          if (vibeField) vibeField.style.display = 'block'
           if (toolsField) toolsField.style.display = e.target.value === 'openai' || node.data.vibe || node.data.config?.vibe ? 'none' : 'block'
+          
+          // If changing to OpenAI and this node is currently main, unset it
+          if (e.target.value === 'openai' && this.mainNodeId === node.id) {
+            // Remove main node styling
+            if (node.element) {
+              node.element.classList.remove('main-node')
+              const badge = node.element.querySelector('.bg-orange-500')
+              if (badge) badge.remove()
+            }
+            this.mainNodeId = null
+            
+            // Try to find another eligible node to be main
+            const eligibleNode = this.nodeManager.getNodes().find(n => 
+              n.id !== node.id && 
+              n.data.provider !== 'openai' && 
+              !this.connectionManager.hasIncomingConnections(n.id)
+            )
+            if (eligibleNode) {
+              this.setMainNode(eligibleNode.id)
+            }
+          }
+          
+          // Refresh the entire properties panel to update vibe mode display
+          this.showNodeProperties(node)
         }
       } else if (property === 'directory' || property === 'temperature' || property === 'system_prompt' || property === 'vibe') {
         // Store these in config
@@ -780,6 +818,15 @@ export default class extends Controller {
   }
   
   setMainNode(nodeId) {
+    const node = this.nodeManager.findNode(nodeId)
+    if (!node) return
+    
+    // Prevent OpenAI instances from being main
+    if (node.data.provider === 'openai') {
+      console.warn('OpenAI instances cannot be set as main')
+      return
+    }
+    
     // Remove previous main node styling
     if (this.mainNodeId) {
       const prevMainNode = this.nodeManager.findNode(this.mainNodeId)
@@ -792,8 +839,7 @@ export default class extends Controller {
     
     // Set new main node
     this.mainNodeId = nodeId
-    const node = this.nodeManager.findNode(nodeId)
-    if (node?.element) {
+    if (node.element) {
       node.element.classList.add('main-node')
       const titleEl = node.element.querySelector('.node-title span')
       if (titleEl && !node.element.querySelector('.bg-orange-500')) {

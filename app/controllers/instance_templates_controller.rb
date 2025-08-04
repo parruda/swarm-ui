@@ -6,6 +6,17 @@ class InstanceTemplatesController < ApplicationController
   def index
     @instance_templates = InstanceTemplate.includes(:swarm_template_instances).ordered
     @instance_templates = @instance_templates.by_category(params[:category]) if params[:category].present?
+    
+    respond_to do |format|
+      format.html
+      format.json { 
+        render json: @instance_templates.to_json(
+          methods: [:model, :provider],
+          include: [],
+          only: [:id, :name, :description, :category, :tags, :config, :system_prompt]
+        )
+      }
+    end
   end
 
   def library
@@ -31,10 +42,21 @@ class InstanceTemplatesController < ApplicationController
   def create
     @instance_template = InstanceTemplate.new(instance_template_params)
 
-    if @instance_template.save
-      redirect_to(@instance_template, notice: "Instance template was successfully created.")
-    else
-      render(:new, status: :unprocessable_entity)
+    respond_to do |format|
+      if @instance_template.save
+        format.html { redirect_to(@instance_template, notice: "Instance template was successfully created.") }
+        format.json { 
+          render json: @instance_template.to_json(
+            methods: [:model, :provider],
+            include: [],
+            only: [:id, :name, :description, :category, :tags, :config, :system_prompt]
+          ), 
+          status: :created 
+        }
+      else
+        format.html { render(:new, status: :unprocessable_entity) }
+        format.json { render json: { errors: @instance_template.errors.full_messages }, status: :unprocessable_entity }
+      end
     end
   end
 
@@ -84,32 +106,68 @@ class InstanceTemplatesController < ApplicationController
   end
 
   def instance_template_params
-    permitted = params.require(:instance_template).permit(
+    permitted_params = params.require(:instance_template).permit(
       :name,
       :description,
       :system_prompt,
       :category,
       :tags_string,
-      config: {},
-      metadata: {},
+      tags: [],
+      metadata: {}
     )
+    
+    # Convert to hash for manipulation
+    permitted = permitted_params.to_h
+    
+    # Handle config separately since it has nested arrays
+    if params[:instance_template][:config]
+      config_params = params[:instance_template][:config].permit(
+        :provider,
+        :model,
+        :directory,
+        :vibe,
+        :worktree,
+        :temperature,
+        :api_version,
+        :reasoning_effort,
+        :openai_token_env,
+        :base_url,
+        allowed_tools: []
+      )
+      permitted[:config] = config_params.to_h
+    end
 
-    # Process tags from comma-separated string
+    # Process tags from comma-separated string or keep array if directly provided
     if permitted[:tags_string].present?
       permitted[:tags] = permitted[:tags_string].split(",").map(&:strip).map(&:downcase).uniq
       permitted.delete(:tags_string)
     elsif permitted[:tags_string] == ""
       permitted[:tags] = []
       permitted.delete(:tags_string)
+    elsif permitted[:tags].present? && permitted[:tags].is_a?(Array)
+      # Tags provided as array from API - ensure they're normalized
+      permitted[:tags] = permitted[:tags].map(&:to_s).map(&:strip).map(&:downcase).uniq
     end
 
     # Process config to handle checkbox and special values
     if permitted[:config].present?
-      # Convert vibe checkbox value to boolean
-      permitted[:config][:vibe] = if permitted[:config][:vibe].present?
-        permitted[:config][:vibe] == "1"
+      # Convert vibe checkbox value to boolean (handle both form and JSON input)
+      if permitted[:config][:vibe].present?
+        permitted[:config][:vibe] = case permitted[:config][:vibe]
+        when true, "true", "1" then true
+        when false, "false", "0", nil then false
+        else false
+        end
       else
-        false
+        permitted[:config][:vibe] = false
+      end
+      
+      # Handle worktree similarly
+      if permitted[:config].key?(:worktree)
+        permitted[:config][:worktree] = case permitted[:config][:worktree]
+        when true, "true", "1" then true
+        else false
+        end
       end
 
       # Handle allowed_tools array (ensure it's an array)

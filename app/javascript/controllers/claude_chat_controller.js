@@ -9,7 +9,6 @@ export default class extends Controller {
   }
   
   connect() {
-    
     // Generate tracking ID if not present (use UUID format)
     if (!this.conversationIdValue || !this.isValidUUID(this.conversationIdValue)) {
       this.conversationIdValue = this.generateUUID()
@@ -611,8 +610,6 @@ export default class extends Controller {
   
   handleChatEnabled(event) {
     // Chat has been enabled after file save
-    console.log('Chat enabled event received:', event.detail)
-    
     // Update our values from the event
     if (event.detail?.filePath) {
       this.filePathValue = event.detail.filePath
@@ -632,18 +629,15 @@ export default class extends Controller {
     // Check if Turbo Stream is already set up
     const existingStream = this.element.querySelector('turbo-cable-stream-source')
     if (existingStream) {
-      console.log('Turbo Stream already exists')
       return
     }
     
     // Only set up if we have the required values
     if (!this.projectIdValue || !this.conversationIdValue) {
-      console.error('Cannot set up Turbo Stream: missing projectId or conversationId')
       return
     }
     
     const streamName = `claude_chat_${this.projectIdValue}_${this.conversationIdValue}`
-    console.log('Setting up Turbo Stream for:', streamName)
     
     try {
       // Get the signed stream name from the server
@@ -668,25 +662,15 @@ export default class extends Controller {
         
         // Insert it into the chat element
         this.element.insertBefore(turboStream, this.element.firstChild)
-        
-        console.log('Turbo Stream subscription created successfully')
-      } else {
-        console.error('Failed to get signed stream name from server')
       }
     } catch (error) {
-      console.error('Failed to set up Turbo Stream:', error)
+      // Silently fail - the chat will still work without real-time updates
     }
   }
   
   checkEnabledState() {
     // Check if we have the required values to enable chat
     const isEnabled = this.filePathValue && this.filePathValue.length > 0
-    
-    console.log('Checking enabled state:', { 
-      filePathValue: this.filePathValue, 
-      projectIdValue: this.projectIdValue,
-      isEnabled: isEnabled 
-    })
     
     // Enable/disable input
     if (this.hasInputTarget) {

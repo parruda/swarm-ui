@@ -2907,20 +2907,17 @@ export default class extends Controller {
     const filePathField = chatElement.querySelector('input[name="file_path"]')
     if (filePathField) {
       filePathField.value = filePath
-      console.log('Updated file_path field')
     }
     
     const projectIdField = chatElement.querySelector('input[name="project_id"]')
     if (projectIdField && this.projectIdValue) {
       projectIdField.value = this.projectIdValue
-      console.log('Updated project_id field')
     }
     
     // Update the status text
     const statusElement = chatElement.querySelector('[data-claude-chat-target="status"]')
     if (statusElement) {
       statusElement.textContent = 'Ready'
-      console.log('Updated status to Ready')
     }
     
     // Find and enable the form
@@ -2929,7 +2926,6 @@ export default class extends Controller {
       // Remove any disabled state from the form
       formElement.querySelectorAll('[disabled]').forEach(el => {
         el.disabled = false
-        console.log('Removed disabled from:', el.tagName, el.name || el.id)
       })
     }
     
@@ -2941,7 +2937,6 @@ export default class extends Controller {
       inputElement.placeholder = 'Ask Claude to help build your swarm... (⌘+Enter to send)'
       // Remove disabled styling classes
       inputElement.classList.remove('opacity-50', 'cursor-not-allowed')
-      console.log('Enabled input field, classes:', inputElement.className)
     }
     
     // Remove the disabled state from the send button
@@ -2953,9 +2948,6 @@ export default class extends Controller {
       if (!sendButton.classList.contains('hover:bg-orange-700')) {
         sendButton.classList.add('hover:bg-orange-700', 'dark:hover:bg-orange-700')
       }
-      console.log('Enabled send button, classes:', sendButton.className)
-    } else {
-      console.log('Send button not found')
     }
     
     // Show the welcome message instead of the "save first" message
@@ -2964,7 +2956,6 @@ export default class extends Controller {
       // Check for the warning message (could be different selectors)
       const warningMessage = messagesElement.querySelector('.text-yellow-600, .text-yellow-400, [class*="yellow"]')
       if (warningMessage || messagesElement.textContent.includes('save') || messagesElement.textContent.includes('Save')) {
-        console.log('Replacing warning message with welcome message')
         messagesElement.innerHTML = `
           <div id="welcome_message" class="text-center py-8">
             <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600">
@@ -2987,17 +2978,11 @@ export default class extends Controller {
       chatController.checkEnabledState()
     }
     
-    console.log('Chat enabled successfully')
-    
     // Dispatch a custom event to notify that chat is now enabled
     chatElement.dispatchEvent(new CustomEvent('chat:enabled', { 
       detail: { filePath: filePath, projectId: this.projectIdValue },
       bubbles: true 
     }))
-    
-    // Optionally switch to the chat tab to show it's now available
-    // This is a UX decision - uncomment if you want to automatically switch to chat after save
-    // this.showChatTab()
   }
   
   updateUrlForEditing(filePath) {

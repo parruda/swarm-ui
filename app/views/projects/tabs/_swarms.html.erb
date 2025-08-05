@@ -44,6 +44,7 @@
             
             <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
               <%= link_to new_session_path(project_id: project.id, config: swarm_file[:relative_path]), 
+                  data: { turbo_frame: "_top" },
                   class: "inline-flex items-center justify-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-orange-800 dark:ring-orange-800 hover:bg-orange-800 dark:hover:bg-orange-800 transition-colors duration-200", 
                   title: "Launch swarm" do %>
                 <%= heroicon "play", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>

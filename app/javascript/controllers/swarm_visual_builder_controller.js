@@ -1149,13 +1149,21 @@ export default class extends Controller {
     const templateName = await this.promptForTemplateName(node.data.name)
     if (!templateName) return // User cancelled
     
+    // Get the system prompt and ensure newlines are properly preserved
+    let systemPrompt = node.data.system_prompt || node.data.config?.system_prompt || ''
+    // Convert literal \n to actual newlines if they exist
+    // This handles cases where the prompt was imported or came from JSON with escaped newlines
+    if (systemPrompt.includes('\\n')) {
+      systemPrompt = systemPrompt.replace(/\\n/g, '\n')
+    }
+    
     // Prepare template data from node
     const templateData = {
       name: templateName,
       description: node.data.description || 'Instance template created from visual builder',
       category: 'general',
       tags: [],
-      system_prompt: node.data.system_prompt || node.data.config?.system_prompt || '',
+      system_prompt: systemPrompt,
       config: {
         provider: node.data.provider || 'claude',
         model: node.data.model || 'sonnet',

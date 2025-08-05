@@ -28,7 +28,12 @@ export default class NodeManager {
     
     // Extract system_prompt from config if present
     const config = templateData.config || {}
-    const system_prompt = config.system_prompt || ''
+    let system_prompt = config.system_prompt || ''
+    // Convert literal \n to actual newlines if they exist
+    // This handles cases where the prompt was imported from JSON with escaped newlines
+    if (system_prompt.includes('\\n')) {
+      system_prompt = system_prompt.replace(/\\n/g, '\n')
+    }
     
     // Remove system_prompt from config since it's stored separately
     const cleanConfig = { ...config }
@@ -154,7 +159,12 @@ export default class NodeManager {
       const y = startY + row * (nodeHeight + nodeSpacing) - this.controller.canvasCenter
       
       // Extract system_prompt from the YAML 'prompt' field
-      const system_prompt = config.prompt || config.system_prompt || ''
+      let system_prompt = config.prompt || config.system_prompt || ''
+      // Convert literal \n to actual newlines if they exist
+      // This handles cases where the prompt was imported from JSON with escaped newlines
+      if (system_prompt.includes('\\n')) {
+        system_prompt = system_prompt.replace(/\\n/g, '\n')
+      }
       
       // Create clean config without prompt fields
       const cleanConfig = { ...config }

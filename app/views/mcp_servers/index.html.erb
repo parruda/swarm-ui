@@ -16,8 +16,8 @@
           Export All
         <% end %>
         
-        <%= form_with url: import_mcp_servers_path, multipart: true, class: "inline-flex", data: { turbo: false } do |f| %>
-          <%= f.file_field :file, accept: '.json', class: 'hidden', data: { action: 'change->form#submit' } %>
+        <%= form_with url: import_mcp_servers_path, multipart: true, class: "inline-flex", data: { turbo: false, controller: "auto-submit" } do |f| %>
+          <%= f.file_field :file, accept: '.json', class: 'hidden', data: { action: 'change->auto-submit#submit' } %>
           <%= f.label :file, class: "inline-flex items-center justify-center gap-x-1.5 rounded-md bg-green-600 dark:bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 dark:hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:focus-visible:outline-green-600 transition-colors duration-200 cursor-pointer" do %>
             <%= heroicon "arrow-down-tray", variant: :mini, options: { class: "h-5 w-5" } %>
             Import

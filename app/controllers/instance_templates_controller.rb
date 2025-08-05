@@ -268,7 +268,6 @@ class InstanceTemplatesController < ApplicationController
     {
       name: template.name,
       description: template.description,
-      category: template.category,
       tags: template.tags,
       system_prompt: template.system_prompt,
       config: template.config,
@@ -290,12 +289,14 @@ class InstanceTemplatesController < ApplicationController
       end
     end
     
+    # Ensure system_prompt preserves newlines properly
+    system_prompt = data['system_prompt'] || data[:system_prompt]
+    
     template = InstanceTemplate.new(
       name: name,
       description: data['description'] || data[:description],
-      category: data['category'] || data[:category],
       tags: data['tags'] || data[:tags] || [],
-      system_prompt: data['system_prompt'] || data[:system_prompt],
+      system_prompt: system_prompt,
       config: data['config'] || data[:config] || {},
       metadata: data['metadata'] || data[:metadata] || {}
     )

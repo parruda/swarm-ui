@@ -4,56 +4,6 @@ class SwarmTemplatesController < ApplicationController
   before_action :set_project, only: []
   before_action :set_swarm_template, only: [:show, :edit, :update, :destroy, :duplicate, :preview_yaml, :launch_session, :export]
 
-  def index
-    # Check if we're in a project context
-    @project = Project.find(params[:project_id]) if params[:project_id]
-
-    @swarm_templates = if @project
-      @project.swarm_templates.includes(:project).ordered
-    else
-      SwarmTemplate.includes(:project).ordered
-    end
-
-    # Apply search filter for swarms
-    if params[:search].present?
-      search_term = "%#{params[:search]}%"
-      @swarm_templates = @swarm_templates.where(
-        "name LIKE ? OR description LIKE ?",
-        search_term,
-        search_term,
-      )
-    end
-
-    # Apply tag filter
-    @swarm_templates = @swarm_templates.with_tag(params[:tag]) if params[:tag].present?
-
-    # Get all unique tags for the filter UI
-    @all_tags = SwarmTemplate.all_tags
-
-    # Always load instance templates for the count
-    @instance_templates = InstanceTemplate.ordered.includes(:swarm_template_instances)
-
-    # Apply search filter for instance templates
-    if params[:instance_search].present?
-      search_term = "%#{params[:instance_search]}%"
-      @instance_templates = @instance_templates.where(
-        "name LIKE ? OR description LIKE ?",
-        search_term,
-        search_term,
-      )
-    end
-
-    # Apply tag filter for instance templates
-    @instance_templates = @instance_templates.with_tag(params[:instance_tag]) if params[:instance_tag].present?
-
-    # Get all unique tags for instance templates filter UI
-    @all_instance_tags = InstanceTemplate.all_tags
-
-    # Show instance templates if tab is selected
-    if params[:tab] == "instance-templates"
-      @instance_templates = @instance_templates.includes(:swarm_template_instances)
-    end
-  end
 
   def library
     @system_templates = SwarmTemplate.system.includes(:swarm_template_instances).ordered
@@ -65,28 +15,24 @@ class SwarmTemplatesController < ApplicationController
   end
 
   def new
-    @project = Project.find(params[:project_id]) if params[:project_id]
+    # Require project context for creating new swarm templates
+    @project = Project.find(params[:project_id])
 
-    if @project
-      # For project files, use simple data structure
-      @swarm_data = {
-        name: "",
-        yaml_content: "",
-        visual_data: {
-          project_id: @project.id,
-          project_name: @project.name,
-          project_path: @project.path,
-          is_new_file: true,
-        },
-      }
-      @instance_templates = InstanceTemplate.ordered
-      render("visual_file_editor")
-    else
-      # For non-project swarms, use the model
-      @swarm_template = SwarmTemplate.new
-      @instance_templates = InstanceTemplate.ordered
-      render(:visual_new)
-    end
+    # For project files, use simple data structure
+    @swarm_data = {
+      name: "",
+      yaml_content: "",
+      visual_data: {
+        project_id: @project.id,
+        project_name: @project.name,
+        project_path: @project.path,
+        is_new_file: true,
+      },
+    }
+    @instance_templates = InstanceTemplate.ordered
+    render("visual_file_editor")
+  rescue ActiveRecord::RecordNotFound
+    redirect_to projects_path, alert: "Please select a project to create a swarm template."
   end
 
   def create
@@ -115,9 +61,28 @@ class SwarmTemplatesController < ApplicationController
   end
 
   def edit
-    # Redirect edit to the visual builder with existing data
+    # Require project context for editing
+    unless @swarm_template.project
+      redirect_to projects_path, alert: "This swarm template cannot be edited without a project context."
+      return
+    end
+    
     @instance_templates = InstanceTemplate.ordered
-    render(:visual_new)
+    
+    # For project-based swarms, use the file editor view
+    @swarm_data = {
+      name: @swarm_template.name,
+      yaml_content: @swarm_template.yaml_content,
+      visual_data: @swarm_template.visual_data || {
+        project_id: @swarm_template.project.id,
+        project_name: @swarm_template.project.name,
+        project_path: @swarm_template.project.path,
+        is_file_edit: true,
+        file_path: @swarm_template.config_data&.dig("file_path"),
+      },
+    }
+    @project = @swarm_template.project
+    render("visual_file_editor")
   end
 
   def update
@@ -130,7 +95,20 @@ class SwarmTemplatesController < ApplicationController
       respond_to do |format|
         format.html do
           @instance_templates = InstanceTemplate.ordered
-          render(:visual_new, status: :unprocessable_entity)
+          # Prepare data for visual_file_editor on error
+          @swarm_data = {
+            name: @swarm_template.name,
+            yaml_content: @swarm_template.yaml_content,
+            visual_data: @swarm_template.visual_data || {
+              project_id: @swarm_template.project&.id,
+              project_name: @swarm_template.project&.name,
+              project_path: @swarm_template.project&.path,
+              is_file_edit: true,
+              file_path: @swarm_template.config_data&.dig("file_path"),
+            },
+          }
+          @project = @swarm_template.project
+          render("visual_file_editor", status: :unprocessable_entity)
         end
         format.json { render(json: { errors: @swarm_template.errors.full_messages }, status: :unprocessable_entity) }
       end

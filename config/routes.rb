@@ -72,7 +72,7 @@ Rails.application.routes.draw do
   end
 
   # Top-level swarm templates routes (for general purpose swarms)
-  resources :swarm_templates do
+  resources :swarm_templates, except: [:index, :new] do
     member do
       post :duplicate
       get :preview_yaml

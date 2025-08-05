@@ -762,18 +762,31 @@ class SessionsController < ApplicationController
     params[:instance_name]
     operation_success = false
 
-    unless directory.present? && File.directory?(directory)
+    unless directory.present?
+      render(json: { error: "Invalid directory" }, status: :bad_request)
+      return
+    end
+
+    # Sanitize and validate the directory path
+    begin
+      resolved_directory = File.expand_path(directory)
+      
+      unless File.directory?(resolved_directory)
+        render(json: { error: "Invalid directory" }, status: :bad_request)
+        return
+      end
+    rescue => e
       render(json: { error: "Invalid directory" }, status: :bad_request)
       return
     end
 
     # Security check - ensure directory belongs to this session
-    unless directory_belongs_to_session?(directory)
+    unless directory_belongs_to_session?(resolved_directory)
       render(json: { error: "Unauthorized access to directory" }, status: :forbidden)
       return
     end
 
-    Dir.chdir(directory) do
+    Dir.chdir(resolved_directory) do
       # Reset all tracked files to HEAD
       reset_result = %x(git reset --hard HEAD 2>&1)
 

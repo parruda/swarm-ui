@@ -190,22 +190,41 @@ class ProjectsController < ApplicationController
     file_path = params[:file_path]
     as_template = params[:as_template] == "true"
 
-    unless file_path && File.exist?(file_path)
+    unless file_path
       redirect_back(fallback_location: @project, alert: "Swarm file not found.")
+      return
+    end
+
+    # Sanitize and validate the file path
+    begin
+      resolved_path = File.expand_path(file_path)
+      
+      # Ensure file is within project directory
+      unless resolved_path.start_with?(@project.path)
+        redirect_back(fallback_location: @project, alert: "File access not allowed.")
+        return
+      end
+      
+      unless File.exist?(resolved_path)
+        redirect_back(fallback_location: @project, alert: "Swarm file not found.")
+        return
+      end
+    rescue => e
+      redirect_back(fallback_location: @project, alert: "Invalid file path.")
       return
     end
 
     # Read the YAML file
     begin
-      yaml_content = File.read(file_path)
-      config = YAML.load(yaml_content)
+      yaml_content = File.read(resolved_path)
+      config = YAML.safe_load(yaml_content, permitted_classes: [Date, Time, DateTime, Symbol])
 
       # Create a simple data structure for the view (no model needed)
       @swarm_data = {
         name: config["swarm"]["name"],
         yaml_content: yaml_content,
         visual_data: {
-          file_path: as_template ? nil : file_path, # Clear file path if using as template
+          file_path: as_template ? nil : resolved_path, # Clear file path if using as template
           project_id: @project.id,
           project_name: @project.name,
           project_path: @project.path,
@@ -227,19 +246,32 @@ class ProjectsController < ApplicationController
   def delete_swarm_file
     file_path = params[:file_path]
 
-    unless file_path && File.exist?(file_path)
+    unless file_path
       redirect_back(fallback_location: @project, alert: "Swarm file not found.")
       return
     end
 
-    # Security check: ensure file is within project directory
-    unless file_path.start_with?(@project.path)
-      redirect_back(fallback_location: @project, alert: "Cannot delete files outside of project directory.")
+    # Sanitize and validate the file path
+    begin
+      resolved_path = File.expand_path(file_path)
+      
+      # Security check: ensure file is within project directory
+      unless resolved_path.start_with?(@project.path)
+        redirect_back(fallback_location: @project, alert: "Cannot delete files outside of project directory.")
+        return
+      end
+      
+      unless File.exist?(resolved_path)
+        redirect_back(fallback_location: @project, alert: "Swarm file not found.")
+        return
+      end
+    rescue => e
+      redirect_back(fallback_location: @project, alert: "Invalid file path.")
       return
     end
 
     begin
-      File.delete(file_path)
+      File.delete(resolved_path)
       redirect_to(@project, notice: "Swarm file deleted successfully.")
     rescue StandardError => e
       redirect_back(fallback_location: @project, alert: "Error deleting swarm file: #{e.message}")
@@ -267,8 +299,16 @@ class ProjectsController < ApplicationController
       return
     end
 
+    # Sanitize and validate the file path
+    begin
+      resolved_path = File.expand_path(file_path)
+    rescue => e
+      render(json: { success: false, message: "Invalid file path" }, status: :unprocessable_entity)
+      return
+    end
+
     # Find the project that owns this file
-    project = Project.all.find { |p| file_path.start_with?(p.path) }
+    project = Project.all.find { |p| resolved_path.start_with?(p.path) }
 
     unless project
       render(json: { success: false, message: "File is not within any project directory" }, status: :unprocessable_entity)
@@ -276,20 +316,27 @@ class ProjectsController < ApplicationController
     end
 
     begin
-      # Validate YAML
-      YAML.load(yaml_content)
+      # Validate YAML - use safe_load to prevent code execution
+      YAML.safe_load(yaml_content, permitted_classes: [Date, Time, DateTime, Symbol])
 
       # Create directory if it doesn't exist
-      dir = File.dirname(file_path)
+      dir = File.dirname(resolved_path)
+      
+      # Ensure the directory is within the project
+      unless dir.start_with?(project.path)
+        render(json: { success: false, message: "Cannot create directories outside project" }, status: :unprocessable_entity)
+        return
+      end
+      
       FileUtils.mkdir_p(dir) unless File.directory?(dir)
 
       # Write to file
-      File.write(file_path, yaml_content)
+      File.write(resolved_path, yaml_content)
 
       render(json: {
         success: true,
         message: "Swarm file saved successfully",
-        file_path: file_path, # Return the file path for the Launch button
+        file_path: resolved_path, # Return the file path for the Launch button
         redirect_url: nil, # Don't redirect, stay on the page
       })
     rescue Psych::SyntaxError => e

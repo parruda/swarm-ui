@@ -39,25 +39,40 @@ module Api
     def read_file
       filepath = params[:filepath]
 
-      unless filepath.present? && File.file?(filepath)
+      unless filepath.present?
+        render(json: { error: "Invalid file path" }, status: :bad_request)
+        return
+      end
+
+      # Sanitize and validate the file path
+      begin
+        # Resolve to absolute path and check it exists
+        resolved_path = File.expand_path(filepath)
+        
+        # Ensure the file exists and is a regular file
+        unless File.file?(resolved_path)
+          render(json: { error: "Invalid file path" }, status: :bad_request)
+          return
+        end
+      rescue => e
         render(json: { error: "Invalid file path" }, status: :bad_request)
         return
       end
 
       # Security check - ensure file is readable
-      unless File.readable?(filepath)
+      unless File.readable?(resolved_path)
         render(json: { error: "File not readable" }, status: :forbidden)
         return
       end
 
       # Check file size (limit to 10MB)
-      if File.size(filepath) > 10.megabytes
+      if File.size(resolved_path) > 10.megabytes
         render(json: { error: "File too large (max 10MB)" }, status: :unprocessable_entity)
         return
       end
 
       begin
-        content = File.read(filepath)
+        content = File.read(resolved_path)
 
         # Ensure valid UTF-8 encoding
         unless content.valid_encoding?
@@ -66,10 +81,10 @@ module Api
 
         render(json: {
           content: content,
-          filepath: filepath,
-          filename: File.basename(filepath),
-          size: File.size(filepath),
-          modified: File.mtime(filepath).iso8601,
+          filepath: resolved_path,
+          filename: File.basename(resolved_path),
+          size: File.size(resolved_path),
+          modified: File.mtime(resolved_path).iso8601,
         })
       rescue => e
         Rails.logger.error("Failed to read file: #{e.message}")

@@ -159,7 +159,7 @@
             <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">MCP Configuration (YAML)</h2>
             <button type="button" 
                     onclick="navigator.clipboard.writeText(this.dataset.yaml)"
-                    data-yaml="<%= @mcp_server.to_mcp_config.to_yaml.html_safe %>"
+                    data-yaml="<%= html_escape(@mcp_server.to_mcp_config.to_yaml) %>"
                     class="inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-2.5 py-1.5 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200">
               <%= heroicon "clipboard-document", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
               Copy

@@ -41,6 +41,7 @@ Rails.application.routes.draw do
     # File viewer API endpoints
     get "file_viewer/list_files", to: "file_viewer#list_files"
     get "file_viewer/read_file", to: "file_viewer#read_file"
+    post "file_viewer/save_file", to: "file_viewer#save_file"
   end
 
   resources :projects do

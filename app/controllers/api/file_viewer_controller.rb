@@ -76,5 +76,37 @@ module Api
         render(json: { error: "Failed to read file: #{e.message}" }, status: :internal_server_error)
       end
     end
+
+    def save_file
+      filepath = params[:filepath]
+      content = params[:content]
+
+      unless filepath.present? && File.file?(filepath)
+        render(json: { error: "Invalid file path" }, status: :bad_request)
+        return
+      end
+
+      # Security check - ensure file is writable
+      unless File.writable?(filepath)
+        render(json: { error: "File not writable" }, status: :forbidden)
+        return
+      end
+
+      begin
+        # Write new content directly without creating backup
+        File.write(filepath, content)
+
+        render(json: {
+          success: true,
+          message: "File saved successfully",
+          filepath: filepath,
+          size: File.size(filepath),
+          modified: File.mtime(filepath).iso8601,
+        })
+      rescue => e
+        Rails.logger.error("Failed to save file: #{e.message}")
+        render(json: { error: "Failed to save file: #{e.message}" }, status: :internal_server_error)
+      end
+    end
   end
 end

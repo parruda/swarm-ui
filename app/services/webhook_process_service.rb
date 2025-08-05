@@ -32,12 +32,12 @@ class WebhookProcessService
       begin
         # Build the webhook forward command
         # Sanitize repo owner and name to prevent command injection
-        sanitized_owner = project.github_repo_owner.to_s.gsub(/[^a-zA-Z0-9\-_.]/, "")
-        sanitized_name = project.github_repo_name.to_s.gsub(/[^a-zA-Z0-9\-_.]/, "")
+        sanitized_owner = InputSanitizer.sanitize_github_component(project.github_repo_owner)
+        sanitized_name = InputSanitizer.sanitize_github_component(project.github_repo_name)
         repo = "#{sanitized_owner}/#{sanitized_name}"
         
         # Sanitize event types
-        sanitized_events = events.map { |e| e.to_s.gsub(/[^a-zA-Z0-9\-_]/, "") }
+        sanitized_events = events.map { |e| InputSanitizer.sanitize_github_event(e) }
         events_str = sanitized_events.join(",")
         
         url = Rails.application.routes.url_helpers.github_webhooks_url(

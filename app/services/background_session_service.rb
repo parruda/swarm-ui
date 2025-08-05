@@ -37,7 +37,7 @@ class BackgroundSessionService
       return unless session.active?
 
       # Sanitize session_id for shell safety
-      sanitized_session_id = session.session_id.gsub(/[^a-f0-9\-]/, "")
+      sanitized_session_id = InputSanitizer.sanitize_uuid(session.session_id)
       tmux_session_name = "swarm-ui-#{sanitized_session_id}"
 
       # Format the message with context

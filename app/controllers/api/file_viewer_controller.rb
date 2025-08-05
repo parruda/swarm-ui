@@ -47,14 +47,14 @@ module Api
       # Sanitize and validate the file path
       begin
         # Resolve to absolute path and check it exists
-        resolved_path = File.expand_path(filepath)
+        resolved_path = InputSanitizer.safe_expand_path(filepath)
         
         # Ensure the file exists and is a regular file
-        unless File.file?(resolved_path)
+        unless resolved_path && File.file?(resolved_path)
           render(json: { error: "Invalid file path" }, status: :bad_request)
           return
         end
-      rescue => e
+      rescue SecurityError => e
         render(json: { error: "Invalid file path" }, status: :bad_request)
         return
       end

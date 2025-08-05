@@ -11,10 +11,10 @@ class GithubReactionService
       # URL format: https://api.github.com/repos/owner/repo/issues/comments/123456
       comment_id = comment_url.split("/").last
       # Sanitize comment_id to ensure it's numeric
-      sanitized_comment_id = comment_id.to_s.gsub(/[^0-9]/, "")
+      sanitized_comment_id = InputSanitizer.sanitize_numeric_id(comment_id)
       
       # Sanitize repo name
-      sanitized_repo = repo_full_name.to_s.gsub(/[^a-zA-Z0-9\-_.\/]/, "")
+      sanitized_repo = InputSanitizer.sanitize_github_repo(repo_full_name)
 
       # Use gh CLI to add reaction
       # gh api method: POST /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions
@@ -49,10 +49,10 @@ class GithubReactionService
       # URL format: https://api.github.com/repos/owner/repo/pulls/comments/123456
       comment_id = comment_url.split("/").last
       # Sanitize comment_id to ensure it's numeric
-      sanitized_comment_id = comment_id.to_s.gsub(/[^0-9]/, "")
+      sanitized_comment_id = InputSanitizer.sanitize_numeric_id(comment_id)
       
       # Sanitize repo name
-      sanitized_repo = repo_full_name.to_s.gsub(/[^a-zA-Z0-9\-_.\/]/, "")
+      sanitized_repo = InputSanitizer.sanitize_github_repo(repo_full_name)
 
       # Use gh CLI to add reaction to pull request review comment
       # gh api method: POST /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions

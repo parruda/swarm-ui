@@ -769,13 +769,13 @@ class SessionsController < ApplicationController
 
     # Sanitize and validate the directory path
     begin
-      resolved_directory = File.expand_path(directory)
+      resolved_directory = InputSanitizer.safe_expand_path(directory)
       
-      unless File.directory?(resolved_directory)
+      unless resolved_directory && File.directory?(resolved_directory)
         render(json: { error: "Invalid directory" }, status: :bad_request)
         return
       end
-    rescue => e
+    rescue SecurityError => e
       render(json: { error: "Invalid directory" }, status: :bad_request)
       return
     end
@@ -1020,7 +1020,7 @@ class SessionsController < ApplicationController
     end
 
     # Get tmux session name - sanitize session_id for shell safety
-    sanitized_session_id = @session.session_id.gsub(/[^a-f0-9\-]/, "")
+    sanitized_session_id = InputSanitizer.sanitize_uuid(@session.session_id)
     tmux_session_name = "swarm-ui-#{sanitized_session_id}"
 
     # Send text to tmux session using -l flag for literal text

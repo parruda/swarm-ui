@@ -197,20 +197,14 @@ class ProjectsController < ApplicationController
 
     # Sanitize and validate the file path
     begin
-      resolved_path = File.expand_path(file_path)
+      resolved_path = InputSanitizer.safe_expand_path(file_path, allowed_base_path: @project.path)
       
-      # Ensure file is within project directory
-      unless resolved_path.start_with?(@project.path)
-        redirect_back(fallback_location: @project, alert: "File access not allowed.")
-        return
-      end
-      
-      unless File.exist?(resolved_path)
+      unless resolved_path && File.exist?(resolved_path)
         redirect_back(fallback_location: @project, alert: "Swarm file not found.")
         return
       end
-    rescue => e
-      redirect_back(fallback_location: @project, alert: "Invalid file path.")
+    rescue SecurityError => e
+      redirect_back(fallback_location: @project, alert: "File access not allowed.")
       return
     end
 
@@ -253,20 +247,14 @@ class ProjectsController < ApplicationController
 
     # Sanitize and validate the file path
     begin
-      resolved_path = File.expand_path(file_path)
+      resolved_path = InputSanitizer.safe_expand_path(file_path, allowed_base_path: @project.path)
       
-      # Security check: ensure file is within project directory
-      unless resolved_path.start_with?(@project.path)
-        redirect_back(fallback_location: @project, alert: "Cannot delete files outside of project directory.")
-        return
-      end
-      
-      unless File.exist?(resolved_path)
+      unless resolved_path && File.exist?(resolved_path)
         redirect_back(fallback_location: @project, alert: "Swarm file not found.")
         return
       end
-    rescue => e
-      redirect_back(fallback_location: @project, alert: "Invalid file path.")
+    rescue SecurityError => e
+      redirect_back(fallback_location: @project, alert: "Cannot delete files outside of project directory.")
       return
     end
 
@@ -301,14 +289,14 @@ class ProjectsController < ApplicationController
 
     # Sanitize and validate the file path
     begin
-      resolved_path = File.expand_path(file_path)
-    rescue => e
+      resolved_path = InputSanitizer.safe_expand_path(file_path)
+    rescue SecurityError => e
       render(json: { success: false, message: "Invalid file path" }, status: :unprocessable_entity)
       return
     end
 
     # Find the project that owns this file
-    project = Project.all.find { |p| resolved_path.start_with?(p.path) }
+    project = Project.all.find { |p| InputSanitizer.path_within?(resolved_path, p.path) }
 
     unless project
       render(json: { success: false, message: "File is not within any project directory" }, status: :unprocessable_entity)
@@ -323,7 +311,7 @@ class ProjectsController < ApplicationController
       dir = File.dirname(resolved_path)
       
       # Ensure the directory is within the project
-      unless dir.start_with?(project.path)
+      unless InputSanitizer.path_within?(dir, project.path)
         render(json: { success: false, message: "Cannot create directories outside project" }, status: :unprocessable_entity)
         return
       end

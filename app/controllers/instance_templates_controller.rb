@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class InstanceTemplatesController < ApplicationController
-  before_action :set_instance_template, only: [:show, :edit, :update, :destroy, :duplicate]
+  before_action :set_instance_template, only: [:show, :edit, :update, :destroy, :duplicate, :export]
 
   def index
     @instance_templates = InstanceTemplate.includes(:swarm_template_instances).ordered
@@ -27,6 +27,13 @@ class InstanceTemplatesController < ApplicationController
 
   def show
     @swarm_templates = @instance_template.swarm_templates.includes(:project)
+    
+    respond_to do |format|
+      format.html
+      format.json { 
+        render json: export_data(@instance_template)
+      }
+    end
   end
 
   def new
@@ -97,6 +104,71 @@ class InstanceTemplatesController < ApplicationController
         fallback_location: @instance_template,
         alert: "Failed to duplicate instance template.",
       )
+    end
+  end
+
+  def export
+    respond_to do |format|
+      format.json {
+        send_data export_data(@instance_template).to_json,
+                  filename: "instance_template_#{@instance_template.name.parameterize}.json",
+                  type: 'application/json',
+                  disposition: 'attachment'
+      }
+    end
+  end
+
+  def export_all
+    @instance_templates = InstanceTemplate.ordered
+    
+    respond_to do |format|
+      format.json {
+        data = @instance_templates.map { |template| export_data(template) }
+        send_data data.to_json,
+                  filename: "instance_templates_export_#{Date.current}.json",
+                  type: 'application/json',
+                  disposition: 'attachment'
+      }
+    end
+  end
+
+  def import
+    unless params[:file].present?
+      redirect_to instance_templates_path, alert: "Please select a file to import."
+      return
+    end
+
+    begin
+      file = params[:file]
+      json_content = file.read
+      data = JSON.parse(json_content)
+      
+      # Handle both single object and array
+      templates_data = data.is_a?(Array) ? data : [data]
+      
+      imported_count = 0
+      errors = []
+      
+      templates_data.each do |template_data|
+        result = import_template(template_data)
+        if result[:success]
+          imported_count += 1
+        else
+          errors << result[:error]
+        end
+      end
+      
+      if errors.any?
+        flash[:alert] = "Imported #{imported_count} template(s). Errors: #{errors.join(', ')}"
+      else
+        flash[:notice] = "Successfully imported #{imported_count} template(s)."
+      end
+      
+      redirect_to instance_templates_path
+    rescue JSON::ParserError => e
+      redirect_to instance_templates_path, alert: "Invalid JSON file: #{e.message}"
+    rescue StandardError => e
+      redirect_to instance_templates_path, alert: "Import failed: #{e.message}"
     end
   end
 
@@ -190,5 +262,48 @@ class InstanceTemplatesController < ApplicationController
     end
 
     permitted
+  end
+
+  def export_data(template)
+    {
+      name: template.name,
+      description: template.description,
+      category: template.category,
+      tags: template.tags,
+      system_prompt: template.system_prompt,
+      config: template.config,
+      metadata: template.metadata
+    }
+  end
+
+  def import_template(data)
+    # Check for duplicate name
+    name = data['name'] || data[:name]
+    
+    if InstanceTemplate.exists?(name: name)
+      name = "#{name}_imported"
+      # Keep adding suffix until we find a unique name
+      counter = 1
+      while InstanceTemplate.exists?(name: name)
+        name = "#{data['name'] || data[:name]}_imported_#{counter}"
+        counter += 1
+      end
+    end
+    
+    template = InstanceTemplate.new(
+      name: name,
+      description: data['description'] || data[:description],
+      category: data['category'] || data[:category],
+      tags: data['tags'] || data[:tags] || [],
+      system_prompt: data['system_prompt'] || data[:system_prompt],
+      config: data['config'] || data[:config] || {},
+      metadata: data['metadata'] || data[:metadata] || {}
+    )
+    
+    if template.save
+      { success: true, template: template }
+    else
+      { success: false, error: "#{name}: #{template.errors.full_messages.join(', ')}" }
+    end
   end
 end

@@ -26,6 +26,12 @@
         </div>
         
         <div class="mt-5 flex lg:ml-4 lg:mt-0 gap-2">
+          <%= link_to export_instance_template_path(@instance_template, format: :json),
+              class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+            <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+            Export
+          <% end %>
+          
           <%= link_to duplicate_instance_template_path(@instance_template), method: :post,
               class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
             <%= heroicon "document-duplicate", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>

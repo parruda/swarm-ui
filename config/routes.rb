@@ -94,16 +94,25 @@ Rails.application.routes.draw do
   resources :instance_templates do
     member do
       post :duplicate
+      get :export
     end
 
     collection do
       get :library
+      get :export_all
+      post :import
     end
   end
 
   resources :mcp_servers do
     member do
       post :duplicate
+      get :export
+    end
+
+    collection do
+      get :export_all
+      post :import
     end
   end
 

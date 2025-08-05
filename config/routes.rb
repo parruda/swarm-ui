@@ -23,6 +23,10 @@ Rails.application.routes.draw do
       post :create_terminal
       post :kill_terminal
       get :terminals
+      post :create_file_viewer
+      post :kill_file_viewer
+      get :file_viewers
+      get "file_viewer/:viewer_id", action: :file_viewer, as: :file_viewer
       post :refresh_git_status
       post :git_status_poll
     end
@@ -33,6 +37,10 @@ Rails.application.routes.draw do
     post "claude_chat", to: "claude_chat#create"
     get "swarm_files/read", to: "swarm_files#read"
     post "swarm_files/notify_change", to: "swarm_files#notify_change"
+    
+    # File viewer API endpoints
+    get "file_viewer/list_files", to: "file_viewer#list_files"
+    get "file_viewer/read_file", to: "file_viewer#read_file"
   end
 
   resources :projects do

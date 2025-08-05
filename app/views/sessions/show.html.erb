@@ -28,10 +28,13 @@
           <span class="truncate"><%= @main_instance_name %></span>
         </div>
         
-        <!-- Terminal tabs will be added here dynamically -->
+        <!-- Terminal and file viewer tabs will be added here dynamically -->
         <div id="terminal_tabs_container" class="flex flex-1">
           <% @session.terminal_sessions.active.ordered.each do |terminal| %>
             <%= render "terminal_tab", terminal: terminal %>
+          <% end %>
+          <% @session.file_viewer_sessions.active.ordered.each do |file_viewer| %>
+            <%= render "file_viewer_tab", file_viewer: file_viewer %>
           <% end %>
         </div>
         
@@ -48,6 +51,19 @@
   
   <!-- Terminal iframe or session summary -->
   <div class="w-full h-full <%= @terminal_url ? 'calc-height-minus-tabs' : '' %>" data-terminal-tabs-target="iframeContainer">
+    <!-- File viewer containers (hidden by default) -->
+    <% @session.file_viewer_sessions.active.each do |file_viewer| %>
+      <div id="file-viewer-container-<%= file_viewer.viewer_id %>" 
+           class="hidden w-full h-full"
+           data-terminal-tabs-target="fileViewerContainer"
+           data-viewer-id="<%= file_viewer.viewer_id %>"
+           data-controller="file-viewer"
+           data-file-viewer-viewer-id-value="<%= file_viewer.viewer_id %>"
+           data-file-viewer-directory-value="<%= file_viewer.directory %>">
+        <%= render "file_viewer_content", file_viewer: file_viewer %>
+      </div>
+    <% end %>
+    
     <% if @terminal_url %>
       <iframe 
         src="<%= @terminal_url %>"

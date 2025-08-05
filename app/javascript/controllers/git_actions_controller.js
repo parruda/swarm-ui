@@ -550,6 +550,30 @@ export default class extends Controller {
       }))
     }
   }
+  
+  async openFileViewer(event) {
+    event.preventDefault()
+    event.stopPropagation()
+    
+    const button = event.currentTarget
+    const directory = button.dataset.gitActionsDirectoryParam
+    const instanceName = button.dataset.gitActionsInstanceParam
+    
+    // First hide the dropdown
+    const dropdown = button.closest('[data-controller="dropdown-smart-position"]')
+    if (dropdown) {
+      dropdown.dispatchEvent(new MouseEvent('mouseleave'))
+    }
+    
+    // Get the terminal tabs controller element and dispatch event
+    const terminalTabsElement = document.querySelector('[data-controller~="terminal-tabs"]')
+    if (terminalTabsElement) {
+      // Dispatch event to create file viewer
+      terminalTabsElement.dispatchEvent(new CustomEvent('file-viewer:create', {
+        detail: { directory, instanceName }
+      }))
+    }
+  }
 
   heroicon(name, className = '') {
     const icons = {

@@ -1,0 +1,25 @@
+<div class="h-full flex bg-gray-900">
+  <!-- File Explorer Sidebar -->
+  <div id="file-explorer-<%= file_viewer.viewer_id %>" class="w-64 bg-gray-800 border-r border-gray-700 overflow-y-auto flex-shrink-0">
+    <div class="p-3 border-b border-gray-700">
+      <div class="text-sm text-gray-300 font-medium flex items-center gap-2">
+        <%= heroicon "folder", variant: :mini, options: { class: "h-4 w-4 text-purple-400" } %>
+        <span class="truncate" title="<%= file_viewer.directory %>"><%= File.basename(file_viewer.directory) %></span>
+      </div>
+    </div>
+    <div class="file-tree p-2" data-file-tree="<%= file_viewer.viewer_id %>">
+      <div class="text-gray-400 text-sm p-4 text-center">Loading files...</div>
+    </div>
+  </div>
+  
+  <!-- Editor Container -->
+  <div class="flex-1 flex flex-col">
+    <!-- File Tabs -->
+    <div class="bg-gray-800 border-b border-gray-700 flex overflow-x-auto min-h-[35px]" data-file-tabs="<%= file_viewer.viewer_id %>">
+      <!-- Tabs will be added here dynamically -->
+    </div>
+    
+    <!-- Monaco Editor -->
+    <div class="flex-1" data-monaco-editor="<%= file_viewer.viewer_id %>"></div>
+  </div>
+</div>

@@ -4,6 +4,7 @@ class Session < ApplicationRecord
   # Associations
   belongs_to :project
   has_many :terminal_sessions, dependent: :destroy
+  has_many :file_viewer_sessions, dependent: :destroy
 
   # Attributes
   attribute :environment_variables, :json, default: -> { {} }

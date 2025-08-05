@@ -10,7 +10,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_04_230751) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_05_000844) do
+  create_table "file_viewer_sessions", force: :cascade do |t|
+    t.integer "session_id", null: false
+    t.string "viewer_id", null: false
+    t.string "directory", null: false
+    t.string "instance_name", null: false
+    t.string "name", null: false
+    t.string "status", default: "active", null: false
+    t.datetime "opened_at"
+    t.datetime "closed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["session_id"], name: "index_file_viewer_sessions_on_session_id"
+    t.index ["status"], name: "index_file_viewer_sessions_on_status"
+    t.index ["viewer_id"], name: "index_file_viewer_sessions_on_viewer_id", unique: true
+  end
+
   create_table "github_webhook_events", force: :cascade do |t|
     t.bigint "project_id", null: false
     t.string "event_type"
@@ -200,6 +216,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_04_230751) do
     t.index ["singleton_guard"], name: "index_version_checkers_on_singleton_guard", unique: true
   end
 
+  add_foreign_key "file_viewer_sessions", "sessions"
   add_foreign_key "github_webhook_events", "projects"
   add_foreign_key "github_webhook_processes", "projects"
   add_foreign_key "sessions", "projects"

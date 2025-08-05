@@ -1,0 +1,20 @@
+<div id="file_viewer_tab_<%= file_viewer.viewer_id %>" 
+     data-terminal-tabs-target="tab"
+     data-tab-id="<%= file_viewer.viewer_id %>"
+     data-tab-url="<%= file_viewer_session_path(@session, file_viewer.viewer_id) %>"
+     data-tab-type="file-viewer"
+     data-action="click->terminal-tabs#switchTab"
+     class="group px-4 py-2 bg-gray-900 text-gray-300 border-r border-gray-700 flex items-center space-x-2 hover:bg-gray-800 hover:text-white transition-colors min-w-0 relative cursor-pointer">
+  <%= heroicon "folder", variant: :mini, options: { class: "h-4 w-4 flex-shrink-0 text-purple-400" } %>
+  <span class="truncate max-w-[150px]" title="<%= file_viewer.directory %>"><%= file_viewer.name %></span>
+  
+  <!-- Close button (always visible) -->
+  <button type="button"
+          data-action="click->terminal-tabs#closeFileViewer"
+          data-file-viewer-id="<%= file_viewer.viewer_id %>"
+          class="ml-2 p-0.5 rounded hover:bg-red-600/20"
+          title="Close file viewer"
+          onclick="event.stopPropagation()">
+    <%= heroicon "x-mark", variant: :mini, options: { class: "h-3 w-3 text-gray-400 hover:text-red-400" } %>
+  </button>
+</div>

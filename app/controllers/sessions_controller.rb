@@ -6,7 +6,7 @@ require "shellwords"
 require "open3"
 
 class SessionsController < ApplicationController
-  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_stage, :git_commit, :git_reset, :send_to_tmux, :create_terminal, :terminals, :kill_terminal, :refresh_git_status, :git_status_poll]
+  before_action :set_session, only: [:show, :kill, :archive, :unarchive, :clone, :info, :log_stream, :instances, :git_diff, :diff_file_contents, :git_pull, :git_push, :git_stage, :git_commit, :git_reset, :send_to_tmux, :create_terminal, :terminals, :kill_terminal, :create_file_viewer, :file_viewer, :kill_file_viewer, :file_viewers, :refresh_git_status, :git_status_poll]
 
   def index
     @filter = params[:filter] || "active"
@@ -862,6 +862,80 @@ class SessionsController < ApplicationController
   rescue => e
     Rails.logger.error("Failed to create terminal: #{e.message}")
     render(json: { error: "Failed to create terminal: #{e.message}" }, status: :internal_server_error)
+  end
+
+  def create_file_viewer
+    directory = params[:directory]
+    instance_name = params[:instance_name]
+
+    unless directory.present? && File.directory?(directory)
+      render(json: { error: "Invalid directory" }, status: :bad_request)
+      return
+    end
+
+    # Security check - ensure directory belongs to this session
+    unless directory_belongs_to_session?(directory)
+      render(json: { error: "Unauthorized access to directory" }, status: :forbidden)
+      return
+    end
+
+    # Generate file viewer details
+    viewer_id = SecureRandom.uuid
+    name = File.basename(directory)
+
+    # Check if we already have file viewers for this directory
+    existing_count = @session.file_viewer_sessions.active.where(directory: directory).count
+    name = "#{name} (#{existing_count + 1})" if existing_count > 0
+
+    # Create file viewer session
+    file_viewer = @session.file_viewer_sessions.create!(
+      viewer_id: viewer_id,
+      directory: directory,
+      instance_name: instance_name,
+      name: name,
+      status: "active",
+      opened_at: Time.current,
+    )
+
+    render(json: {
+      success: true,
+      file_viewer: {
+        id: file_viewer.viewer_id,
+        name: file_viewer.name,
+        directory: file_viewer.directory,
+        instance_name: file_viewer.instance_name,
+        url: file_viewer_session_path(@session, file_viewer.viewer_id),
+      },
+    })
+  rescue => e
+    Rails.logger.error("Failed to create file viewer: #{e.message}")
+    render(json: { error: "Failed to create file viewer: #{e.message}" }, status: :internal_server_error)
+  end
+
+  def file_viewer
+    @file_viewer = @session.file_viewer_sessions.find_by!(viewer_id: params[:viewer_id])
+    
+    # Always render the partial without layout
+    render(partial: "file_viewer_content", locals: { file_viewer: @file_viewer })
+  end
+
+  def kill_file_viewer
+    file_viewer = @session.file_viewer_sessions.find_by(viewer_id: params[:viewer_id])
+
+    if file_viewer
+      file_viewer.update!(status: "stopped", closed_at: Time.current)
+      render(json: { success: true })
+    else
+      render(json: { error: "File viewer not found" }, status: :not_found)
+    end
+  rescue => e
+    Rails.logger.error("Failed to close file viewer: #{e.message}")
+    render(json: { error: "Failed to close file viewer: #{e.message}" }, status: :internal_server_error)
+  end
+
+  def file_viewers
+    @file_viewers = @session.file_viewer_sessions.active.ordered
+    render(partial: "file_viewers", locals: { file_viewers: @file_viewers })
   end
 
   def terminals

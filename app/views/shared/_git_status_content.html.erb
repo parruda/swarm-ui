@@ -88,16 +88,29 @@
                           </div>
                           
                           <% if session.persisted? && session.active? %>
-                            <!-- Terminal button -->
-                            <button type="button"
-                                    class="px-2 py-1 text-xs font-medium rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                                    data-action="click->git-actions#openTerminal"
-                                    data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
-                                    data-git-actions-instance-param="<%= html_escape(instance_name) %>"
-                                    title="Open terminal in this directory">
-                              <%= heroicon "command-line", variant: :mini, options: { class: "h-3 w-3 inline mr-1" } %>
-                              Terminal
-                            </button>
+                            <div class="flex items-center space-x-2">
+                              <!-- Files button -->
+                              <button type="button"
+                                      class="px-2 py-1 text-xs font-medium rounded bg-purple-600 hover:bg-purple-700 text-white transition-colors"
+                                      data-action="click->git-actions#openFileViewer"
+                                      data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
+                                      data-git-actions-instance-param="<%= html_escape(instance_name) %>"
+                                      title="Browse files in this directory">
+                                <%= heroicon "folder", variant: :mini, options: { class: "h-3 w-3 inline mr-1" } %>
+                                Files
+                              </button>
+                              
+                              <!-- Terminal button -->
+                              <button type="button"
+                                      class="px-2 py-1 text-xs font-medium rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                                      data-action="click->git-actions#openTerminal"
+                                      data-git-actions-directory-param="<%= html_escape(status[:directory]) %>"
+                                      data-git-actions-instance-param="<%= html_escape(instance_name) %>"
+                                      title="Open terminal in this directory">
+                                <%= heroicon "command-line", variant: :mini, options: { class: "h-3 w-3 inline mr-1" } %>
+                                Terminal
+                              </button>
+                            </div>
                           <% end %>
                         </div>
                         

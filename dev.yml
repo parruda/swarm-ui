@@ -1,0 +1,31 @@
+name: swarm-ui
+
+type: ruby
+
+up:
+  - ruby
+  - bundler
+  - gcloud
+  - packages:
+    - uv
+    - tmux
+    - ttyd
+    - gh
+    - redis
+
+  - node: 20.10.0
+  - custom:
+      name: "Install Claude Code globally"
+      met?: "npm list -g @anthropic-ai/claude-code"
+      meet: "npm install -g @anthropic-ai/claude-code"
+  - custom:
+      name: "Install gh webhooks extension"
+      met?: "gh extension list | grep -q 'cli/gh-webhook'"
+      meet: "gh extension install cli/gh-webhook"
+
+commands:
+  server:
+    aliases: ["s"]
+    desc: 'start the server'
+    run: PORT=4269 TTYD_PORT=4268 bin/start
+  

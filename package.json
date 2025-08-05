@@ -1,0 +1,16 @@
+{
+  "name": "swarm-ui",
+  "version": "1.0.0",
+  "description": "A ViCE (Vibe Coding Environment) for AI-assisted development. SwarmUI is a modern alternative to traditional IDEs that embraces natural, conversational coding through Claude integration.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

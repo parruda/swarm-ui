@@ -37,7 +37,9 @@ export default class extends Controller {
     "mcpServersTab",
     "mcpServersTabButton",
     "mcpSearchInput",
-    "mcpServersList"
+    "mcpServersList",
+    "pasteYamlModal",
+    "pasteYamlTextarea"
   ]
   
   static values = {
@@ -1710,5 +1712,29 @@ export default class extends Controller {
   
   handleCanvasRefresh(event) {
     return this.yamlProcessor.handleCanvasRefresh(event)
+  }
+  
+  openPasteYamlModal() {
+    this.pasteYamlModalTarget.classList.remove('hidden')
+    this.pasteYamlTextareaTarget.value = ''
+    this.pasteYamlTextareaTarget.focus()
+  }
+  
+  closePasteYamlModal() {
+    this.pasteYamlModalTarget.classList.add('hidden')
+    this.pasteYamlTextareaTarget.value = ''
+  }
+  
+  importPastedYaml() {
+    const yamlContent = this.pasteYamlTextareaTarget.value.trim()
+    
+    if (!yamlContent) {
+      alert('Please paste YAML content to import')
+      return
+    }
+    
+    return this.yamlProcessor.importFromYamlString(yamlContent).then(() => {
+      this.closePasteYamlModal()
+    })
   }
 }

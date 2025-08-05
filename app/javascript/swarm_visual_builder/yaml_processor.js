@@ -201,6 +201,17 @@ export default class YamlProcessor {
   async importYaml() {
     this.controller.importInputTarget.click()
   }
+  
+  // Import from YAML string (for paste functionality)
+  async importFromYamlString(yamlContent) {
+    try {
+      const data = jsyaml.load(yamlContent)
+      await this.loadFromYamlData(data)
+    } catch (error) {
+      console.error('Import error:', error)
+      alert('Failed to import YAML: ' + error.message)
+    }
+  }
 
   async handleImportFile(e) {
     const file = e.target.files[0]

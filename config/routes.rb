@@ -79,7 +79,6 @@ Rails.application.routes.draw do
     end
 
     collection do
-      get :library
       get :export_all
       post :import
     end

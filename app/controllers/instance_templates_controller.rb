@@ -20,10 +20,6 @@ class InstanceTemplatesController < ApplicationController
     end
   end
 
-  def library
-    @system_templates = InstanceTemplate.system.ordered
-    @categories = InstanceTemplate::CATEGORIES
-  end
 
   def show
     @swarm_templates = @instance_template.swarm_templates.includes(:project)

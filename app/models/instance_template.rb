@@ -44,8 +44,6 @@ class InstanceTemplate < ApplicationRecord
 
   # Scopes
   scope :ordered, -> { order(:name) }
-  scope :system, -> { where(system_template: true) }
-  scope :custom, -> { where(system_template: false) }
   scope :search, ->(query) {
     return all if query.blank?
 
@@ -153,7 +151,6 @@ class InstanceTemplate < ApplicationRecord
   def duplicate(new_name)
     new_template = dup
     new_template.name = new_name
-    new_template.system_template = false
     new_template.usage_count = 0
     new_template
   end

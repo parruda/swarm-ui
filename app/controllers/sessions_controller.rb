@@ -770,12 +770,12 @@ class SessionsController < ApplicationController
     # Sanitize and validate the directory path
     begin
       resolved_directory = InputSanitizer.safe_expand_path(directory)
-      
+
       unless resolved_directory && File.directory?(resolved_directory)
         render(json: { error: "Invalid directory" }, status: :bad_request)
         return
       end
-    rescue SecurityError => e
+    rescue SecurityError
       render(json: { error: "Invalid directory" }, status: :bad_request)
       return
     end

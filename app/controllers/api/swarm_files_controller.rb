@@ -16,13 +16,13 @@ module Api
       begin
         # Resolve to absolute path
         resolved_path = InputSanitizer.safe_expand_path(path)
-        
+
         # Ensure the file exists
         unless resolved_path && File.exist?(resolved_path)
           render(json: { error: "File not found" }, status: :not_found)
           return
         end
-      rescue SecurityError => e
+      rescue SecurityError
         render(json: { error: "File not found" }, status: :not_found)
         return
       end

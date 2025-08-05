@@ -35,11 +35,11 @@ class WebhookProcessService
         sanitized_owner = InputSanitizer.sanitize_github_component(project.github_repo_owner)
         sanitized_name = InputSanitizer.sanitize_github_component(project.github_repo_name)
         repo = "#{sanitized_owner}/#{sanitized_name}"
-        
+
         # Sanitize event types
         sanitized_events = events.map { |e| InputSanitizer.sanitize_github_event(e) }
         events_str = sanitized_events.join(",")
-        
+
         url = Rails.application.routes.url_helpers.github_webhooks_url(
           project_id: project.id,
           host: ENV.fetch("WEBHOOK_HOST", "localhost"),
@@ -51,9 +51,12 @@ class WebhookProcessService
           "gh",
           "webhook",
           "forward",
-          "--repo", repo,
-          "--events", events_str,
-          "--url", url,
+          "--repo",
+          repo,
+          "--events",
+          events_str,
+          "--url",
+          url,
         ]
 
         Rails.logger.info("Starting webhook forwarder for project #{project.id}: #{cmd.join(" ")}")

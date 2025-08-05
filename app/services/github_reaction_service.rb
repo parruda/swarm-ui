@@ -12,7 +12,7 @@ class GithubReactionService
       comment_id = comment_url.split("/").last
       # Sanitize comment_id to ensure it's numeric
       sanitized_comment_id = InputSanitizer.sanitize_numeric_id(comment_id)
-      
+
       # Sanitize repo name
       sanitized_repo = InputSanitizer.sanitize_github_repo(repo_full_name)
 
@@ -50,7 +50,7 @@ class GithubReactionService
       comment_id = comment_url.split("/").last
       # Sanitize comment_id to ensure it's numeric
       sanitized_comment_id = InputSanitizer.sanitize_numeric_id(comment_id)
-      
+
       # Sanitize repo name
       sanitized_repo = InputSanitizer.sanitize_github_repo(repo_full_name)
 

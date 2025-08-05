@@ -198,12 +198,12 @@ class ProjectsController < ApplicationController
     # Sanitize and validate the file path
     begin
       resolved_path = InputSanitizer.safe_expand_path(file_path, allowed_base_path: @project.path)
-      
+
       unless resolved_path && File.exist?(resolved_path)
         redirect_back(fallback_location: @project, alert: "Swarm file not found.")
         return
       end
-    rescue SecurityError => e
+    rescue SecurityError
       redirect_back(fallback_location: @project, alert: "File access not allowed.")
       return
     end
@@ -248,12 +248,12 @@ class ProjectsController < ApplicationController
     # Sanitize and validate the file path
     begin
       resolved_path = InputSanitizer.safe_expand_path(file_path, allowed_base_path: @project.path)
-      
+
       unless resolved_path && File.exist?(resolved_path)
         redirect_back(fallback_location: @project, alert: "Swarm file not found.")
         return
       end
-    rescue SecurityError => e
+    rescue SecurityError
       redirect_back(fallback_location: @project, alert: "Cannot delete files outside of project directory.")
       return
     end
@@ -290,7 +290,7 @@ class ProjectsController < ApplicationController
     # Sanitize and validate the file path
     begin
       resolved_path = InputSanitizer.safe_expand_path(file_path)
-    rescue SecurityError => e
+    rescue SecurityError
       render(json: { success: false, message: "Invalid file path" }, status: :unprocessable_entity)
       return
     end
@@ -309,13 +309,13 @@ class ProjectsController < ApplicationController
 
       # Create directory if it doesn't exist
       dir = File.dirname(resolved_path)
-      
+
       # Ensure the directory is within the project
       unless InputSanitizer.path_within?(dir, project.path)
         render(json: { success: false, message: "Cannot create directories outside project" }, status: :unprocessable_entity)
         return
       end
-      
+
       FileUtils.mkdir_p(dir) unless File.directory?(dir)
 
       # Write to file

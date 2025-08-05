@@ -19,7 +19,7 @@ module InputSanitizer
     # Sanitize GitHub repository full name (owner/repo)
     # Allows alphanumeric, hyphens, underscores, dots, and forward slash
     def sanitize_github_repo(value)
-      value.to_s.gsub(/[^a-zA-Z0-9\-_.\/]/, "")
+      value.to_s.gsub(%r{[^a-zA-Z0-9\-_./]}, "")
     end
 
     # Sanitize GitHub event types
@@ -43,10 +43,10 @@ module InputSanitizer
     # Validate and expand file path with security checks
     # Returns the expanded path or raises an error
     def safe_expand_path(path, allowed_base_path: nil)
-      return nil unless path.present?
+      return unless path.present?
 
       expanded = File.expand_path(path)
-      
+
       # If an allowed base path is provided, ensure the expanded path is within it
       if allowed_base_path
         allowed_base = File.expand_path(allowed_base_path)

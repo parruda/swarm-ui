@@ -72,7 +72,7 @@ class OptimizedGitStatusService
     # Combine multiple git commands into a single shell script to reduce overhead
     # Sanitize directory path to prevent command injection
     sanitized_directory = InputSanitizer.sanitize_shell_path(directory)
-    
+
     script = <<~BASH
       cd "#{sanitized_directory}" 2>/dev/null || exit 1
 

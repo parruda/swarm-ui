@@ -662,9 +662,46 @@ export default class extends Controller {
         
         // Insert it into the chat element
         this.element.insertBefore(turboStream, this.element.firstChild)
+      } else {
+        console.error('Failed to get signed stream name from server:', response.status)
+        this.showError('Failed to set up real-time updates. Messages may not appear immediately.')
       }
     } catch (error) {
-      // Silently fail - the chat will still work without real-time updates
+      console.error('Failed to set up Turbo Stream:', error)
+      this.showError('Failed to set up real-time updates. Messages may not appear immediately.')
+    }
+  }
+  
+  showError(message) {
+    // Show error message in the status area
+    if (this.hasStatusTarget) {
+      const originalText = this.statusTarget.textContent
+      this.statusTarget.textContent = message
+      this.statusTarget.classList.add('text-red-500')
+      
+      // Reset after 5 seconds
+      setTimeout(() => {
+        this.statusTarget.textContent = originalText
+        this.statusTarget.classList.remove('text-red-500')
+      }, 5000)
+    }
+    
+    // Also show in messages area if available
+    if (this.hasMessagesTarget) {
+      const errorDiv = document.createElement('div')
+      errorDiv.className = 'p-3 mb-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg'
+      errorDiv.innerHTML = `
+        <div class="flex items-center text-red-600 dark:text-red-400">
+          <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+          </svg>
+          <span class="text-sm">${message}</span>
+        </div>
+      `
+      this.messagesTarget.appendChild(errorDiv)
+      
+      // Auto-remove after 10 seconds
+      setTimeout(() => errorDiv.remove(), 10000)
     }
   }
   

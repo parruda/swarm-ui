@@ -495,19 +495,17 @@ export default class extends Controller {
     
     // Create node content
     const content = `
-      ${node.id === this.mainNodeId ? '<span class="absolute top-1 right-1 text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded z-10">Main</span>' : ''}
+      ${node.id === this.mainNodeId ? '<div class="absolute top-1 right-1 z-10"><span class="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Main</span></div>' : ''}
       <div class="node-header mb-2">
-        <h3 class="node-title flex items-center justify-between">
-          <span class="pr-12">${node.data.name}</span>
-          <div class="flex items-center gap-1">
-            ${mcpCount > 0 ? `<span class="text-[10px] bg-purple-500 text-white px-1.5 py-0.5 rounded" title="${mcpCount} MCP server${mcpCount > 1 ? 's' : ''}">MCP: ${mcpCount}</span>` : ''}
-          </div>
+        <h3 class="node-title">
+          <span>${node.data.name}</span>
         </h3>
         ${node.data.description ? `<p class="node-description">${node.data.description}</p>` : ''}
       </div>
       <div class="node-tags">
         ${node.data.model ? `<span class="node-tag model-tag">${node.data.model}</span>` : ''}
         ${node.data.provider ? `<span class="node-tag provider-tag">${node.data.provider}</span>` : ''}
+        ${mcpCount > 0 ? `<span class="node-tag bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300" title="${mcpCount} MCP server${mcpCount > 1 ? 's' : ''}">MCP: ${mcpCount}</span>` : ''}
         ${node.data.config?.vibecheck ? '<span class="node-tag vibe-tag">Vibecheck</span>' : ''}
       <div class="output-sockets">
         <div class="socket socket-top" data-socket-side="top" data-node-id="${node.id}"></div>
@@ -1128,8 +1126,9 @@ export default class extends Controller {
     this.mainNodeId = nodeId
     if (node.element) {
       node.element.classList.add('main-node')
+      // Add Main badge if not already present
       if (!node.element.querySelector('.bg-orange-500')) {
-        node.element.insertAdjacentHTML('afterbegin', '<span class="absolute top-1 right-1 text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded z-10">Main</span>')
+        node.element.insertAdjacentHTML('afterbegin', '<div class="absolute top-1 right-1 z-10"><span class="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Main</span></div>')
       }
     }
     
@@ -2111,38 +2110,33 @@ export default class extends Controller {
     if (!node.element) return
     
     const mcpCount = node.data.mcps?.length || 0
-    const titleEl = node.element.querySelector('.node-title')
     
-    if (titleEl) {
-      // Find or create the badges container
-      let badgesContainer = titleEl.querySelector('div')
-      if (!badgesContainer) {
-        badgesContainer = document.createElement('div')
-        badgesContainer.className = 'flex items-center gap-1'
-        titleEl.appendChild(badgesContainer)
-      }
-      
-      // Update MCP badge
-      let mcpBadge = badgesContainer.querySelector('.bg-purple-500')
-      if (mcpCount > 0) {
-        if (!mcpBadge) {
-          // Create new MCP badge
-          mcpBadge = document.createElement('span')
-          mcpBadge.className = 'text-[10px] bg-purple-500 text-white px-1.5 py-0.5 rounded text-xs'
-          // Insert before Main badge if it exists
-          const mainBadge = badgesContainer.querySelector('.bg-orange-500')
-          if (mainBadge) {
-            badgesContainer.insertBefore(mcpBadge, mainBadge)
-          } else {
-            badgesContainer.appendChild(mcpBadge)
-          }
+    // Find the node-tags container
+    const tagsContainer = node.element.querySelector('.node-tags')
+    if (!tagsContainer) return
+    
+    // Update MCP badge
+    let mcpBadge = tagsContainer.querySelector('.bg-purple-100, .dark\\:bg-purple-900')
+    
+    if (mcpCount > 0) {
+      if (!mcpBadge) {
+        // Create new MCP badge
+        mcpBadge = document.createElement('span')
+        mcpBadge.className = 'node-tag bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
+        
+        // Insert after provider tag but before vibe tag if it exists
+        const vibeTag = tagsContainer.querySelector('.vibe-tag')
+        if (vibeTag) {
+          tagsContainer.insertBefore(mcpBadge, vibeTag)
+        } else {
+          tagsContainer.appendChild(mcpBadge)
         }
-        mcpBadge.textContent = `MCP: ${mcpCount}`
-        mcpBadge.title = `${mcpCount} MCP server${mcpCount > 1 ? 's' : ''}`
-      } else if (mcpBadge) {
-        // Remove MCP badge if no MCPs
-        mcpBadge.remove()
       }
+      mcpBadge.textContent = `MCP: ${mcpCount}`
+      mcpBadge.title = `${mcpCount} MCP server${mcpCount > 1 ? 's' : ''}`
+    } else if (mcpBadge) {
+      // Remove MCP badge if no MCPs
+      mcpBadge.remove()
     }
   }
   

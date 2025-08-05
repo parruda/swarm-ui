@@ -74,6 +74,8 @@ class ProjectsController < ApplicationController
     webhook_alert = nil
     if params[:project]&.key?(:webhook_events)
       webhook_alert = handle_webhook_events
+      # Remove webhook_events from params to avoid unpermitted parameter warning
+      params[:project].delete(:webhook_events)
     end
 
     if @project.update(project_params)
@@ -365,14 +367,19 @@ class ProjectsController < ApplicationController
     )
 
     # Handle environment variables separately
-    if params[:project][:environment_variables].present?
+    # Always process environment_variables if the key exists, even if empty
+    # This allows clearing all environment variables
+    if params[:project].key?(:environment_variables)
       env_vars = {}
-      params[:project][:environment_variables].each do |_, var_data|
-        next unless var_data[:key].present? && var_data[:value].present?
+      if params[:project][:environment_variables].present?
+        params[:project][:environment_variables].each do |_, var_data|
+          next unless var_data[:key].present? && var_data[:value].present?
 
-        env_vars[var_data[:key]] = var_data[:value]
+          env_vars[var_data[:key]] = var_data[:value]
+        end
       end
-      permitted[:environment_variables] = env_vars unless env_vars.empty?
+      # Always set environment_variables, even if empty (to clear existing ones)
+      permitted[:environment_variables] = env_vars
     end
 
     permitted

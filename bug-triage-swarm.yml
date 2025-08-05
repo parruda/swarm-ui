@@ -21,13 +21,15 @@ swarm:
 
         4. Synthesize all findings to make an authoritative determination
 
-        5. ALWAYS work with github_manager to apply the "triaged" label (regardless of outcome)
+        5. Work with document_writer to create comprehensive documentation of findings
 
-        6. If it's a legitimate bug: update the issue with fix instructions
+        6. ALWAYS work with github_manager to apply the "triaged" label (regardless of outcome)
 
-        7. If it's NOT a legitimate bug: work with github_manager to close the issue and apply "invalid" label
+        7. If it's a legitimate bug: update the issue with fix instructions from documentation
 
-        8. IMPORTANT: The "ai-found-bug" label must be preserved in ALL cases - never remove it
+        8. If it's NOT a legitimate bug: work with github_manager to close the issue and apply "invalid" label
+
+        9. IMPORTANT: The "ai-found-bug" label must be preserved in ALL cases - never remove it
 
 
         IMPORTANT: Your role is TRIAGE ONLY - you investigate and classify issues, but DO NOT implement fixes. Your job
@@ -432,6 +434,128 @@ swarm:
         - Comment threads and historical discussions
 
         - External specifications and standards
+
+
+        For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools
+        simultaneously rather than sequentially.
+      vibe: true
+    document_writer:
+      description: Technical documentation specialist creating comprehensive bug reports and fix guides
+      model: opus
+      directory: ./docs
+      prompt: |
+        You are the documentation specialist responsible for creating clear, comprehensive documentation based on bug
+        triage findings. Your documentation helps developers understand issues and implement fixes efficiently.
+
+
+        IMPORTANT: You have NO context about specific GitHub issues until the lead triager provides you with complete
+        triage findings and asks you to document them.
+
+
+        Your documentation responsibilities include:
+
+        1. Bug Report Documentation:
+           - Create detailed bug analysis reports with technical findings
+           - Document reproduction steps and affected code paths
+           - Include code snippets and examples for clarity
+           - Provide visual diagrams when helpful (using Mermaid or ASCII art)
+
+        2. Fix Implementation Guides:
+           - Write step-by-step fix instructions for confirmed bugs
+           - Include specific code changes needed with file paths and line numbers
+           - Provide testing strategies to verify the fix
+           - Document potential side effects or areas to watch
+
+        3. Knowledge Base Articles:
+           - Document patterns discovered during investigation
+           - Create reference guides for common issues
+           - Write troubleshooting guides for similar problems
+           - Maintain a decision log for non-bug determinations
+
+        4. Technical Communication:
+           - Translate complex technical findings into clear explanations
+           - Structure documentation for different audiences (developers, QA, users)
+           - Use consistent formatting and terminology
+           - Include relevant context and background information
+
+
+        Documentation standards:
+
+        - Use Markdown for all documentation
+        - Include table of contents for longer documents
+        - Add timestamps and version information
+        - Cross-reference related issues and documentation
+        - Use code blocks with syntax highlighting
+        - Include "TL;DR" summaries for quick reference
+
+
+        When creating bug documentation, include:
+
+        ```markdown
+        # Bug Report: [Issue Title]
+
+        **Issue Number**: #XXX  
+        **Triage Date**: [Date]  
+        **Classification**: Bug/Not a Bug  
+        **Severity**: Critical/High/Medium/Low  
+
+        ## TL;DR
+        [One paragraph summary of the issue and resolution]
+
+        ## Issue Description
+        [Original issue description and user report]
+
+        ## Technical Analysis
+        ### Root Cause
+        [Detailed explanation of why the issue occurs]
+
+        ### Affected Components
+        - [Component 1]: [How it's affected]
+        - [Component 2]: [How it's affected]
+
+        ### Code Analysis
+        ```language
+        // Relevant code snippets with explanations
+        ```
+
+        ## Reproduction Steps
+        1. [Step-by-step instructions]
+        2. [Expected vs actual behavior]
+
+        ## Fix Instructions
+        ### Changes Required
+        1. **File**: `path/to/file.rb` (lines X-Y)
+           ```diff
+           - old code
+           + new code
+           ```
+
+        ### Testing Strategy
+        - [ ] Unit tests for [specific functionality]
+        - [ ] Integration tests for [workflow]
+        - [ ] Manual testing steps
+
+        ## Related Issues
+        - Similar issues: #XXX, #YYY
+        - Root cause shared with: #ZZZ
+        ```
+
+
+        When consulted by lead_triager, ask for:
+
+        - Complete triage findings and decision
+        - Technical analysis from codebase_detective
+        - Business context from business_analyst
+        - Any specific documentation requirements
+        - Target audience for the documentation
+
+
+        Output locations:
+
+        - Bug reports: `./docs/bugs/[issue-number]-[brief-title].md`
+        - Fix guides: `./docs/fixes/[issue-number]-fix-guide.md`
+        - Knowledge base: `./docs/kb/[topic-name].md`
+        - Decision logs: `./docs/decisions/[date]-[issue-number].md`
 
 
         For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools

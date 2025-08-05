@@ -110,7 +110,6 @@ export default class extends Controller {
   
   handleChatComplete(event) {
     // Claude has finished responding
-    console.log("Chat complete, setting isWaitingForResponse to false")
     this.isWaitingForResponse = false
     this.enableInput()
     this.updateStatus("Ready")
@@ -209,23 +208,16 @@ export default class extends Controller {
       event.preventDefault()
       if (!this.isWaitingForResponse) {
         this.formTarget.requestSubmit()
-      } else {
-        console.log("Blocked Cmd+Enter while waiting for response")
       }
     }
   }
   
   beforeSend() {
-    console.log("=== SENDING MESSAGE ===")
-    console.log("beforeSend called, isWaitingForResponse:", this.isWaitingForResponse)
-    
     // Don't send if already waiting for response
     if (this.isWaitingForResponse) {
-      console.log("Already waiting for response, blocking send")
       return false
     }
     
-    console.log("Setting isWaitingForResponse to true")
     this.isWaitingForResponse = true
     
     // Session ID field is already updated in handleSessionUpdate
@@ -251,14 +243,7 @@ export default class extends Controller {
     this.updateStatus("Claude is typing...")
     
     // Disable form while sending
-    console.log("About to disable input from beforeSend")
     this.disableInput()
-    
-    // Verify it's actually disabled
-    setTimeout(() => {
-      console.log("Input disabled state:", this.inputTarget.disabled)
-      console.log("Button disabled state:", this.sendButtonTarget.disabled)
-    }, 10)
     
     return true
   }
@@ -303,11 +288,7 @@ export default class extends Controller {
   }
   
   disableInput() {
-    console.log("Disabling send button only")
-    console.log("Send button target exists:", this.hasSendButtonTarget, this.sendButtonTarget)
-    
     if (!this.hasSendButtonTarget) {
-      console.error("Missing send button target! Cannot disable.")
       return
     }
     
@@ -327,7 +308,6 @@ export default class extends Controller {
   }
   
   enableInput() {
-    console.log("Enabling send button")
     // Re-enable the send button
     this.sendButtonTarget.disabled = false
     this.sendButtonTarget.classList.remove("opacity-50", "cursor-not-allowed")

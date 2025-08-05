@@ -10,6 +10,11 @@ class GithubReactionService
       # Extract comment ID from the URL
       # URL format: https://api.github.com/repos/owner/repo/issues/comments/123456
       comment_id = comment_url.split("/").last
+      # Sanitize comment_id to ensure it's numeric
+      sanitized_comment_id = comment_id.to_s.gsub(/[^0-9]/, "")
+      
+      # Sanitize repo name
+      sanitized_repo = repo_full_name.to_s.gsub(/[^a-zA-Z0-9\-_.\/]/, "")
 
       # Use gh CLI to add reaction
       # gh api method: POST /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions
@@ -18,7 +23,7 @@ class GithubReactionService
         "api",
         "--method",
         "POST",
-        "/repos/#{repo_full_name}/issues/comments/#{comment_id}/reactions",
+        "/repos/#{sanitized_repo}/issues/comments/#{sanitized_comment_id}/reactions",
         "-f",
         "content=+1",
       ]
@@ -43,6 +48,11 @@ class GithubReactionService
       # Extract comment ID from the URL
       # URL format: https://api.github.com/repos/owner/repo/pulls/comments/123456
       comment_id = comment_url.split("/").last
+      # Sanitize comment_id to ensure it's numeric
+      sanitized_comment_id = comment_id.to_s.gsub(/[^0-9]/, "")
+      
+      # Sanitize repo name
+      sanitized_repo = repo_full_name.to_s.gsub(/[^a-zA-Z0-9\-_.\/]/, "")
 
       # Use gh CLI to add reaction to pull request review comment
       # gh api method: POST /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions
@@ -51,7 +61,7 @@ class GithubReactionService
         "api",
         "--method",
         "POST",
-        "/repos/#{repo_full_name}/pulls/comments/#{comment_id}/reactions",
+        "/repos/#{sanitized_repo}/pulls/comments/#{sanitized_comment_id}/reactions",
         "-f",
         "content=+1",
       ]

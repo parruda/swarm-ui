@@ -13,7 +13,7 @@ class Session < ApplicationRecord
   encrypts :environment_variables
 
   # Validations
-  validates :session_id, presence: true, uniqueness: true
+  validates :session_id, presence: true, uniqueness: true, format: { with: /\A[a-f0-9\-]{36}\z/, message: "must be a valid UUID" }
   validates :status, inclusion: { in: ["active", "stopped", "archived"] }
 
   # Scopes

@@ -174,15 +174,17 @@ class GitService
   private
 
   def run_git_command(command)
-    # Use Open3 with chdir option to avoid nested chdir issues
-    cmd = "git #{command}"
-    stdout, _, _ = Open3.capture3(cmd, chdir: project_path)
+    # Use Open3 with array form for safety
+    # Split command carefully to avoid injection
+    cmd_parts = command.split(/\s+/)
+    stdout, _, _ = Open3.capture3("git", *cmd_parts, chdir: project_path)
     # Return stdout for backward compatibility
     stdout
   end
 
   def run_git_command_with_output(command)
-    # Use Open3 with chdir option to avoid nested chdir issues
-    Open3.capture3("git", *command.split, chdir: project_path)
+    # Use Open3 with array form for safety
+    cmd_parts = command.split(/\s+/)
+    Open3.capture3("git", *cmd_parts, chdir: project_path)
   end
 end

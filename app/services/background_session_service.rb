@@ -36,7 +36,9 @@ class BackgroundSessionService
     def send_comment_to_session(session, text, user_login: nil)
       return unless session.active?
 
-      tmux_session_name = "swarm-ui-#{session.session_id}"
+      # Sanitize session_id for shell safety
+      sanitized_session_id = session.session_id.gsub(/[^a-f0-9\-]/, "")
+      tmux_session_name = "swarm-ui-#{sanitized_session_id}"
 
       # Format the message with context
       formatted_text = format_comment(text, user_login)

@@ -68,9 +68,10 @@ class GitImportService
     # Create parent directories
     FileUtils.mkdir_p(File.dirname(target_path))
 
-    # Clone the repository
-    output = %x(git clone "#{git_url}" "#{target_path}" 2>&1)
-    success = $CHILD_STATUS.success?
+    # Clone the repository using Open3 for safety
+    stdout, stderr, status = Open3.capture3("git", "clone", git_url, target_path)
+    output = stdout + stderr
+    success = status.success?
 
     unless success
       @errors << "Git clone failed: #{output}"

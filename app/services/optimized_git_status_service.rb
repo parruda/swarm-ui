@@ -70,8 +70,11 @@ class OptimizedGitStatusService
     return unless File.directory?(File.join(directory, ".git")) || File.exist?(File.join(directory, ".git"))
 
     # Combine multiple git commands into a single shell script to reduce overhead
+    # Sanitize directory path to prevent command injection
+    sanitized_directory = directory.gsub(/[`;$()\\]/, "")
+    
     script = <<~BASH
-      cd "#{directory}" 2>/dev/null || exit 1
+      cd "#{sanitized_directory}" 2>/dev/null || exit 1
 
       # Get all info in one go
       echo "BRANCH:"
@@ -87,7 +90,7 @@ class OptimizedGitStatusService
       if [ -f .git ]; then
         cat .git | grep -q "^gitdir:" && echo "true" || echo "false"
       else
-        git worktree list 2>/dev/null | grep -q "#{directory}" && echo "true" || echo "false"
+        git worktree list 2>/dev/null | grep -F "#{sanitized_directory}" && echo "true" || echo "false"
       fi
     BASH
 

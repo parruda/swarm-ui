@@ -31,21 +31,29 @@ class WebhookProcessService
 
       begin
         # Build the webhook forward command
-        repo = "#{project.github_repo_owner}/#{project.github_repo_name}"
-        events_str = events.join(",")
+        # Sanitize repo owner and name to prevent command injection
+        sanitized_owner = project.github_repo_owner.to_s.gsub(/[^a-zA-Z0-9\-_.]/, "")
+        sanitized_name = project.github_repo_name.to_s.gsub(/[^a-zA-Z0-9\-_.]/, "")
+        repo = "#{sanitized_owner}/#{sanitized_name}"
+        
+        # Sanitize event types
+        sanitized_events = events.map { |e| e.to_s.gsub(/[^a-zA-Z0-9\-_]/, "") }
+        events_str = sanitized_events.join(",")
+        
         url = Rails.application.routes.url_helpers.github_webhooks_url(
           project_id: project.id,
           host: ENV.fetch("WEBHOOK_HOST", "localhost"),
           port: ENV.fetch("WEBHOOK_PORT", "3000"),
         )
 
+        # Use array form with separate arguments for safety
         cmd = [
           "gh",
           "webhook",
           "forward",
-          "--repo=#{repo}",
-          "--events=#{events_str}",
-          "--url=#{url}",
+          "--repo", repo,
+          "--events", events_str,
+          "--url", url,
         ]
 
         Rails.logger.info("Starting webhook forwarder for project #{project.id}: #{cmd.join(" ")}")

@@ -1019,8 +1019,9 @@ class SessionsController < ApplicationController
       return
     end
 
-    # Get tmux session name
-    tmux_session_name = "swarm-ui-#{@session.session_id}"
+    # Get tmux session name - sanitize session_id for shell safety
+    sanitized_session_id = @session.session_id.gsub(/[^a-f0-9\-]/, "")
+    tmux_session_name = "swarm-ui-#{sanitized_session_id}"
 
     # Send text to tmux session using -l flag for literal text
     _, stderr, status = Open3.capture3("tmux", "send-keys", "-t", tmux_session_name, "-l", text)

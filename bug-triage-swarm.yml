@@ -3,7 +3,7 @@ swarm:
   name: Bug Triage Team
   instances:
     lead_triager:
-      description: Lead bug triager coordinating thorough investigation of GitHub issues
+      description: Lead bug triagerr coordinating thorough investigation of GitHub issues
       model: opus
       directory: .
       prompt: |

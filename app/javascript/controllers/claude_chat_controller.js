@@ -294,28 +294,60 @@ export default class extends Controller {
     
     // Only disable the send button, keep input enabled for typing
     this.sendButtonTarget.disabled = true
-    this.sendButtonTarget.classList.add("opacity-50", "cursor-not-allowed")
+    this.sendButtonTarget.classList.add("cursor-not-allowed")
     
-    // Change send button to show loading state
-    const originalContent = this.sendButtonTarget.innerHTML
-    this.sendButtonTarget.dataset.originalContent = originalContent
-    this.sendButtonTarget.innerHTML = `
-      <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-    `
+    // For input elements, we need to store and change the value, not innerHTML
+    if (this.sendButtonTarget.tagName === 'INPUT') {
+      // Store original value (should be ➤)
+      if (!this.sendButtonTarget.dataset.originalValue) {
+        this.sendButtonTarget.dataset.originalValue = this.sendButtonTarget.value
+      }
+      // Change to a single pulsing dot
+      this.sendButtonTarget.value = "●"
+      // Remove opacity to make animation visible, add strong pulse animation
+      this.sendButtonTarget.classList.remove("opacity-50")
+      this.sendButtonTarget.classList.add("animate-pulse")
+      // Change background to show it's active
+      this.sendButtonTarget.classList.remove("bg-orange-600", "dark:bg-orange-600")
+      this.sendButtonTarget.classList.add("bg-orange-500", "dark:bg-orange-500")
+    } else {
+      // For button elements, we can use innerHTML
+      const originalContent = this.sendButtonTarget.innerHTML
+      this.sendButtonTarget.dataset.originalContent = originalContent
+      this.sendButtonTarget.innerHTML = `
+        <span class="relative inline-flex h-4 w-4">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-4 w-4 bg-white"></span>
+        </span>
+      `
+    }
   }
   
   enableInput() {
     // Re-enable the send button
     this.sendButtonTarget.disabled = false
-    this.sendButtonTarget.classList.remove("opacity-50", "cursor-not-allowed")
+    this.sendButtonTarget.classList.remove("cursor-not-allowed")
     
     // Restore original send button content
-    if (this.sendButtonTarget.dataset.originalContent) {
-      this.sendButtonTarget.innerHTML = this.sendButtonTarget.dataset.originalContent
-      delete this.sendButtonTarget.dataset.originalContent
+    if (this.sendButtonTarget.tagName === 'INPUT') {
+      // Restore original value for input elements (should restore ➤)
+      if (this.sendButtonTarget.dataset.originalValue) {
+        this.sendButtonTarget.value = this.sendButtonTarget.dataset.originalValue
+        delete this.sendButtonTarget.dataset.originalValue
+      } else {
+        // Fallback to arrow if no original value stored
+        this.sendButtonTarget.value = "➤"
+      }
+      // Remove animation and restore original colors
+      this.sendButtonTarget.classList.remove("animate-pulse")
+      this.sendButtonTarget.classList.remove("bg-orange-500", "dark:bg-orange-500")
+      this.sendButtonTarget.classList.add("bg-orange-600", "dark:bg-orange-600")
+    } else {
+      // Restore innerHTML for button elements
+      if (this.sendButtonTarget.dataset.originalContent) {
+        this.sendButtonTarget.innerHTML = this.sendButtonTarget.dataset.originalContent
+        delete this.sendButtonTarget.dataset.originalContent
+      }
     }
     
     this.inputTarget.focus()

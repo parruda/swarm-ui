@@ -44,6 +44,10 @@ export default class extends Controller {
     this.handleTurboStreamRender = this.handleTurboStreamRender.bind(this)
     document.addEventListener('turbo:before-stream-render', this.handleTurboStreamRender)
     
+    // Listen for Turbo form submission end to maintain disabled state
+    this.handleTurboSubmitEnd = this.handleTurboSubmitEnd.bind(this)
+    document.addEventListener('turbo:submit-end', this.handleTurboSubmitEnd)
+    
     // Listen for chat tab becoming visible
     this.handleChatTabVisible = this.handleChatTabVisible.bind(this)
     window.addEventListener('chat:tabVisible', this.handleChatTabVisible)
@@ -75,6 +79,7 @@ export default class extends Controller {
     window.removeEventListener('nodes:selectionChanged', this.handleNodeSelectionChange)
     this.element.removeEventListener('chat:enabled', this.handleChatEnabled)
     document.removeEventListener('turbo:before-stream-render', this.handleTurboStreamRender)
+    document.removeEventListener('turbo:submit-end', this.handleTurboSubmitEnd)
     
     // Clean up mutation observer
     if (this.messageObserver) {
@@ -105,6 +110,7 @@ export default class extends Controller {
   
   handleChatComplete(event) {
     // Claude has finished responding
+    console.log("Chat complete, setting isWaitingForResponse to false")
     this.isWaitingForResponse = false
     this.enableInput()
     this.updateStatus("Ready")
@@ -169,22 +175,57 @@ export default class extends Controller {
     }, 100)
   }
   
+  handleTurboSubmitEnd(event) {
+    // Check if this event is for our form
+    const form = event.target
+    if (!form || !this.element.contains(form)) {
+      return
+    }
+    
+    // If we're waiting for a response, ensure inputs stay disabled
+    if (this.isWaitingForResponse) {
+      // Turbo has just re-enabled the form, disable it again
+      this.disableInput()
+      
+      // Do it again after a tiny delay to override any async re-enabling
+      setTimeout(() => {
+        if (this.isWaitingForResponse) {
+          this.disableInput()
+        }
+      }, 1)
+      
+      // And once more to be absolutely sure
+      setTimeout(() => {
+        if (this.isWaitingForResponse) {
+          this.disableInput()
+        }
+      }, 50)
+    }
+  }
+  
   handleKeydown(event) {
     // Send on Cmd/Ctrl + Enter
     if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
       event.preventDefault()
       if (!this.isWaitingForResponse) {
         this.formTarget.requestSubmit()
+      } else {
+        console.log("Blocked Cmd+Enter while waiting for response")
       }
     }
   }
   
   beforeSend() {
+    console.log("=== SENDING MESSAGE ===")
+    console.log("beforeSend called, isWaitingForResponse:", this.isWaitingForResponse)
+    
     // Don't send if already waiting for response
     if (this.isWaitingForResponse) {
+      console.log("Already waiting for response, blocking send")
       return false
     }
     
+    console.log("Setting isWaitingForResponse to true")
     this.isWaitingForResponse = true
     
     // Session ID field is already updated in handleSessionUpdate
@@ -210,7 +251,14 @@ export default class extends Controller {
     this.updateStatus("Claude is typing...")
     
     // Disable form while sending
+    console.log("About to disable input from beforeSend")
     this.disableInput()
+    
+    // Verify it's actually disabled
+    setTimeout(() => {
+      console.log("Input disabled state:", this.inputTarget.disabled)
+      console.log("Button disabled state:", this.sendButtonTarget.disabled)
+    }, 10)
     
     return true
   }
@@ -231,14 +279,40 @@ export default class extends Controller {
     // Do it multiple times to ensure it happens after all DOM updates
     this.forceScrollToBottom()
     
-    // Note: We don't re-enable input here anymore
-    // It will be re-enabled when we receive the chat:complete event
+    // CRITICAL: Re-disable inputs after Turbo re-enables them
+    // Turbo automatically re-enables form elements after submission
+    // We need to override this behavior while waiting for Claude
+    if (this.isWaitingForResponse) {
+      // Immediate re-disable
+      this.disableInput()
+      
+      // Re-disable after a short delay to override Turbo
+      setTimeout(() => {
+        if (this.isWaitingForResponse) {
+          this.disableInput()
+        }
+      }, 10)
+      
+      // One more time to be sure
+      setTimeout(() => {
+        if (this.isWaitingForResponse) {
+          this.disableInput()
+        }
+      }, 100)
+    }
   }
   
   disableInput() {
-    this.inputTarget.disabled = true
+    console.log("Disabling send button only")
+    console.log("Send button target exists:", this.hasSendButtonTarget, this.sendButtonTarget)
+    
+    if (!this.hasSendButtonTarget) {
+      console.error("Missing send button target! Cannot disable.")
+      return
+    }
+    
+    // Only disable the send button, keep input enabled for typing
     this.sendButtonTarget.disabled = true
-    this.inputTarget.classList.add("opacity-50", "cursor-not-allowed")
     this.sendButtonTarget.classList.add("opacity-50", "cursor-not-allowed")
     
     // Change send button to show loading state
@@ -253,9 +327,9 @@ export default class extends Controller {
   }
   
   enableInput() {
-    this.inputTarget.disabled = false
+    console.log("Enabling send button")
+    // Re-enable the send button
     this.sendButtonTarget.disabled = false
-    this.inputTarget.classList.remove("opacity-50", "cursor-not-allowed")
     this.sendButtonTarget.classList.remove("opacity-50", "cursor-not-allowed")
     
     // Restore original send button content
@@ -707,30 +781,44 @@ export default class extends Controller {
   
   checkEnabledState() {
     // Check if we have the required values to enable chat
-    const isEnabled = this.filePathValue && this.filePathValue.length > 0
+    const hasFilePath = this.filePathValue && this.filePathValue.length > 0
     
-    // Enable/disable input
+    // Input field management - only disabled if no file path
     if (this.hasInputTarget) {
-      this.inputTarget.disabled = !isEnabled
-      this.inputTarget.readOnly = !isEnabled
-      if (isEnabled) {
+      if (!hasFilePath) {
+        this.inputTarget.disabled = true
+        this.inputTarget.readOnly = true
+        this.inputTarget.classList.add('opacity-50', 'cursor-not-allowed')
+      } else {
+        // Keep input enabled even when waiting for response (user can type)
+        this.inputTarget.disabled = false
+        this.inputTarget.readOnly = false
         this.inputTarget.classList.remove('opacity-50', 'cursor-not-allowed')
         this.inputTarget.placeholder = 'Ask Claude to help build your swarm... (⌘+Enter to send)'
       }
     }
     
-    // Enable/disable send button
+    // Send button management - disabled if no file path OR waiting for response
     if (this.hasSendButtonTarget) {
-      this.sendButtonTarget.disabled = !isEnabled
-      if (isEnabled) {
+      const buttonEnabled = hasFilePath && !this.isWaitingForResponse
+      this.sendButtonTarget.disabled = !buttonEnabled
+      
+      if (buttonEnabled) {
         this.sendButtonTarget.classList.remove('opacity-50', 'cursor-not-allowed')
         this.sendButtonTarget.classList.add('hover:bg-orange-700', 'dark:hover:bg-orange-700')
+      } else {
+        this.sendButtonTarget.classList.add('opacity-50', 'cursor-not-allowed')
+        this.sendButtonTarget.classList.remove('hover:bg-orange-700', 'dark:hover:bg-orange-700')
       }
     }
     
     // Update status
     if (this.hasStatusTarget) {
-      this.statusTarget.textContent = isEnabled ? 'Ready' : 'Save file to enable chat'
+      if (this.isWaitingForResponse) {
+        // Don't change status when waiting for response - it's managed by other methods
+      } else {
+        this.statusTarget.textContent = hasFilePath ? 'Ready' : 'Save file to enable chat'
+      }
     }
     
     // Re-enable the form

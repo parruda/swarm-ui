@@ -72,16 +72,10 @@ export default class ChatIntegration {
       statusElement.textContent = 'Ready'
     }
     
-    // Find and enable the form
-    const formElement = chatElement.querySelector('form')
-    if (formElement) {
-      // Remove any disabled state from the form
-      formElement.querySelectorAll('[disabled]').forEach(el => {
-        el.disabled = false
-      })
-    }
+    // Check if the chat controller is waiting for a response
+    const isWaitingForResponse = chatController.isWaitingForResponse || false
     
-    // Remove the disabled state from the input
+    // Always enable the input field (user can type while waiting)
     const inputElement = chatElement.querySelector('[data-claude-chat-target="input"]')
     if (inputElement) {
       inputElement.disabled = false
@@ -91,14 +85,17 @@ export default class ChatIntegration {
       inputElement.classList.remove('opacity-50', 'cursor-not-allowed')
     }
     
-    // Remove the disabled state from the send button
-    const sendButton = chatElement.querySelector('[data-claude-chat-target="sendButton"]')
-    if (sendButton) {
-      sendButton.disabled = false
-      // Update classes for the submit button
-      sendButton.classList.remove('opacity-50', 'cursor-not-allowed')
-      if (!sendButton.classList.contains('hover:bg-orange-700')) {
-        sendButton.classList.add('hover:bg-orange-700', 'dark:hover:bg-orange-700')
+    // Only enable the send button if Claude is not currently processing
+    if (!isWaitingForResponse) {
+      // Enable the send button
+      const sendButton = chatElement.querySelector('[data-claude-chat-target="sendButton"]')
+      if (sendButton) {
+        sendButton.disabled = false
+        // Update classes for the submit button
+        sendButton.classList.remove('opacity-50', 'cursor-not-allowed')
+        if (!sendButton.classList.contains('hover:bg-orange-700')) {
+          sendButton.classList.add('hover:bg-orange-700', 'dark:hover:bg-orange-700')
+        }
       }
     }
     

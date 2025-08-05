@@ -84,6 +84,7 @@ swarm:
         - codebase_detective
         - github_manager
         - business_analyst
+        - document_writer
     codebase_detective:
       description: Rails codebase specialist performing deep technical analysis of application mechanics
       model: opus

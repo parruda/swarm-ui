@@ -4,6 +4,12 @@ import NodeManager from "swarm_visual_builder/node_manager"
 import ConnectionManager from "swarm_visual_builder/connection_manager"
 import PathRenderer from "swarm_visual_builder/path_renderer"
 import LayoutManager from "swarm_visual_builder/layout_manager"
+import ChatIntegration from "swarm_visual_builder/chat_integration"
+import FileOperations from "swarm_visual_builder/file_operations"
+import UIComponents from "swarm_visual_builder/ui_components"
+import TemplateManager from "swarm_visual_builder/template_manager"
+import MCPManager from "swarm_visual_builder/mcp_manager"
+import YamlProcessor from "swarm_visual_builder/yaml_processor"
 
 export default class extends Controller {
   static targets = [
@@ -47,17 +53,24 @@ export default class extends Controller {
   }
   
   async connect() {
-    
-    // Initialize managers
+    // Initialize core managers
     this.nodeManager = new NodeManager(this)
     this.connectionManager = new ConnectionManager(this)
     this.pathRenderer = new PathRenderer(this)
     this.layoutManager = new LayoutManager(this)
     
+    // Initialize feature modules
+    this.chatIntegration = new ChatIntegration(this)
+    this.fileOperations = new FileOperations(this)
+    this.uiComponents = new UIComponents(this)
+    this.templateManager = new TemplateManager(this)
+    this.mcpManager = new MCPManager(this)
+    this.yamlProcessor = new YamlProcessor(this)
+    
     // Initialize state
     this.tags = []
-    this.selectedNodes = [] // Changed to array for multi-select
-    this.selectedNode = null // Keep for backward compatibility
+    this.selectedNodes = []
+    this.selectedNode = null
     this.selectedConnection = null
     this.mainNodeId = null
     this.nodeKeyMap = new Map()
@@ -81,19 +94,18 @@ export default class extends Controller {
     this.setupEventListeners()
     this.setupKeyboardShortcuts()
     
-    // Load existing data if editing - add small delay to ensure DOM is ready
+    // Load existing data if editing
     if ((this.swarmIdValue && this.existingDataValue) || this.existingYamlValue || this.isFileEditValue) {
-      // Use requestAnimationFrame to ensure DOM updates are complete
       requestAnimationFrame(() => {
         this.loadExistingSwarm()
       })
     }
     
     // Listen for canvas refresh events from Claude chat
-    window.addEventListener('canvas:refresh', this.handleCanvasRefresh.bind(this))
+    window.addEventListener('canvas:refresh', this.yamlProcessor.handleCanvasRefresh.bind(this.yamlProcessor))
     
     // Listen for sidebar expansion request
-    this.handleSidebarExpand = this.expandSidebarToMax.bind(this)
+    this.handleSidebarExpand = this.uiComponents.expandSidebarToMax.bind(this.uiComponents)
     window.addEventListener('sidebar:expandToMax', this.handleSidebarExpand)
     
     // Listen for chat clear selection request
@@ -103,13 +115,12 @@ export default class extends Controller {
   
   disconnect() {
     // Clean up event listeners
-    window.removeEventListener('canvas:refresh', this.handleCanvasRefresh)
+    window.removeEventListener('canvas:refresh', this.yamlProcessor.handleCanvasRefresh)
     window.removeEventListener('sidebar:expandToMax', this.handleSidebarExpand)
     window.removeEventListener('chat:clearNodeSelection', this.handleClearSelection)
   }
   
   async initializeVisualBuilder() {
-    
     // Create container
     const container = document.createElement('div')
     container.style.width = '100%'
@@ -163,7 +174,7 @@ export default class extends Controller {
     
     // Center viewport initially
     this.centerViewport()
-    this.updateEmptyState()
+    this.uiComponents.updateEmptyState()
   }
   
   centerViewport() {
@@ -182,11 +193,6 @@ export default class extends Controller {
       }
     })
     
-    // Container scroll event for dynamic canvas expansion
-    this.container.addEventListener('scroll', (e) => {
-      // No longer needed with pre-allocated canvas
-    })
-    
     // Drag and drop from library
     this.instanceTemplatesTarget.addEventListener('dragstart', (e) => {
       if (e.target.hasAttribute('data-template-card')) {
@@ -203,60 +209,18 @@ export default class extends Controller {
       }
     })
     
-    // Drag and drop for MCP servers
-    if (this.hasMcpServersListTarget) {
-      this.mcpServersListTarget.addEventListener('dragstart', (e) => {
-        if (e.target.hasAttribute('data-mcp-card')) {
-          const mcpData = {
-            id: e.target.dataset.mcpId,
-            name: e.target.dataset.mcpName,
-            type: e.target.dataset.mcpType,
-            config: JSON.parse(e.target.dataset.mcpConfig)
-          }
-          e.dataTransfer.setData('mcp', JSON.stringify(mcpData))
-          e.dataTransfer.setData('type', 'mcp')
-          e.dataTransfer.effectAllowed = 'copy'
-          
-          // Add visual indicator that we're dragging an MCP
-          this.isDraggingMcp = true
-          this.container.classList.add('dragging-mcp')
-        }
-      })
-    }
+    // Initialize MCP drag and drop
+    this.mcpManager.initializeMcpDragAndDrop()
     
     this.viewport.addEventListener('dragover', (e) => {
       e.preventDefault()
-      
-      // Check if we're dragging an MCP server
-      if (this.isDraggingMcp) {
-        // Find the node under the cursor
-        const element = document.elementFromPoint(e.clientX, e.clientY)
-        const nodeEl = element?.closest('.swarm-node')
-        
-        // Clear previous highlights
-        this.viewport.querySelectorAll('.swarm-node.mcp-drop-target').forEach(n => {
-          n.classList.remove('mcp-drop-target')
-        })
-        
-        // Highlight the target node if found
-        if (nodeEl) {
-          nodeEl.classList.add('mcp-drop-target')
-          e.dataTransfer.dropEffect = 'copy'
-        } else {
-          e.dataTransfer.dropEffect = 'none'
-        }
-      }
+      this.mcpManager.handleMcpDragOver(e)
     })
     
     // Add dragend listener to clean up
     document.addEventListener('dragend', (e) => {
       if (this.isDraggingMcp) {
-        // Clean up any remaining highlights
-        this.viewport.querySelectorAll('.swarm-node.mcp-drop-target').forEach(n => {
-          n.classList.remove('mcp-drop-target')
-        })
-        this.container.classList.remove('dragging-mcp')
-        this.isDraggingMcp = false
+        this.mcpManager.cleanupMcpDrag()
       }
     })
     
@@ -268,23 +232,13 @@ export default class extends Controller {
       if (dragType === 'template') {
         const templateData = JSON.parse(e.dataTransfer.getData('template'))
         if (templateData) {
-          // Get the viewport's bounding rect (which is scaled)
           const viewportRect = this.viewport.getBoundingClientRect()
-          
-          // Mouse position relative to the scaled viewport
           const mouseX = e.clientX - viewportRect.left
           const mouseY = e.clientY - viewportRect.top
-          
-          // Convert from scaled pixels to actual viewport pixels
           const viewportX = mouseX / this.zoomLevel
           const viewportY = mouseY / this.zoomLevel
-          
-          // Node dimensions (matching what's set in createNodeElement)
           const nodeWidth = 250
-          const nodeHeight = 120 // Approximate height based on content
-          
-          // Convert to canvas coordinates (relative to center)
-          // Center the node on the mouse cursor
+          const nodeHeight = 120
           const x = viewportX - this.canvasCenter - (nodeWidth / 2)
           const y = viewportY - this.canvasCenter - (nodeHeight / 2)
           
@@ -293,22 +247,16 @@ export default class extends Controller {
       } else if (dragType === 'mcp') {
         const mcpData = JSON.parse(e.dataTransfer.getData('mcp'))
         if (mcpData) {
-          // Find the node under the cursor
           const element = document.elementFromPoint(e.clientX, e.clientY)
           const nodeEl = element?.closest('.swarm-node')
           
           if (nodeEl) {
             const nodeId = parseInt(nodeEl.dataset.nodeId)
-            this.addMcpToNode(nodeId, mcpData)
+            this.mcpManager.addMcpToNode(nodeId, mcpData)
           }
         }
         
-        // Clean up visual feedback
-        this.viewport.querySelectorAll('.swarm-node.mcp-drop-target').forEach(n => {
-          n.classList.remove('mcp-drop-target')
-        })
-        this.container.classList.remove('dragging-mcp')
-        this.isDraggingMcp = false
+        this.mcpManager.cleanupMcpDrag()
       }
     })
     
@@ -350,39 +298,6 @@ export default class extends Controller {
         }
       }
     }, { passive: false })
-    
-    // Touch events for mobile
-    let touchStartDistance = 0
-    let lastTouchZoom = 1
-    
-    this.container.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 2) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX
-        const dy = e.touches[0].clientY - e.touches[1].clientY
-        touchStartDistance = Math.sqrt(dx * dx + dy * dy)
-        lastTouchZoom = this.zoomLevel
-        e.preventDefault()
-      }
-    })
-    
-    this.container.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 2 && touchStartDistance > 0) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX
-        const dy = e.touches[0].clientY - e.touches[1].clientY
-        const currentDistance = Math.sqrt(dx * dx + dy * dy)
-        
-        const scale = currentDistance / touchStartDistance
-        const newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, lastTouchZoom * scale))
-        
-        if (newZoom !== this.zoomLevel) {
-          this.zoomLevel = newZoom
-          this.viewport.style.transform = `scale(${this.zoomLevel})`
-          this.zoomLevelTarget.textContent = Math.round(this.zoomLevel * 100) + '%'
-          this.updateConnections()
-        }
-        e.preventDefault()
-      }
-    })
   }
   
   setupKeyboardShortcuts() {
@@ -419,21 +334,16 @@ export default class extends Controller {
       const nodeId = parseInt(nodeEl.dataset.nodeId)
       
       if (this.shiftPressed) {
-        // Shift-click for multi-select
         this.toggleNodeSelection(nodeId)
       } else {
-        // Check if clicking on already selected node in multi-select
         if (this.selectedNodes.length > 1 && this.isNodeSelected(nodeId)) {
-          // Start dragging all selected nodes
           this.startMultiNodeDrag(e)
         } else {
-          // Single select and drag
           this.selectNode(nodeId)
           this.startNodeDrag(e)
         }
       }
     } else if (e.target === this.viewport || e.target === this.svg) {
-      // Click on canvas - deselect all and start panning
       this.deselectAll()
       this.startPanning(e)
     } else if (this.shiftPressed) {
@@ -465,7 +375,7 @@ export default class extends Controller {
   addNode(templateData, x, y) {
     const node = this.nodeManager.createNode(templateData, { x, y })
     this.renderNode(node)
-    this.updateEmptyState()
+    this.uiComponents.updateEmptyState()
     this.updateYamlPreview()
   }
   
@@ -475,10 +385,8 @@ export default class extends Controller {
     nodeElement.style.top = `${node.data.y + this.canvasCenter}px`
     this.viewport.appendChild(nodeElement)
     
-    // Store reference
     node.element = nodeElement
     
-    // Set as main if it's the first node and not OpenAI
     if (!this.mainNodeId && node.data.provider !== 'openai') {
       this.setMainNode(node.id)
     }
@@ -490,10 +398,8 @@ export default class extends Controller {
     nodeEl.dataset.nodeId = node.id
     nodeEl.style.width = '250px'
     
-    // Check if node has MCP servers
     const mcpCount = node.data.mcps?.length || 0
     
-    // Create node content
     const content = `
       ${node.id === this.mainNodeId ? '<div class="absolute top-1 right-1 z-10"><span class="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Main</span></div>' : ''}
       <div class="node-header mb-2">
@@ -507,6 +413,7 @@ export default class extends Controller {
         ${node.data.provider ? `<span class="node-tag provider-tag">${node.data.provider}</span>` : ''}
         ${mcpCount > 0 ? `<span class="node-tag bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300" title="${mcpCount} MCP server${mcpCount > 1 ? 's' : ''}">MCP: ${mcpCount}</span>` : ''}
         ${node.data.config?.vibecheck ? '<span class="node-tag vibe-tag">Vibecheck</span>' : ''}
+      </div>
       <div class="output-sockets">
         <div class="socket socket-top" data-socket-side="top" data-node-id="${node.id}"></div>
         <div class="socket socket-right" data-socket-side="right" data-node-id="${node.id}"></div>
@@ -517,18 +424,14 @@ export default class extends Controller {
     
     nodeEl.innerHTML = content
     
-    // Add click handler
     nodeEl.addEventListener('click', (e) => {
       if (!e.target.classList.contains('socket')) {
         e.stopPropagation()
-        // Handler is now in handleMouseDown for better control
       }
     })
     
-    // Add double-click handler for main node
     nodeEl.addEventListener('dblclick', (e) => {
       e.stopPropagation()
-      // Only allow setting as main if no incoming connections and not OpenAI
       if (!this.connectionManager.hasIncomingConnections(node.id) && node.data.provider !== 'openai') {
         this.setMainNode(node.id)
       }
@@ -538,7 +441,6 @@ export default class extends Controller {
   }
   
   selectNode(nodeId) {
-    // Clear previous selection unless shift is held
     if (!this.shiftPressed) {
       this.deselectAll()
     }
@@ -546,24 +448,20 @@ export default class extends Controller {
     const node = this.nodeManager.findNode(nodeId)
     if (!node) return
     
-    // Add to selected nodes array
     if (!this.selectedNodes.find(n => n.id === nodeId)) {
       this.selectedNodes.push(node)
       node.element.classList.add('selected')
     }
     
-    // Keep single selectedNode for backward compatibility
     this.selectedNode = node
     
-    // Show properties only for single selection
     if (this.selectedNodes.length === 1) {
       this.showNodeProperties(node)
     } else {
-      this.showMultiSelectMessage()
+      this.uiComponents.showMultiSelectMessage()
     }
     
-    // Notify chat controller about selection change
-    this.notifySelectionChange()
+    this.chatIntegration.notifySelectionChange()
   }
   
   toggleNodeSelection(nodeId) {
@@ -573,47 +471,31 @@ export default class extends Controller {
     const index = this.selectedNodes.findIndex(n => n.id === nodeId)
     
     if (index > -1) {
-      // Node is selected - deselect it
       this.selectedNodes.splice(index, 1)
       node.element.classList.remove('selected')
-      
-      // Update selectedNode for backward compatibility
       this.selectedNode = this.selectedNodes[this.selectedNodes.length - 1] || null
     } else {
-      // Node is not selected - select it
       this.selectedNodes.push(node)
       node.element.classList.add('selected')
       this.selectedNode = node
     }
     
-    // Update properties panel
     if (this.selectedNodes.length === 0) {
-      this.clearPropertiesPanel()
+      this.uiComponents.clearPropertiesPanel()
     } else if (this.selectedNodes.length === 1) {
       this.showNodeProperties(this.selectedNodes[0])
     } else {
-      this.showMultiSelectMessage()
+      this.uiComponents.showMultiSelectMessage()
     }
     
-    // Notify chat controller about selection change
-    this.notifySelectionChange()
+    this.chatIntegration.notifySelectionChange()
   }
   
   isNodeSelected(nodeId) {
     return this.selectedNodes.some(n => n.id === nodeId)
   }
   
-  showMultiSelectMessage() {
-    this.propertiesPanelTarget.innerHTML = `
-      <div class="p-4 text-center text-gray-500 dark:text-gray-400">
-        <p class="font-medium mb-2">${this.selectedNodes.length} nodes selected</p>
-        <p class="text-sm">Select a single node to view/edit its properties</p>
-      </div>
-    `
-  }
-  
   deselectAll() {
-    // Clear all selected nodes
     this.selectedNodes.forEach(node => {
       node.element?.classList.remove('selected')
     })
@@ -626,22 +508,8 @@ export default class extends Controller {
       this.selectedConnection = null
     }
     
-    this.propertiesPanelTarget.innerHTML = `
-      <div class="p-4 text-center text-gray-500 dark:text-gray-400">
-        <p>Select an instance to edit its properties</p>
-      </div>
-    `
-    
-    // Notify chat controller about selection change
-    this.notifySelectionChange()
-  }
-  
-  clearPropertiesPanel() {
-    this.propertiesPanelTarget.innerHTML = `
-      <div class="p-4 text-center text-gray-500 dark:text-gray-400">
-        <p>Select an instance to edit its properties</p>
-      </div>
-    `
+    this.uiComponents.clearPropertiesPanel()
+    this.chatIntegration.notifySelectionChange()
   }
   
   showNodeProperties(node) {
@@ -649,7 +517,6 @@ export default class extends Controller {
     const isOpenAI = nodeData.provider === 'openai'
     const isClaude = !isOpenAI
     
-    // Get available tools list
     const availableTools = [
       "Bash", "Edit", "Glob", "Grep", "LS", "MultiEdit", "NotebookEdit", 
       "NotebookRead", "Read", "Task", "TodoWrite", "WebFetch", "WebSearch", "Write"
@@ -908,7 +775,6 @@ export default class extends Controller {
     // Add change listeners for regular inputs
     this.propertiesPanelTarget.querySelectorAll('input:not([type="checkbox"]):not([data-tool-checkbox]), select, textarea').forEach(input => {
       input.addEventListener('input', (e) => this.updateNodeProperty(e))
-      // Add blur event for instance name to convert and ensure uniqueness
       if (input.dataset.property === 'name') {
         input.addEventListener('blur', (e) => this.updateNodeProperty(e))
       }
@@ -951,14 +817,11 @@ export default class extends Controller {
           headerEl.appendChild(desc)
         }
       } else if (property === 'model' || property === 'provider') {
-        // Update config as well
         if (!node.data.config) node.data.config = {}
         node.data.config[property] = e.target.value
         
-        // Update tags
         this.updateNodeTags(node)
         
-        // Show/hide fields based on provider
         if (property === 'provider') {
           const tempField = this.propertiesPanelTarget.querySelector('#temperature-field')
           const toolsField = this.propertiesPanelTarget.querySelector('#tools-field')
@@ -966,9 +829,7 @@ export default class extends Controller {
           if (tempField) tempField.style.display = e.target.value === 'openai' ? 'block' : 'none'
           if (toolsField) toolsField.style.display = e.target.value === 'openai' || node.data.vibe || node.data.config?.vibe ? 'none' : 'block'
           
-          // If changing to OpenAI and this node is currently main, unset it
           if (e.target.value === 'openai' && this.mainNodeId === node.id) {
-            // Remove main node styling
             if (node.element) {
               node.element.classList.remove('main-node')
               const badge = node.element.querySelector('.bg-orange-500')
@@ -976,7 +837,6 @@ export default class extends Controller {
             }
             this.mainNodeId = null
             
-            // Try to find another eligible node to be main
             const eligibleNode = this.nodeManager.getNodes().find(n => 
               n.id !== node.id && 
               n.data.provider !== 'openai' && 
@@ -987,17 +847,14 @@ export default class extends Controller {
             }
           }
           
-          // Refresh the entire properties panel to update vibe mode display
           this.showNodeProperties(node)
         }
       } else if (property === 'directory' || property === 'temperature' || property === 'vibe') {
-        // Store these in config
         if (!node.data.config) node.data.config = {}
         
         if (property === 'vibe') {
           node.data[property] = e.target.checked
           node.data.config[property] = e.target.checked
-          // Show/hide tools field
           const toolsField = this.propertiesPanelTarget.querySelector('#tools-field')
           if (toolsField) {
             toolsField.style.display = e.target.checked || node.data.provider === 'openai' ? 'none' : 'block'
@@ -1007,7 +864,6 @@ export default class extends Controller {
           node.data.config[property] = e.target.value
         }
       } else if (property === 'system_prompt') {
-        // Store system_prompt directly in node.data, not in config
         node.data[property] = e.target.value
       }
     } else if (configProperty) {
@@ -1021,7 +877,6 @@ export default class extends Controller {
         node.data.config[configProperty] = e.target.value
       }
       
-      // Update vibecheck tag if needed
       if (configProperty === 'vibecheck') {
         this.updateNodeTags(node)
       }
@@ -1045,22 +900,11 @@ export default class extends Controller {
     }
   }
   
-  humanizeKey(key) {
-    return key
-      .replace(/_/g, ' ')
-      .replace(/([A-Z])/g, ' $1')
-      .trim()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-  }
-  
   updateAllowedTools(e) {
     const nodeId = parseInt(e.currentTarget.dataset.nodeId)
     const node = this.nodeManager.findNode(nodeId)
     if (!node) return
     
-    // Get all checked tool checkboxes
     const checkedTools = []
     this.propertiesPanelTarget.querySelectorAll('[data-tool-checkbox]:checked').forEach(checkbox => {
       checkedTools.push(checkbox.value)
@@ -1087,32 +931,24 @@ export default class extends Controller {
     const nodeId = parseInt(e.currentTarget.dataset.nodeId)
     this.connectionManager.clearNodeConnections(nodeId)
     this.updateConnections()
-    this.updateSocketStates() // Update socket states after clearing connections
+    this.updateSocketStates()
     this.updateYamlPreview()
     
-    // Refresh properties panel
     const node = this.nodeManager.findNode(nodeId)
     if (node && this.selectedNode?.id === nodeId) {
       this.showNodeProperties(node)
     }
   }
   
-  setAsMain(e) {
-    const nodeId = parseInt(e.target.dataset.nodeId)
-    this.setMainNode(nodeId)
-  }
-  
   setMainNode(nodeId) {
     const node = this.nodeManager.findNode(nodeId)
     if (!node) return
     
-    // Prevent OpenAI instances from being main
     if (node.data.provider === 'openai') {
       console.warn('OpenAI instances cannot be set as main')
       return
     }
     
-    // Remove previous main node styling
     if (this.mainNodeId) {
       const prevMainNode = this.nodeManager.findNode(this.mainNodeId)
       if (prevMainNode?.element) {
@@ -1122,11 +958,9 @@ export default class extends Controller {
       }
     }
     
-    // Set new main node
     this.mainNodeId = nodeId
     if (node.element) {
       node.element.classList.add('main-node')
-      // Add Main badge if not already present
       if (!node.element.querySelector('.bg-orange-500')) {
         node.element.insertAdjacentHTML('afterbegin', '<div class="absolute top-1 right-1 z-10"><span class="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Main</span></div>')
       }
@@ -1140,253 +974,11 @@ export default class extends Controller {
     this.deleteNodeById(nodeId)
   }
   
-  async saveNodeAsTemplate(e) {
-    const nodeId = parseInt(e.target.dataset.nodeId)
-    const node = this.nodeManager.findNode(nodeId)
-    if (!node) return
-    
-    // Create modal for template name
-    const templateName = await this.promptForTemplateName(node.data.name)
-    if (!templateName) return // User cancelled
-    
-    // Get the system prompt and ensure newlines are properly preserved
-    let systemPrompt = node.data.system_prompt || node.data.config?.system_prompt || ''
-    // Convert literal \n to actual newlines if they exist
-    // This handles cases where the prompt was imported or came from JSON with escaped newlines
-    if (systemPrompt.includes('\\n')) {
-      systemPrompt = systemPrompt.replace(/\\n/g, '\n')
-    }
-    
-    // Prepare template data from node
-    const templateData = {
-      name: templateName,
-      description: node.data.description || 'Instance template created from visual builder',
-      category: 'general',
-      tags: [],
-      system_prompt: systemPrompt,
-      config: {
-        provider: node.data.provider || 'claude',
-        model: node.data.model || 'sonnet',
-        directory: node.data.directory || '.',
-        allowed_tools: node.data.allowed_tools || node.data.config?.allowed_tools || [],
-        vibe: node.data.vibe || node.data.config?.vibe || false,
-        worktree: node.data.worktree || node.data.config?.worktree || false
-      }
-    }
-    
-    // Add MCP servers if present
-    if (node.data.mcps && node.data.mcps.length > 0) {
-      templateData.config.mcps = node.data.mcps
-    }
-    
-    // Add OpenAI specific fields if applicable
-    if (node.data.provider === 'openai') {
-      if (node.data.temperature) templateData.config.temperature = node.data.temperature
-      if (node.data.api_version) templateData.config.api_version = node.data.api_version
-      if (node.data.reasoning_effort) templateData.config.reasoning_effort = node.data.reasoning_effort
-    }
-    
-    // Save template to database
-    try {
-      const response = await fetch('/instance_templates', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
-        },
-        body: JSON.stringify({ instance_template: templateData })
-      })
-      
-      if (response.ok) {
-        const result = await response.json()
-        this.showFlashMessage(`Template "${templateName}" saved successfully!`, 'success')
-        
-        // Optionally refresh the templates list in the left panel
-        await this.refreshTemplatesList()
-      } else {
-        let errorMessage = 'Unknown error'
-        const contentType = response.headers.get('content-type')
-        
-        try {
-          if (contentType && contentType.includes('application/json')) {
-            const error = await response.json()
-            errorMessage = error.message || error.errors?.join(', ') || 'Unknown error'
-          } else {
-            // Response is not JSON (likely HTML error page)
-            const text = await response.text()
-            console.error('Non-JSON error response:', text)
-            // Try to extract error from HTML if possible
-            const match = text.match(/<h1[^>]*>([^<]+)<\/h1>/)
-            errorMessage = match ? match[1] : `Server error (${response.status})`
-          }
-        } catch (e) {
-          console.error('Error parsing response:', e)
-          errorMessage = `Server error (${response.status})`
-        }
-        
-        this.showFlashMessage('Failed to save template: ' + errorMessage, 'error')
-      }
-    } catch (error) {
-      console.error('Error saving template:', error)
-      this.showFlashMessage('Failed to save template: ' + error.message, 'error')
-    }
-  }
-  
-  showFlashMessage(message, type = 'info') {
-    // Create flash message element
-    const flash = document.createElement('div')
-    flash.className = `fixed top-20 right-4 px-6 py-4 rounded-lg shadow-lg z-50 transition-all transform translate-x-0 ${
-      type === 'success' ? 'bg-green-600 text-white' :
-      type === 'error' ? 'bg-red-600 text-white' :
-      type === 'warning' ? 'bg-yellow-500 text-white' :
-      'bg-blue-600 text-white'
-    }`
-    flash.textContent = message
-    
-    // Add to DOM
-    document.body.appendChild(flash)
-    
-    // Animate in
-    setTimeout(() => {
-      flash.classList.add('opacity-100')
-    }, 10)
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-      flash.classList.add('opacity-0', 'translate-x-full')
-      setTimeout(() => {
-        flash.remove()
-      }, 300)
-    }, 3000)
-  }
-  
-  async promptForTemplateName(defaultName) {
-    return new Promise((resolve) => {
-      const overlay = document.createElement('div')
-      overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
-      
-      const modal = document.createElement('div')
-      modal.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4'
-      modal.innerHTML = `
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Save as Template</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Enter a name for this instance template.
-        </p>
-        <input type="text" 
-               value="${defaultName || 'My Template'}" 
-               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-transparent"
-               placeholder="Template name">
-        <div class="flex justify-end gap-3 mt-6">
-          <button type="button" 
-                  class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
-                  data-action="cancel">
-            Cancel
-          </button>
-          <button type="button" 
-                  class="px-4 py-2 text-sm font-medium text-white bg-green-600 dark:bg-green-600 rounded-md hover:bg-green-700 dark:hover:bg-green-700"
-                  data-action="save">
-            Save Template
-          </button>
-        </div>
-      `
-      
-      overlay.appendChild(modal)
-      document.body.appendChild(overlay)
-      
-      // Focus input and select all text
-      const input = modal.querySelector('input')
-      input.focus()
-      input.select()
-      
-      const handleSave = () => {
-        const name = input.value.trim()
-        if (name) {
-          document.body.removeChild(overlay)
-          resolve(name)
-        } else {
-          input.classList.add('border-red-500')
-          input.focus()
-        }
-      }
-      
-      const handleCancel = () => {
-        document.body.removeChild(overlay)
-        resolve(null)
-      }
-      
-      modal.querySelector('[data-action="save"]').addEventListener('click', handleSave)
-      modal.querySelector('[data-action="cancel"]').addEventListener('click', handleCancel)
-      
-      // Allow Enter key to save
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault()
-          handleSave()
-        } else if (e.key === 'Escape') {
-          e.preventDefault()
-          handleCancel()
-        }
-      })
-      
-      // Click outside to cancel
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) handleCancel()
-      })
-    })
-  }
-  
-  async refreshTemplatesList() {
-    try {
-      const response = await fetch('/instance_templates', {
-        headers: {
-          'Accept': 'application/json'
-        }
-      })
-      if (response.ok) {
-        const templates = await response.json()
-        
-        // Update the templates list in the left panel
-        const templatesContainer = this.instanceTemplatesTarget
-        templatesContainer.innerHTML = templates.map(template => {
-          // Merge system_prompt into config for consistency with existing templates
-          const configWithPrompt = { ...template.config, system_prompt: template.system_prompt }
-          return `
-            <div draggable="true"
-                 data-template-card
-                 data-template-id="${template.id}"
-                 data-template-name="${template.name}"
-                 data-template-description="${template.description}"
-                 data-template-config='${JSON.stringify(configWithPrompt).replace(/'/g, '&#39;')}'
-                 class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-move hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-              <div class="flex items-start justify-between">
-                <div>
-                  <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100">${template.name}</h4>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${template.description}</p>
-                </div>
-                <span class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
-                  ${template.model}
-                </span>
-              </div>
-            </div>
-          `
-        }).join('')
-        
-        // Re-initialize drag and drop for new templates
-        this.initializeTemplateDragAndDrop()
-      }
-    } catch (error) {
-      console.error('Error refreshing templates:', error)
-    }
-  }
-  
   deleteSelectedNode() {
-    // Delete all selected nodes
     if (this.selectedNodes.length > 0) {
       const nodeIds = this.selectedNodes.map(n => n.id)
       nodeIds.forEach(id => this.deleteNodeById(id))
     } else if (this.selectedNode) {
-      // Fallback for backward compatibility
       this.deleteNodeById(this.selectedNode.id)
     }
   }
@@ -1395,25 +987,16 @@ export default class extends Controller {
     const node = this.nodeManager.findNode(nodeId)
     if (!node) return
     
-    // Remove connections
     this.connectionManager.clearNodeConnections(nodeId)
-    
-    // Remove element
     node.element?.remove()
-    
-    // Remove from nodes
     this.nodeManager.removeNode(nodeId)
-    
-    // Update socket states after removing node's connections
     this.updateSocketStates()
     
-    // Clear selection and properties panel if this was the selected node
     if (this.selectedNode?.id === nodeId) {
       this.selectedNode = null
-      this.clearPropertiesPanel()
+      this.uiComponents.clearPropertiesPanel()
     }
     
-    // Update main node if needed
     if (this.mainNodeId === nodeId) {
       this.mainNodeId = this.nodeManager.getNodes()[0]?.id || null
       if (this.mainNodeId) {
@@ -1422,7 +1005,7 @@ export default class extends Controller {
     }
     
     this.updateConnections()
-    this.updateEmptyState()
+    this.uiComponents.updateEmptyState()
     this.updateYamlPreview()
   }
   
@@ -1431,7 +1014,7 @@ export default class extends Controller {
       this.connectionManager.removeConnection(this.selectedConnection)
       this.selectedConnection = null
       this.updateConnections()
-      this.updateSocketStates() // Update socket states after removing connection
+      this.updateSocketStates()
       this.updateYamlPreview()
     }
   }
@@ -1443,7 +1026,6 @@ export default class extends Controller {
     const nodeId = parseInt(socket.dataset.nodeId)
     const side = socket.dataset.socketSide
     
-    // Check if socket is already used as destination - can't use destination as source
     if (socket.classList.contains('used-as-destination')) {
       return
     }
@@ -1452,7 +1034,6 @@ export default class extends Controller {
     socket.classList.add('connecting')
     this.viewport.classList.add('cursor-crosshair')
     
-    // Show drag path
     const dragPath = this.svg.querySelector('#dragPath')
     dragPath.style.display = 'block'
   }
@@ -1478,7 +1059,6 @@ export default class extends Controller {
     const dragPath = this.svg.querySelector('#dragPath')
     this.pathRenderer.updateDragPath(dragPath, pathData)
     
-    // Highlight potential target
     const element = document.elementFromPoint(e.clientX, e.clientY)
     this.highlightPotentialTarget(element)
   }
@@ -1492,24 +1072,19 @@ export default class extends Controller {
       const targetNodeId = parseInt(element.dataset.nodeId)
       const targetSide = element.dataset.socketSide
       
-      // Don't connect to self or to main node
       if (targetNodeId !== this.pendingConnection.nodeId && 
           targetNodeId !== this.mainNodeId) {
         
-        // Check if this exact connection already exists
         const isDuplicate = this.connectionManager.getConnections().some(conn => 
           conn.from === this.pendingConnection.nodeId && 
           conn.to === targetNodeId
         )
         
-        if (isDuplicate) {
-          console.log('Connection already exists between these nodes')
-        } else {
+        if (!isDuplicate) {
           const fromNode = this.nodeManager.findNode(this.pendingConnection.nodeId)
           const toNode = this.nodeManager.findNode(targetNodeId)
           
           if (fromNode && toNode) {
-            // Create connection
             this.connectionManager.createConnection(
               this.pendingConnection.nodeId, 
               this.pendingConnection.side,
@@ -1518,41 +1093,36 @@ export default class extends Controller {
             )
             
             this.updateConnections()
-            this.updateSocketStates() // Update socket states after creating connection
+            this.updateSocketStates()
             this.updateYamlPreview()
           }
         }
       }
     } else {
-      // Try to find the closest node
       const targetNode = element?.closest('.swarm-node')
       if (targetNode) {
         const targetNodeId = parseInt(targetNode.dataset.nodeId)
         const fromId = this.pendingConnection.nodeId
         const fromSide = this.pendingConnection.side
         
-        // Don't connect to self or to main node
         if (targetNodeId !== fromId && targetNodeId !== this.mainNodeId) {
           const fromNode = this.nodeManager.findNode(fromId)
           const toNode = this.nodeManager.findNode(targetNodeId)
           
           if (fromNode && toNode) {
-            // Use intelligent socket selection
             const { toSide } = this.connectionManager.findBestSocketPairForDrag(fromNode, toNode, fromSide)
             
-            // Check if this exact connection already exists
             const isDuplicate = this.connectionManager.getConnections().some(conn => 
               conn.from === fromId && 
               conn.to === targetNodeId
             )
             
             if (!isDuplicate) {
-              // Get target socket - destinations can accept multiple connections
               const targetSocket = targetNode.querySelector(`.socket[data-socket-side="${toSide}"]`)
               if (targetSocket) {
                 this.connectionManager.createConnection(fromId, fromSide, targetNodeId, toSide)
                 this.updateConnections()
-                this.updateSocketStates() // Update socket states after creating connection
+                this.updateSocketStates()
                 this.updateYamlPreview()
               }
             }
@@ -1561,14 +1131,10 @@ export default class extends Controller {
       }
     }
     
-    // Hide drag path and remove connecting class
     const dragPath = this.svg.querySelector('#dragPath')
     dragPath.style.display = 'none'
     
-    // Remove connecting class from all sockets
     this.viewport.querySelectorAll('.socket.connecting').forEach(s => s.classList.remove('connecting'))
-    
-    // Clear highlight
     this.viewport.querySelectorAll('.swarm-node.connection-target').forEach(n => n.classList.remove('connection-target'))
     
     this.pendingConnection = null
@@ -1576,7 +1142,6 @@ export default class extends Controller {
   }
   
   highlightPotentialTarget(element) {
-    // Clear previous highlights
     this.viewport.querySelectorAll('.swarm-node.connection-target').forEach(n => n.classList.remove('connection-target'))
     
     if (!element || !this.pendingConnection) return
@@ -1584,7 +1149,6 @@ export default class extends Controller {
     const targetNode = element.closest('.swarm-node')
     const targetNodeId = targetNode ? parseInt(targetNode.dataset.nodeId) : null
     
-    // Don't highlight self or main node
     if (targetNode && 
         targetNodeId !== this.pendingConnection.nodeId &&
         targetNodeId !== this.mainNodeId) {
@@ -1598,7 +1162,6 @@ export default class extends Controller {
       this.nodeManager.getNodes()
     )
     
-    // Re-add event listeners
     this.svg.querySelectorAll('.connection').forEach((path, index) => {
       path.addEventListener('click', (e) => {
         e.stopPropagation()
@@ -1608,12 +1171,10 @@ export default class extends Controller {
   }
   
   updateSocketStates() {
-    // First clear all socket states
     this.viewport.querySelectorAll('.socket.used-as-destination').forEach(socket => {
       socket.classList.remove('used-as-destination')
     })
     
-    // Then mark sockets that are used as destinations
     this.connectionManager.getConnections().forEach(conn => {
       const toNode = this.viewport.querySelector(`.swarm-node[data-node-id="${conn.to}"]`)
       if (toNode) {
@@ -1649,11 +1210,9 @@ export default class extends Controller {
     const node = this.nodeManager.findNode(nodeId)
     if (!node) return
     
-    // For single node drag
     this.draggedNode = node
-    this.draggedNodes = [node] // Store as array for consistency
+    this.draggedNodes = [node]
     
-    // Store initial positions
     this.dragStartMouseX = e.clientX
     this.dragStartMouseY = e.clientY
     this.dragStartNodeX = node.data.x
@@ -1661,7 +1220,6 @@ export default class extends Controller {
     this.dragStartScrollLeft = this.container.scrollLeft
     this.dragStartScrollTop = this.container.scrollTop
     
-    // Animation state
     this.lastMouseX = e.clientX
     this.lastMouseY = e.clientY
     this.animationFrameId = null
@@ -1677,17 +1235,14 @@ export default class extends Controller {
     const nodeEl = e.target.closest('.swarm-node')
     if (!nodeEl) return
     
-    // Store all selected nodes for dragging
     this.draggedNodes = [...this.selectedNodes]
-    this.draggedNode = this.draggedNodes[0] // Keep for backward compatibility
+    this.draggedNode = this.draggedNodes[0]
     
-    // Store initial positions for all selected nodes
     this.dragStartMouseX = e.clientX
     this.dragStartMouseY = e.clientY
     this.dragStartScrollLeft = this.container.scrollLeft
     this.dragStartScrollTop = this.container.scrollTop
     
-    // Store initial position for each node
     this.dragStartPositions = new Map()
     this.draggedNodes.forEach(node => {
       this.dragStartPositions.set(node.id, {
@@ -1698,7 +1253,6 @@ export default class extends Controller {
       node.element.style.cursor = 'grabbing'
     })
     
-    // Animation state
     this.lastMouseX = e.clientX
     this.lastMouseY = e.clientY
     this.animationFrameId = null
@@ -1714,7 +1268,6 @@ export default class extends Controller {
     this.lastMouseX = e.clientX
     this.lastMouseY = e.clientY
     
-    // Start animation if not already running
     if (!this.animationFrameId) {
       this.animationFrameId = requestAnimationFrame(() => this.updateNodePosition())
     }
@@ -1723,29 +1276,23 @@ export default class extends Controller {
   updateNodePosition() {
     if (!this.draggedNodes || this.draggedNodes.length === 0) return
     
-    // Calculate mouse delta
     const deltaMouseX = this.lastMouseX - this.dragStartMouseX
     const deltaMouseY = this.lastMouseY - this.dragStartMouseY
     
-    // Calculate scroll delta
     const deltaScrollX = this.container.scrollLeft - this.dragStartScrollLeft
     const deltaScrollY = this.container.scrollTop - this.dragStartScrollTop
     
-    // Calculate final position accounting for both mouse movement and scroll
     const deltaX = (deltaMouseX + deltaScrollX) / this.zoomLevel
     const deltaY = (deltaMouseY + deltaScrollY) / this.zoomLevel
     
-    // Update all dragged nodes
     this.draggedNodes.forEach(node => {
       let startX, startY
       
       if (this.dragStartPositions && this.dragStartPositions.has(node.id)) {
-        // Multi-node drag
         const startPos = this.dragStartPositions.get(node.id)
         startX = startPos.x
         startY = startPos.y
       } else {
-        // Single node drag (backward compatibility)
         startX = this.dragStartNodeX
         startY = this.dragStartNodeY
       }
@@ -1755,17 +1302,14 @@ export default class extends Controller {
       
       this.nodeManager.updateNodePosition(node.id, x, y)
       
-      // Update element position
       node.element.style.left = `${x + this.canvasCenter}px`
       node.element.style.top = `${y + this.canvasCenter}px`
     })
     
-    // Update connections
     this.updateConnections()
     
-    // Check for auto-scroll with smooth acceleration
     const containerRect = this.container.getBoundingClientRect()
-    const edgeSize = 80 // Larger detection zone
+    const edgeSize = 80
     const maxScrollSpeed = 25
     
     const distanceFromLeft = this.lastMouseX - containerRect.left
@@ -1776,7 +1320,6 @@ export default class extends Controller {
     let scrollX = 0
     let scrollY = 0
     
-    // Smooth quadratic acceleration for more natural feel
     if (distanceFromLeft < edgeSize) {
       const factor = 1 - (distanceFromLeft / edgeSize)
       scrollX = -maxScrollSpeed * factor * factor
@@ -1798,20 +1341,17 @@ export default class extends Controller {
       this.container.scrollTop += scrollY
     }
     
-    // Continue animation
     this.animationFrameId = requestAnimationFrame(() => this.updateNodePosition())
   }
   
   endNodeDrag() {
     if (!this.draggedNodes || this.draggedNodes.length === 0) return
     
-    // Cancel animation
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId)
       this.animationFrameId = null
     }
     
-    // Reset styles for all dragged nodes
     this.draggedNodes.forEach(node => {
       node.element.style.zIndex = ''
       node.element.style.cursor = ''
@@ -1852,12 +1392,7 @@ export default class extends Controller {
     this.viewport.classList.remove('panning')
   }
   
-  // UI operations
-  updateEmptyState() {
-    const hasNodes = this.nodeManager.getNodes().length > 0
-    this.emptyStateTarget.style.display = hasNodes ? 'none' : 'flex'
-  }
-  
+  // Zoom operations
   zoomIn() {
     const newZoom = Math.min(this.maxZoom, this.zoomLevel * 1.2)
     this.setZoom(newZoom)
@@ -1895,38 +1430,17 @@ export default class extends Controller {
   }
   
   // Library and search operations
-  filterTemplates(e) {
-    const searchTerm = e.target.value.toLowerCase()
-    const templates = this.instanceTemplatesTarget.querySelectorAll('[data-template-card]')
-    
-    templates.forEach(template => {
-      const name = template.dataset.templateName.toLowerCase()
-      const description = template.dataset.templateDescription.toLowerCase()
-      const model = JSON.parse(template.dataset.templateConfig).model?.toLowerCase() || ''
-      
-      const matches = name.includes(searchTerm) || 
-                     description.includes(searchTerm) || 
-                     model.includes(searchTerm)
-      
-      template.style.display = matches ? 'block' : 'none'
-    })
-  }
-  
   addBlankInstance() {
-    // Node dimensions
     const nodeWidth = 250
     const nodeHeight = 120
     
-    // Get the current visible center of the canvas
     const containerRect = this.container.getBoundingClientRect()
     const scrollLeft = this.container.scrollLeft
     const scrollTop = this.container.scrollTop
     
-    // Calculate the center of the visible area in viewport coordinates
     const visibleCenterX = (scrollLeft + containerRect.width / 2) / this.zoomLevel
     const visibleCenterY = (scrollTop + containerRect.height / 2) / this.zoomLevel
     
-    // Convert to canvas coordinates (relative to center) and center the node
     const x = visibleCenterX - this.canvasCenter - (nodeWidth / 2)
     const y = visibleCenterY - this.canvasCenter - (nodeHeight / 2)
     
@@ -1938,20 +1452,15 @@ export default class extends Controller {
       provider: ''
     }
     
-    // Add the node
     const node = this.nodeManager.createNode(templateData, { x, y })
     this.renderNode(node)
-    this.updateEmptyState()
+    this.uiComponents.updateEmptyState()
     this.updateYamlPreview()
     
-    // Select the new node and show properties
     this.selectNode(node.id)
     
-    // Switch to properties tab if not already visible
-    this.switchToProperties()
+    this.uiComponents.switchToProperties()
     
-    // Focus on the instance name field after DOM updates
-    // Use requestAnimationFrame to ensure the DOM has been updated
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const nameInput = this.propertiesPanelTarget.querySelector('input[data-property="name"]')
@@ -1999,1397 +1508,53 @@ export default class extends Controller {
     this.updateYamlPreview()
   }
   
-  // Tab switching for left sidebar
-  switchToInstancesTab() {
-    // Update tab buttons
-    this.instancesTabButtonTarget.classList.add('text-orange-600', 'dark:text-orange-400', 'border-orange-600', 'dark:border-orange-400')
-    this.instancesTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent')
-    this.mcpServersTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-orange-600', 'dark:border-orange-400')
-    this.mcpServersTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent')
-    
-    // Show/hide tab content
-    this.instancesTabTarget.classList.remove('hidden')
-    this.mcpServersTabTarget.classList.add('hidden')
-  }
-  
-  switchToMcpServersTab() {
-    // Update tab buttons
-    this.mcpServersTabButtonTarget.classList.add('text-orange-600', 'dark:text-orange-400', 'border-orange-600', 'dark:border-orange-400')
-    this.mcpServersTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent')
-    this.instancesTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-orange-600', 'dark:border-orange-400')
-    this.instancesTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent')
-    
-    // Show/hide tab content
-    this.mcpServersTabTarget.classList.remove('hidden')
-    this.instancesTabTarget.classList.add('hidden')
-  }
-  
-  // MCP server filtering
-  filterMcpServers(e) {
-    const searchTerm = e.target.value.toLowerCase()
-    const mcpServers = this.mcpServersListTarget.querySelectorAll('[data-mcp-card]')
-    
-    mcpServers.forEach(card => {
-      const name = card.dataset.mcpName.toLowerCase()
-      const type = card.dataset.mcpType.toLowerCase()
-      const element = card.querySelector('p')
-      const description = element ? element.textContent.toLowerCase() : ''
-      
-      const matches = name.includes(searchTerm) || 
-                     type.includes(searchTerm) || 
-                     description.includes(searchTerm)
-      
-      card.style.display = matches ? 'block' : 'none'
-    })
-  }
-  
-  // Add MCP server to node
-  addMcpToNode(nodeId, mcpData) {
-    const node = this.nodeManager.findNode(nodeId)
-    if (!node) return
-    
-    // Initialize mcps array if not exists
-    if (!node.data.mcps) {
-      node.data.mcps = []
-    }
-    
-    // Check if this MCP is already added
-    const exists = node.data.mcps.some(mcp => mcp.name === mcpData.name)
-    if (exists) {
-      return
-    }
-    
-    // Convert server_type to type for claude-swarm compatibility
-    const mcpConfig = {
-      name: mcpData.config.name,
-      type: mcpData.config.type === 'stdio' || mcpData.config.type === 'sse' ? mcpData.config.type : mcpData.type
-    }
-    
-    // Add type-specific fields
-    if (mcpConfig.type === 'stdio') {
-      if (mcpData.config.command) mcpConfig.command = mcpData.config.command
-      if (mcpData.config.args && mcpData.config.args.length > 0) mcpConfig.args = mcpData.config.args
-      if (mcpData.config.env && Object.keys(mcpData.config.env).length > 0) mcpConfig.env = mcpData.config.env
-    } else if (mcpConfig.type === 'sse') {
-      if (mcpData.config.url) mcpConfig.url = mcpData.config.url
-      if (mcpData.config.headers && Object.keys(mcpData.config.headers).length > 0) mcpConfig.headers = mcpData.config.headers
-    }
-    
-    // Add to node's MCP list
-    node.data.mcps.push(mcpConfig)
-    
-    // Update the node's visual representation
-    this.updateNodeVisual(node)
-    
-    // Update properties panel if this node is selected
-    if (this.selectedNode?.id === nodeId) {
-      this.showNodeProperties(node)
-    }
-    
-    // Update YAML preview
-    this.updateYamlPreview()
-  }
-  
-  // Remove MCP server from node
-  removeMcpFromNode(e) {
-    const nodeId = parseInt(e.currentTarget.dataset.nodeId)
-    const mcpName = e.currentTarget.dataset.mcpName
-    
-    const node = this.nodeManager.findNode(nodeId)
-    if (!node || !node.data.mcps) return
-    
-    // Remove the MCP
-    node.data.mcps = node.data.mcps.filter(mcp => mcp.name !== mcpName)
-    
-    // Update the node's visual representation
-    this.updateNodeVisual(node)
-    
-    // Update properties panel
-    if (this.selectedNode?.id === nodeId) {
-      this.showNodeProperties(node)
-    }
-    
-    // Update YAML preview
-    this.updateYamlPreview()
-  }
-  
-  // Update node's visual representation
-  updateNodeVisual(node) {
-    if (!node.element) return
-    
-    const mcpCount = node.data.mcps?.length || 0
-    
-    // Find the node-tags container
-    const tagsContainer = node.element.querySelector('.node-tags')
-    if (!tagsContainer) return
-    
-    // Update MCP badge
-    let mcpBadge = tagsContainer.querySelector('.bg-purple-100, .dark\\:bg-purple-900')
-    
-    if (mcpCount > 0) {
-      if (!mcpBadge) {
-        // Create new MCP badge
-        mcpBadge = document.createElement('span')
-        mcpBadge.className = 'node-tag bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
-        
-        // Insert after provider tag but before vibe tag if it exists
-        const vibeTag = tagsContainer.querySelector('.vibe-tag')
-        if (vibeTag) {
-          tagsContainer.insertBefore(mcpBadge, vibeTag)
-        } else {
-          tagsContainer.appendChild(mcpBadge)
-        }
-      }
-      mcpBadge.textContent = `MCP: ${mcpCount}`
-      mcpBadge.title = `${mcpCount} MCP server${mcpCount > 1 ? 's' : ''}`
-    } else if (mcpBadge) {
-      // Remove MCP badge if no MCPs
-      mcpBadge.remove()
-    }
-  }
-  
-  // YAML preview and export
-  updateYamlPreview() {
-    const swarmData = this.buildSwarmData()
-    const yaml = this.generateReadableYaml(swarmData)
-    this.yamlPreviewTarget.querySelector('pre').textContent = yaml
-  }
-  
-  // Generate readable YAML with proper multiline formatting
-  generateReadableYaml(data) {
-    // Use js-yaml with custom options for better formatting
-    const yaml = jsyaml.dump(data, {
-      lineWidth: 120,
-      noRefs: true,
-      sortKeys: false,
-      quotingType: '"',
-      forceQuotes: false
-    })
-    
-    // Post-process to ensure proper | formatting for multiline strings
-    const lines = yaml.split('\n')
-    const processedLines = []
-    let i = 0
-    
-    while (i < lines.length) {
-      const line = lines[i]
-      
-      // Check if this is a prompt or description field with a long value in quotes
-      const quotedMatch = line.match(/^(\s*)(prompt|description):\s*["'](.*)["']\s*$/)
-      if (quotedMatch) {
-        const indent = quotedMatch[1]
-        const field = quotedMatch[2]
-        const value = quotedMatch[3]
-        
-        // If the value is long or contains special characters, use | literal style
-        if (value.length > 60 || value.includes('\\n')) {
-          // Unescape the string
-          const unescapedValue = value.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'")
-          
-          processedLines.push(`${indent}${field}: |`)
-          
-          // Split into lines and add with proper indentation
-          const valueLines = unescapedValue.split('\n')
-          valueLines.forEach(valueLine => {
-            processedLines.push(`${indent}  ${valueLine}`)
-          })
-          
-          i++
-          continue
-        }
-      }
-      
-      // Check for multiline string indicators from js-yaml (both > and |)
-      const multilineMatch = line.match(/^(\s*)(prompt|description):\s*[|>]-?\s*$/)
-      if (multilineMatch) {
-        const indent = multilineMatch[1]
-        const field = multilineMatch[2]
-        
-        // Replace > with | to use literal style instead of folded style
-        processedLines.push(`${indent}${field}: |`)
-        i++
-        
-        // Include the indented content lines
-        while (i < lines.length && lines[i].match(/^\s+/)) {
-          processedLines.push(lines[i])
-          i++
-        }
-        continue
-      }
-      
-      processedLines.push(line)
-      i++
-    }
-    
-    return processedLines.join('\n')
-  }
-  
-  buildSwarmData() {
-    const instances = {}
-    
-    // Determine main instance key first
-    const mainNodeId = this.mainNodeId || (this.nodeManager.getNodes()[0]?.id)
-    
-    // Build instances
-    this.nodeManager.getNodes().forEach(node => {
-      const key = node.data.name.toLowerCase().replace(/\s+/g, '_')
-      this.nodeKeyMap.set(node.id, key)
-      
-      // Check if this is the main instance
-      const isMainInstance = node.id === mainNodeId
-      
-      // Create instance with proper structure
-      const instance = {}
-      
-      // REQUIRED: description field
-      const description = node.data.description || node.data.config?.description || `Instance for ${node.data.name}`
-      instance.description = description
-      
-      // Optional fields only added if they have values
-      const model = node.data.model || node.data.config?.model
-      if (model && model !== 'sonnet') {
-        instance.model = model
-      }
-      
-      const provider = node.data.provider || node.data.config?.provider
-      // IMPORTANT: Main instance cannot have provider field in the YAML (claude-swarm rule)
-      if (!isMainInstance && provider && provider !== 'claude') {
-        instance.provider = provider
-      }
-      
-      if (node.data.directory || node.data.config?.directory) {
-        instance.directory = node.data.directory || node.data.config.directory
-      }
-      
-      // Use 'prompt' instead of 'system_prompt' for claude-swarm compliance
-      if (node.data.system_prompt) {
-        instance.prompt = node.data.system_prompt
-      }
-      
-      // Handle OpenAI-specific fields
-      if (provider === 'openai') {
-        // Check if it's an o-series model
-        const isOSeries = model && /^o\d/.test(model)
-        
-        // Temperature not allowed for o-series models
-        if (!isOSeries && (node.data.temperature || node.data.config?.temperature)) {
-          instance.temperature = parseFloat(node.data.temperature || node.data.config.temperature)
-        }
-        
-        // Reasoning effort only for o-series models
-        if (isOSeries && (node.data.reasoning_effort || node.data.config?.reasoning_effort)) {
-          instance.reasoning_effort = node.data.reasoning_effort || node.data.config.reasoning_effort
-        }
-      }
-      
-      // Handle vibe mode and allowed tools (not for OpenAI instances)
-      if (provider !== 'openai') {
-        if (node.data.vibe || node.data.config?.vibe) {
-          instance.vibe = true
-        } else if (node.data.allowed_tools?.length > 0 || node.data.config?.allowed_tools?.length > 0) {
-          instance.allowed_tools = node.data.allowed_tools || node.data.config.allowed_tools
-        }
-      }
-      
-      // Add MCP servers if present
-      if (node.data.mcps && node.data.mcps.length > 0) {
-        instance.mcps = node.data.mcps
-      }
-      
-      instances[key] = instance
-    })
-    
-    // Build connections - connections go on the source node listing destinations
-    this.connectionManager.getConnections().forEach(conn => {
-      const fromKey = this.nodeKeyMap.get(conn.from)
-      const toKey = this.nodeKeyMap.get(conn.to)
-      
-      if (fromKey && toKey) {
-        if (!instances[fromKey].connections) {
-          instances[fromKey].connections = []
-        }
-        // Avoid duplicates
-        if (!instances[fromKey].connections.includes(toKey)) {
-          instances[fromKey].connections.push(toKey)
-        }
-      }
-    })
-    
-    // Build final structure compliant with claude-swarm
-    const swarmName = this.nameInputTarget.value || 'my_swarm'
-    const mainKey = this.mainNodeId ? this.nodeKeyMap.get(this.mainNodeId) : Object.keys(instances)[0]
-    
-    // Create proper claude-swarm YAML structure
-    const result = {
-      version: 1,
-      swarm: {
-        name: swarmName,
-        instances: instances
-      }
-    }
-    
-    // Only add main key if there are instances and a main is defined
-    if (mainKey && Object.keys(instances).length > 0) {
-      result.swarm.main = mainKey
-    }
-    
-    // Note: tags are NOT included in the YAML - they're for SwarmUI database only
-    
-    return result
-  }
-  
-  switchToProperties() {
-    this.propertiesTabTarget.classList.remove('hidden')
-    this.yamlPreviewTabTarget.classList.add('hidden')
-    if (this.hasChatTabTarget) {
-      this.chatTabTarget.classList.add('hidden')
-    }
-    
-    this.propertiesTabButtonTarget.classList.add('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
-    this.propertiesTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400')
-    
-    this.yamlTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
-    this.yamlTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
-    
-    if (this.hasChatTabButtonTarget) {
-      this.chatTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
-      this.chatTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
-    }
-  }
-  
-  switchToYaml() {
-    this.yamlPreviewTabTarget.classList.remove('hidden')
-    this.propertiesTabTarget.classList.add('hidden')
-    if (this.hasChatTabTarget) {
-      this.chatTabTarget.classList.add('hidden')
-    }
-    
-    this.yamlTabButtonTarget.classList.add('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
-    this.yamlTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400')
-    
-    this.propertiesTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
-    this.propertiesTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
-    
-    if (this.hasChatTabButtonTarget) {
-      this.chatTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
-      this.chatTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
-    }
-    
-    this.updateYamlPreview()
-  }
-  
-  switchToChat() {
-    if (!this.hasChatTabTarget) return
-    
-    this.chatTabTarget.classList.remove('hidden')
-    this.propertiesTabTarget.classList.add('hidden')
-    this.yamlPreviewTabTarget.classList.add('hidden')
-    
-    this.chatTabButtonTarget.classList.add('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
-    this.chatTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400')
-    
-    this.propertiesTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
-    this.propertiesTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
-    
-    this.yamlTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
-    this.yamlTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
-    
-    // Dispatch event to notify chat controller that tab is now visible
-    window.dispatchEvent(new CustomEvent('chat:tabVisible'))
-  }
-  
-  // Handle canvas refresh when Claude modifies the file
-  async handleCanvasRefresh(event) {
-    const filePath = event.detail?.filePath
-    if (!filePath || filePath !== this.filePathValue) return
-    
-    // Debounce multiple refresh requests
-    if (this.refreshTimeout) {
-      clearTimeout(this.refreshTimeout)
-    }
-    
-    // Set a flag to prevent duplicate refreshes
-    if (this.isRefreshing) {
-      return
-    }
-    
-    // Wait a bit to collect all refresh events, then execute once
-    this.refreshTimeout = setTimeout(async () => {
-      // Prevent duplicate refreshes
-      if (this.isRefreshing) return
-      this.isRefreshing = true
-      
-      // Refreshing canvas due to file modification by Claude
-      
-      // Reload the file content from server
-      try {
-        const response = await fetch(`/api/swarm_files/read?path=${encodeURIComponent(filePath)}`)
-        if (!response.ok) throw new Error('Failed to read file')
-        
-        const data = await response.json()
-        if (data.yaml_content) {
-          // Parse and reload the YAML content
-          const yamlData = jsyaml.load(data.yaml_content)
-          this.loadFromYamlData(yamlData)
-          this.updateYamlPreview()
-          
-          // Show a brief notification
-          this.showNotification('Canvas refreshed with latest changes')
-        }
-      } catch (error) {
-        console.error('Error refreshing canvas:', error)
-      } finally {
-        // Reset the flag after a delay to allow for the next refresh
-        setTimeout(() => {
-          this.isRefreshing = false
-        }, 1000)
-      }
-    }, 500) // Wait 500ms to debounce multiple events
-  }
-  
-  showNotification(message) {
-    // Remove any existing notification
-    const existingNotification = document.querySelector('.swarm-notification')
-    if (existingNotification) {
-      existingNotification.remove()
-    }
-    
-    // Create notification at top of canvas
-    const notification = document.createElement('div')
-    notification.className = 'swarm-notification fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 transition-all duration-300 translate-y-0 opacity-100'
-    notification.innerHTML = `
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-      </svg>
-      <span class="font-medium">${message}</span>
-    `
-    document.body.appendChild(notification)
-    
-    // Fade out and remove after 3 seconds
-    setTimeout(() => {
-      notification.classList.add('translate-y-2', 'opacity-0')
-      setTimeout(() => notification.remove(), 300)
-    }, 3000)
-  }
-  
-  // Load swarm data from parsed YAML
-  async loadFromYamlData(data) {
-    // Handle claude-swarm format (version: 1, swarm: {...})
-    let swarmData = null
-    let swarmName = null
-    let tags = []
-    
-    if (data.version === 1 && data.swarm) {
-      // Standard claude-swarm format
-      swarmData = data.swarm
-      swarmName = swarmData.name || this.nameInputTarget.value || 'imported_swarm'
-    } else {
-      // Legacy format or SwarmUI export format - look for first object with instances
-      for (const [key, value] of Object.entries(data)) {
-        if (value && typeof value === 'object' && value.instances) {
-          swarmData = value
-          swarmName = key
-          // Extract tags if present (SwarmUI-specific)
-          if (value.tags) {
-            tags = value.tags
-          }
-          break
-        }
-      }
-    }
-    
-    if (!swarmData || !swarmData.instances) {
-      console.error('Invalid swarm data format')
-      return
-    }
-    
-    // Clear existing canvas (skip confirmation for programmatic refresh)
-    this.clearAll(true)
-    
-    // Set name and tags
-    if (swarmName) {
-      this.nameInputTarget.value = swarmName
-    }
-    if (tags.length > 0) {
-      this.tags = tags
-      this.renderTags()
-    }
-    
-    // Import nodes
-    const importedNodes = this.nodeManager.importNodes(swarmData)
-    
-    // Render all nodes
-    importedNodes.forEach(node => {
-      this.renderNode(node)
-    })
-    
-    // Set main node if specified
-    if (swarmData.main) {
-      const mainNode = importedNodes.find(n => 
-        n.data.name.toLowerCase().replace(/\s+/g, '_') === swarmData.main
-      )
-      if (mainNode) {
-        this.setMainNode(mainNode.id)
-      }
-    }
-    
-    // Create connections
-    Object.entries(swarmData.instances).forEach(([instanceKey, instanceData]) => {
-      if (instanceData.connections) {
-        const fromNode = importedNodes.find(n => 
-          n.data.name.toLowerCase().replace(/\s+/g, '_') === instanceKey
-        )
-        
-        if (fromNode) {
-          instanceData.connections.forEach(toKey => {
-            const toNode = importedNodes.find(n => 
-              n.data.name.toLowerCase().replace(/\s+/g, '_') === toKey
-            )
-            
-            if (toNode) {
-              const { fromSide, toSide } = this.connectionManager.findBestSocketPair(fromNode, toNode)
-              this.connectionManager.createConnection(fromNode.id, fromSide, toNode.id, toSide)
-            }
-          })
-        }
-      }
-    })
-    
-    // Auto-layout and update
-    await this.autoLayout()
-    
-    // Center view on imported nodes if any
-    if (importedNodes.length > 0) {
-      const bounds = this.nodeManager.getNodesBounds()
-      const centerX = (bounds.minX + bounds.maxX) / 2 + this.canvasCenter
-      const centerY = (bounds.minY + bounds.maxY) / 2 + this.canvasCenter
-      
-      const containerRect = this.container.getBoundingClientRect()
-      this.container.scrollLeft = centerX * this.zoomLevel - containerRect.width / 2
-      this.container.scrollTop = centerY * this.zoomLevel - containerRect.height / 2
-    }
-    
-    this.updateYamlPreview()
-  }
-  
-  // Import/Export operations
-  async importYaml() {
-    this.importInputTarget.click()
-  }
-  
-  async handleImportFile(e) {
-    const file = e.target.files[0]
-    if (!file) return
-    
-    const content = await file.text()
-    
-    try {
-      const data = jsyaml.load(content)
-      
-      // Handle claude-swarm format (version: 1, swarm: {...})
-      let swarmData = null
-      let swarmName = null
-      let tags = []
-      
-      if (data.version === 1 && data.swarm) {
-        // Standard claude-swarm format
-        swarmData = data.swarm
-        swarmName = swarmData.name || 'imported_swarm'
-      } else {
-        // Legacy format or SwarmUI export format - look for first object with instances
-        for (const [key, value] of Object.entries(data)) {
-          if (value && typeof value === 'object' && value.instances) {
-            swarmData = value
-            swarmName = key
-            // Extract tags if present (SwarmUI-specific)
-            if (value.tags) {
-              tags = value.tags
-            }
-            break
-          }
-        }
-      }
-      
-      if (!swarmData || !swarmData.instances) {
-        alert('Invalid swarm file format. File must be a valid claude-swarm YAML.')
-        return
-      }
-      
-      // Import the swarm (skip confirmation for programmatic refresh)
-      this.clearAll(true)
-      
-      // Set name and tags
-      this.nameInputTarget.value = swarmName
-      if (tags.length > 0) {
-        this.tags = tags
-        this.renderTags()
-      }
-      
-      // Import nodes
-      const importedNodes = this.nodeManager.importNodes(swarmData)
-      
-      // Render all nodes
-      importedNodes.forEach(node => {
-        this.renderNode(node)
-      })
-      
-      // Set main node if specified
-      if (swarmData.main) {
-        const mainNode = importedNodes.find(n => 
-          n.data.name.toLowerCase().replace(/\s+/g, '_') === swarmData.main
-        )
-        if (mainNode) {
-          this.setMainNode(mainNode.id)
-        }
-      }
-      
-      // Create connections
-      Object.entries(swarmData.instances).forEach(([instanceKey, instanceData]) => {
-        if (instanceData.connections) {
-          const fromNode = importedNodes.find(n => 
-            n.data.name.toLowerCase().replace(/\s+/g, '_') === instanceKey
-          )
-          
-          if (fromNode) {
-            instanceData.connections.forEach(toKey => {
-              const toNode = importedNodes.find(n => 
-                n.data.name.toLowerCase().replace(/\s+/g, '_') === toKey
-              )
-              
-              if (toNode) {
-                const { fromSide, toSide } = this.connectionManager.findBestSocketPair(fromNode, toNode)
-                this.connectionManager.createConnection(fromNode.id, fromSide, toNode.id, toSide)
-              }
-            })
-          }
-        }
-      })
-      
-      // Set main node
-      if (swarmData.main) {
-        const mainNode = importedNodes.find(n => 
-          n.data.name.toLowerCase().replace(/\s+/g, '_') === swarmData.main
-        )
-        if (mainNode) {
-          this.setMainNode(mainNode.id)
-        }
-      }
-      
-      // Auto-layout and update
-      await this.autoLayout()
-      
-      // Center view on imported nodes
-      const bounds = this.nodeManager.getNodesBounds()
-      const centerX = (bounds.minX + bounds.maxX) / 2 + this.canvasCenter
-      const centerY = (bounds.minY + bounds.maxY) / 2 + this.canvasCenter
-      
-      const containerRect = this.container.getBoundingClientRect()
-      this.container.scrollLeft = centerX * this.zoomLevel - containerRect.width / 2
-      this.container.scrollTop = centerY * this.zoomLevel - containerRect.height / 2
-      
-      this.updateEmptyState()
-      this.updateYamlPreview()
-      
-    } catch (error) {
-      console.error('Import error:', error)
-      alert('Failed to import file: ' + error.message)
-    }
-    
-    // Reset input
-    e.target.value = ''
-  }
-  
-  exportYaml() {
-    const swarmData = this.buildSwarmData()
-    const yaml = this.generateReadableYaml(swarmData)
-    
-    // Normalize filename: lowercase and replace spaces with dashes
-    const filename = (this.nameInputTarget.value || 'swarm')
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-    
-    const blob = new Blob([yaml], { type: 'text/yaml' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${filename}.yml`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-  
-  async copyYaml() {
-    const yaml = this.yamlPreviewTarget.querySelector('pre').textContent
-    
-    try {
-      await navigator.clipboard.writeText(yaml)
-      
-      // Update button text temporarily to show success
-      const button = this.yamlPreviewTabTarget.querySelector('[data-action="click->swarm-visual-builder#copyYaml"]')
-      const originalHTML = button.innerHTML
-      button.innerHTML = `
-        <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-        </svg>
-        Copied!
-      `
-      button.classList.add('text-green-600', 'dark:text-green-400')
-      
-      // Reset after 2 seconds
-      setTimeout(() => {
-        button.innerHTML = originalHTML
-        button.classList.remove('text-green-600', 'dark:text-green-400')
-      }, 2000)
-    } catch (err) {
-      console.error('Failed to copy text: ', err)
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea')
-      textArea.value = yaml
-      textArea.style.position = 'fixed'
-      textArea.style.opacity = '0'
-      document.body.appendChild(textArea)
-      textArea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textArea)
-    }
-  }
-  
-  async saveSwarm() {
-    const swarmData = this.buildSwarmData()
-    const yaml = this.generateReadableYaml(swarmData)
-    
-    // Always work with files now
-    if (this.isFileEditValue && this.filePathValue) {
-      // Editing existing file - save to same path
-      await this.saveToFile(this.filePathValue, yaml)
-    } else if (this.projectPathValue) {
-      // Creating new file - prompt for filename
-      await this.saveAsNewFile(yaml)
-    } else {
-      // No project path available
-      this.showFlashMessage('Cannot save: No project selected', 'error')
-    }
-  }
-  
-  async saveToFile(filePath, yaml) {
-    try {
-      const response = await fetch('/projects/save_swarm_file', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
-        },
-        body: JSON.stringify({
-          file_path: filePath,
-          yaml_content: yaml
-        })
-      })
-      
-      if (response.ok) {
-        const result = await response.json()
-        
-        // Update the file path for future saves
-        this.filePathValue = result.file_path
-        this.isFileEditValue = true
-        this.isNewFileValue = false
-        
-        // Show success message
-        this.showFlashMessage(result.message || 'Swarm file saved successfully', 'success')
-        
-        // Enable the Launch button
-        this.enableLaunchButton()
-        
-        // Update Save button text from "Save as..." to "Save"
-        this.updateSaveButtonText()
-        
-        // Enable chat after successful save
-        this.enableChatAfterSave(result.file_path)
-        
-        // Update URL to reflect editing state (for new files)
-        if (!window.location.pathname.includes('/edit_swarm_file')) {
-          this.updateUrlForEditing(result.file_path)
-        }
-        
-        // Don't redirect - stay on the page
-        if (result.redirect_url) {
-          // Only redirect if explicitly requested
-          window.location.href = result.redirect_url
-        }
-      } else {
-        const error = await response.json()
-        this.showFlashMessage('Failed to save swarm file: ' + (error.message || 'Unknown error'), 'error')
-      }
-    } catch (error) {
-      console.error('Save error:', error)
-      this.showFlashMessage('Failed to save swarm file: ' + error.message, 'error')
-    }
-  }
-  
-  updateSaveButtonText() {
-    const saveButton = document.getElementById('save-swarm')
-    if (saveButton) {
-      // Find the text node (last child after the icon)
-      const textNode = saveButton.childNodes[saveButton.childNodes.length - 1]
-      if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-        if (this.isFileEditValue && this.filePathValue) {
-          textNode.textContent = 'Save'
-        } else {
-          textNode.textContent = 'Save as...'
-        }
-      }
-    }
-  }
-  
-  showFlashMessage(message, type = 'success') {
-    // Remove any existing flash messages
-    const existingFlash = document.querySelector('.flash-message')
-    if (existingFlash) {
-      existingFlash.remove()
-    }
-    
-    // Create flash message element - positioned in horizontal center
-    const flash = document.createElement('div')
-    flash.className = `flash-message fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-4 rounded-lg shadow-lg transition-all transform ${
-      type === 'success' 
-        ? 'bg-green-500 text-white' 
-        : 'bg-red-500 text-white'
-    }`
-    
-    flash.innerHTML = `
-      <div class="flex items-center">
-        ${type === 'success' 
-          ? '<svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>'
-          : '<svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>'
-        }
-        <span>${message}</span>
-      </div>
-    `
-    
-    document.body.appendChild(flash)
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-      flash.classList.add('-translate-y-full', 'opacity-0')
-      setTimeout(() => flash.remove(), 300)
-    }, 5000)
-  }
-  
-  enableLaunchButton() {
-    const launchButton = document.getElementById('launch-swarm')
-    if (launchButton) {
-      launchButton.disabled = false
-      launchButton.classList.remove('opacity-50', 'cursor-not-allowed')
-      launchButton.classList.add('hover:bg-blue-700', 'dark:hover:bg-blue-700')
-    }
-  }
-  
-  enableChatAfterSave(filePath) {
-    // Find the chat tab element
-    if (!this.chatTabTarget) {
-      return
-    }
-    
-    // The chat controller might be on the chatTabTarget itself or a child
-    let chatElement = this.chatTabTarget.querySelector('[data-controller="claude-chat"]')
-    if (!chatElement && this.chatTabTarget.dataset.controller === 'claude-chat') {
-      chatElement = this.chatTabTarget
-    }
-    
-    if (!chatElement) {
-      return
-    }
-    
-    const chatController = this.application.getControllerForElementAndIdentifier(chatElement, 'claude-chat')
-    if (!chatController) {
-      return
-    }
-    
-    // Update the file path value in the chat controller
-    chatController.filePathValue = filePath
-    
-    // Update the project ID in the chat controller (in case it wasn't set)
-    if (this.projectIdValue) {
-      chatController.projectIdValue = this.projectIdValue
-    }
-    
-    // Update the hidden form fields
-    const filePathField = chatElement.querySelector('input[name="file_path"]')
-    if (filePathField) {
-      filePathField.value = filePath
-    }
-    
-    const projectIdField = chatElement.querySelector('input[name="project_id"]')
-    if (projectIdField && this.projectIdValue) {
-      projectIdField.value = this.projectIdValue
-    }
-    
-    // Update the status text
-    const statusElement = chatElement.querySelector('[data-claude-chat-target="status"]')
-    if (statusElement) {
-      statusElement.textContent = 'Ready'
-    }
-    
-    // Find and enable the form
-    const formElement = chatElement.querySelector('form')
-    if (formElement) {
-      // Remove any disabled state from the form
-      formElement.querySelectorAll('[disabled]').forEach(el => {
-        el.disabled = false
-      })
-    }
-    
-    // Remove the disabled state from the input
-    const inputElement = chatElement.querySelector('[data-claude-chat-target="input"]')
-    if (inputElement) {
-      inputElement.disabled = false
-      inputElement.readOnly = false
-      inputElement.placeholder = 'Ask Claude to help build your swarm... (⌘+Enter to send)'
-      // Remove disabled styling classes
-      inputElement.classList.remove('opacity-50', 'cursor-not-allowed')
-    }
-    
-    // Remove the disabled state from the send button
-    const sendButton = chatElement.querySelector('[data-claude-chat-target="sendButton"]')
-    if (sendButton) {
-      sendButton.disabled = false
-      // Update classes for the submit button
-      sendButton.classList.remove('opacity-50', 'cursor-not-allowed')
-      if (!sendButton.classList.contains('hover:bg-orange-700')) {
-        sendButton.classList.add('hover:bg-orange-700', 'dark:hover:bg-orange-700')
-      }
-    }
-    
-    // Show the welcome message instead of the "save first" message
-    const messagesElement = chatElement.querySelector('[data-claude-chat-target="messages"]')
-    if (messagesElement) {
-      // Check for the warning message (could be different selectors)
-      const warningMessage = messagesElement.querySelector('.text-yellow-600, .text-yellow-400, [class*="yellow"]')
-      if (warningMessage || messagesElement.textContent.includes('save') || messagesElement.textContent.includes('Save')) {
-        messagesElement.innerHTML = `
-          <div id="welcome_message" class="text-center py-8">
-            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600">
-              <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
-                <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
-              </svg>
-            </div>
-            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Start a Conversation</h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
-              Ask me to help you build your swarm configuration. I can add instances, configure connections, and explain best practices.
-            </p>
-          </div>
-        `
-      }
-    }
-    
-    // Force re-evaluation of the chat controller's state
-    if (chatController && typeof chatController.checkEnabledState === 'function') {
-      chatController.checkEnabledState()
-    }
-    
-    // Dispatch a custom event to notify that chat is now enabled
-    chatElement.dispatchEvent(new CustomEvent('chat:enabled', { 
-      detail: { filePath: filePath, projectId: this.projectIdValue },
-      bubbles: true 
-    }))
-  }
-  
-  updateUrlForEditing(filePath) {
-    // Only update URL if we're creating a new file (not already editing)
-    const currentPath = window.location.pathname
-    const projectId = this.projectIdValue
-    
-    if (projectId && filePath && !currentPath.includes('/edit_swarm_file')) {
-      // Use History API to update URL without reload
-      const newUrl = `/projects/${projectId}/edit_swarm_file?file_path=${encodeURIComponent(filePath)}`
-      window.history.replaceState({ filePath: filePath }, '', newUrl)
-    }
-  }
-  
-  async launchSwarm() {
-    // Check if we have a saved file path
-    if (!this.filePathValue) {
-      this.showFlashMessage('Please save the swarm file first before launching', 'error')
-      return
-    }
-    
-    // Get the relative path from the project directory
-    const projectPath = this.projectPathValue
-    const filePath = this.filePathValue
-    let relativePath = filePath
-    
-    // If the file path starts with the project path, make it relative
-    if (filePath.startsWith(projectPath)) {
-      relativePath = filePath.substring(projectPath.length)
-      // Remove leading slash if present
-      if (relativePath.startsWith('/')) {
-        relativePath = relativePath.substring(1)
-      }
-    } else {
-      // If not within project path, just use the filename
-      relativePath = filePath.split('/').pop()
-    }
-    
-    // Navigate to the new session page with the swarm config pre-selected
-    const projectId = this.projectIdValue
-    if (projectId) {
-      // Build the URL with the swarm config pre-selected
-      const newSessionUrl = `/sessions/new?project_id=${projectId}&config=${encodeURIComponent(relativePath)}`
-      window.location.href = newSessionUrl
-    } else {
-      this.showFlashMessage('Cannot launch swarm: project not found', 'error')
-    }
-  }
-  
-  async saveAsNewFile(yaml) {
-    // Generate default filename from swarm name
-    const swarmName = this.nameInputTarget.value || 'swarm'
-    const defaultFilename = swarmName.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '.yml'
-    
-    // Prompt for filename
-    const filename = await this.promptForFilename(defaultFilename)
-    if (!filename) return // User cancelled
-    
-    // Build full path
-    const filePath = `${this.projectPathValue}/${filename}`
-    
-    // Check if file exists
-    const fileExists = await this.checkFileExists(filePath)
-    if (fileExists) {
-      const shouldOverwrite = await this.confirmOverwrite(filename)
-      if (!shouldOverwrite) {
-        // User cancelled, prompt again
-        return this.saveAsNewFile(yaml)
-      }
-    }
-    
-    // Save to file
-    await this.saveToFile(filePath, yaml)
-  }
-  
-  async checkFileExists(filePath) {
-    try {
-      const response = await fetch('/projects/check_file_exists', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
-        },
-        body: JSON.stringify({ file_path: filePath })
-      })
-      
-      if (response.ok) {
-        const result = await response.json()
-        return result.exists
-      }
-      return false
-    } catch (error) {
-      console.error('Error checking file existence:', error)
-      return false
-    }
-  }
-  
-  async confirmOverwrite(filename) {
-    return new Promise((resolve) => {
-      const overlay = document.createElement('div')
-      overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
-      
-      const modal = document.createElement('div')
-      modal.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4'
-      modal.innerHTML = `
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">File Already Exists</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          The file <span class="font-mono font-semibold">${filename}</span> already exists.
-          <br/>
-          Do you want to overwrite it?
-        </p>
-        <div class="flex justify-end gap-3 mt-6">
-          <button type="button" 
-                  class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
-                  data-action="cancel">
-            Cancel
-          </button>
-          <button type="button" 
-                  class="px-4 py-2 text-sm font-medium text-white bg-red-600 dark:bg-red-600 rounded-md hover:bg-red-700 dark:hover:bg-red-700"
-                  data-action="overwrite">
-            Overwrite
-          </button>
-        </div>
-      `
-      
-      overlay.appendChild(modal)
-      document.body.appendChild(overlay)
-      
-      const handleOverwrite = () => {
-        document.body.removeChild(overlay)
-        resolve(true)
-      }
-      
-      const handleCancel = () => {
-        document.body.removeChild(overlay)
-        resolve(false)
-      }
-      
-      modal.querySelector('[data-action="overwrite"]').addEventListener('click', handleOverwrite)
-      modal.querySelector('[data-action="cancel"]').addEventListener('click', handleCancel)
-      
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) handleCancel()
-      })
-    })
-  }
-  
-  async promptForFilename(defaultName) {
-    return new Promise((resolve) => {
-      // Ensure default name ends with .yml (not .yaml)
-      let normalizedDefault = defaultName.replace(/\.(yaml|yml)$/i, '')
-      normalizedDefault = normalizedDefault + '.yml'
-      
-      // Create modal overlay
-      const overlay = document.createElement('div')
-      overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
-      
-      // Create modal
-      const modal = document.createElement('div')
-      modal.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4'
-      modal.innerHTML = `
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Save Swarm File</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Enter a filename for the swarm configuration.
-          <br/>
-          <span class="text-xs">It will be saved in: ${this.projectPathValue}/</span>
-        </p>
-        <input type="text" 
-               value="${normalizedDefault}" 
-               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:border-transparent"
-               placeholder="filename.yml">
-        <div class="flex justify-end gap-3 mt-6">
-          <button type="button" 
-                  class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
-                  data-action="cancel">
-            Cancel
-          </button>
-          <button type="button" 
-                  class="px-4 py-2 text-sm font-medium text-white bg-orange-600 dark:bg-orange-600 rounded-md hover:bg-orange-700 dark:hover:bg-orange-700"
-                  data-action="save">
-            Save
-          </button>
-        </div>
-      `
-      
-      overlay.appendChild(modal)
-      document.body.appendChild(overlay)
-      
-      // Focus input and select only the basename (not the extension)
-      const input = modal.querySelector('input')
-      input.focus()
-      
-      // Select only the basename part
-      const baseName = normalizedDefault.replace('.yml', '')
-      input.setSelectionRange(0, baseName.length)
-      
-      // Store cursor position for maintaining it after manipulation
-      let lastCursorPos = baseName.length
-      
-      // Ensure .yml extension on every input change
-      input.addEventListener('input', (e) => {
-        // Get current cursor position
-        const cursorPos = e.target.selectionStart
-        let value = e.target.value
-        
-        // Remove any .yaml or .yml the user might have typed
-        value = value.replace(/\.(yaml|yml)$/i, '')
-        
-        // Always append .yml
-        value = value + '.yml'
-        
-        // Set the new value
-        e.target.value = value
-        
-        // Restore cursor position (but not past the basename)
-        const newCursorPos = Math.min(cursorPos, value.length - 4) // -4 for '.yml'
-        e.target.setSelectionRange(newCursorPos, newCursorPos)
-      })
-      
-      // Prevent cursor from going into the .yml extension
-      input.addEventListener('keydown', (e) => {
-        const cursorPos = input.selectionStart
-        const value = input.value
-        const baseLength = value.length - 4 // -4 for '.yml'
-        
-        // If cursor is at the end of basename and user presses right arrow, prevent default
-        if (e.key === 'ArrowRight' && cursorPos >= baseLength) {
-          e.preventDefault()
-        }
-        
-        // If user tries to select all (Ctrl+A or Cmd+A), select only basename
-        if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-          e.preventDefault()
-          input.setSelectionRange(0, baseLength)
-        }
-      })
-      
-      // Prevent clicking into the .yml extension
-      input.addEventListener('click', (e) => {
-        const cursorPos = input.selectionStart
-        const value = input.value
-        const baseLength = value.length - 4 // -4 for '.yml'
-        
-        if (cursorPos > baseLength) {
-          input.setSelectionRange(baseLength, baseLength)
-        }
-      })
-      
-      // Handle actions
-      const handleSave = () => {
-        let filename = input.value.trim()
-        
-        // The filename should already have .yml, but ensure it
-        if (!filename.endsWith('.yml')) {
-          filename = filename.replace(/\.(yaml|yml)$/i, '') + '.yml'
-        }
-        
-        // Get just the basename for validation
-        const basename = filename.replace('.yml', '')
-        
-        // Validate filename (not empty and not just dots/spaces)
-        if (!basename || basename === '' || /^\.+$/.test(basename)) {
-          input.classList.add('ring-2', 'ring-red-500')
-          setTimeout(() => input.classList.remove('ring-2', 'ring-red-500'), 2000)
-          return
-        }
-        
-        document.body.removeChild(overlay)
-        resolve(filename)
-      }
-      
-      const handleCancel = () => {
-        document.body.removeChild(overlay)
-        resolve(null)
-      }
-      
-      modal.querySelector('[data-action="save"]').addEventListener('click', handleSave)
-      modal.querySelector('[data-action="cancel"]').addEventListener('click', handleCancel)
-      
-      // Handle enter key
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault()
-          handleSave()
-        }
-        if (e.key === 'Escape') {
-          e.preventDefault()
-          handleCancel()
-        }
-      })
-      
-      // Handle clicking outside
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) handleCancel()
-      })
-    })
-  }
-  
+  // Load existing swarm
   loadExistingSwarm() {
-    
     if (!this.existingDataValue && !this.existingYamlValue) return
     
     try {
       const data = this.existingDataValue ? JSON.parse(this.existingDataValue) : {}
       
-      // Load visual data if available
       if (data.nodes && data.connections) {
-        // Load nodes
         this.nodeManager.load(data.nodes)
         
-        // Render nodes
         this.nodeManager.getNodes().forEach(node => {
           this.renderNode(node)
         })
         
-        // Load connections
         this.connectionManager.load(data.connections)
         
-        // Set main node
         if (data.mainNodeId) {
           this.mainNodeId = data.mainNodeId
           this.updateMainNodeBadge(data.mainNodeId)
         }
         
-        // Load tags
         if (data.tags) {
           this.tags = data.tags
           this.renderTags()
         }
         
-        // Update UI - this renders the connections
         this.updateConnections()
-        // NOW mark destination sockets after connections are rendered
         this.updateSocketStates()
-        this.updateEmptyState()
+        this.uiComponents.updateEmptyState()
         this.updateYamlPreview()
       }
-      
-      // If we have YAML but no visual data, import it
       else if (this.existingYamlValue) {
         const yamlData = jsyaml.load(this.existingYamlValue)
-        
-        // Handle claude-swarm format
-        if (yamlData.version === 1 && yamlData.swarm) {
-          const swarmData = yamlData.swarm
-          this.nameInputTarget.value = swarmData.name || ''
-          
-          // Import nodes
-          const importedNodes = this.nodeManager.importNodes(swarmData)
-          
-          // Render all nodes
-          importedNodes.forEach(node => {
-            this.renderNode(node)
-          })
-          
-          // Set main node if specified
-          if (swarmData.main) {
-            const mainNode = importedNodes.find(n => 
-              n.data.name.toLowerCase().replace(/\s+/g, '_') === swarmData.main
-            )
-            if (mainNode) {
-              this.setMainNode(mainNode.id)
-            }
-          }
-          
-          // Create connections from instance data
-          Object.entries(swarmData.instances).forEach(([instanceKey, instanceData]) => {
-            if (instanceData.connections) {
-              const fromNode = importedNodes.find(n => 
-                n.data.name.toLowerCase().replace(/\s+/g, '_') === instanceKey
-              )
-              
-              if (fromNode) {
-                instanceData.connections.forEach(toKey => {
-                  const toNode = importedNodes.find(n => 
-                    n.data.name.toLowerCase().replace(/\s+/g, '_') === toKey
-                  )
-                  
-                  if (toNode) {
-                    const { fromSide, toSide } = this.connectionManager.findBestSocketPair(fromNode, toNode)
-                    this.connectionManager.createConnection(fromNode.id, fromSide, toNode.id, toSide)
-                  }
-                })
-              }
-            }
-          })
-          
-          // Auto-layout for better visual
-          this.autoLayout()
-          
-          // Update connections first to render them
-          this.updateConnections()
-          
-          // Then update socket states after connections are rendered
-          this.updateSocketStates()
-        }
+        this.yamlProcessor.loadFromYamlData(yamlData)
       }
     } catch (error) {
       console.error('Error loading existing swarm:', error)
+    }
+  }
+  
+  updateMainNodeBadge(nodeId) {
+    const node = this.nodeManager.findNode(nodeId)
+    if (node?.element) {
+      node.element.classList.add('main-node')
+      if (!node.element.querySelector('.bg-orange-500')) {
+        node.element.insertAdjacentHTML('afterbegin', '<div class="absolute top-1 right-1 z-10"><span class="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded">Main</span></div>')
+      }
     }
   }
   
@@ -3397,13 +1562,11 @@ export default class extends Controller {
   async autoLayout() {
     if (this.nodeManager.getNodes().length === 0) return
     
-    // Use layout manager
     this.layoutManager.autoLayout(
       this.nodeManager.getNodes(),
       this.connectionManager.getConnections()
     )
     
-    // Update visual positions
     this.nodeManager.getNodes().forEach(node => {
       if (node.element) {
         node.element.style.left = `${node.data.x + this.canvasCenter}px`
@@ -3420,167 +1583,121 @@ export default class extends Controller {
       return
     }
     
-    // Clear all nodes
     this.nodeManager.getNodes().forEach(node => {
       node.element?.remove()
     })
     
-    // Reset managers
     this.nodeManager.clearAll()
     this.connectionManager.init()
     
-    // Reset state
     this.selectedNodes = []
     this.selectedNode = null
     this.selectedConnection = null
     this.mainNodeId = null
     this.nodeKeyMap.clear()
     
-    // Clear UI
     this.nameInputTarget.value = ''
     this.tags = []
     this.renderTags()
     
     this.updateConnections()
-    this.updateEmptyState()
+    this.uiComponents.updateEmptyState()
     this.updateYamlPreview()
     this.deselectAll()
   }
   
-  // Sidebar resize functionality
+  // Delegated methods - these delegate to the modules
+  
+  // UI Components methods
+  showFlashMessage(message, type) {
+    return this.uiComponents.showFlashMessage(message, type)
+  }
+  
+  switchToProperties() {
+    return this.uiComponents.switchToProperties()
+  }
+  
+  switchToYaml() {
+    return this.uiComponents.switchToYaml()
+  }
+  
+  switchToChat() {
+    return this.chatIntegration.switchToChat()
+  }
+  
+  switchToInstancesTab() {
+    return this.uiComponents.switchToInstancesTab()
+  }
+  
+  switchToMcpServersTab() {
+    return this.uiComponents.switchToMcpServersTab()
+  }
+  
   startResize(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    this.startX = e.pageX
-    this.startWidth = this.rightSidebarTarget.offsetWidth
-    
-    // Store bound functions so we can remove them later
-    this.boundDoResize = (e) => this.doResize(e)
-    this.boundStopResize = (e) => this.stopResize(e)
-    
-    // Add temporary event listeners with capture to ensure they run first
-    document.addEventListener('mousemove', this.boundDoResize, true)
-    document.addEventListener('mouseup', this.boundStopResize, true)
-    
-    // Add resize cursor to body during resize
-    document.body.style.cursor = 'ew-resize'
-    
-    // Prevent text selection during resize
-    document.body.style.userSelect = 'none'
-    
-    // Add a transparent overlay to prevent other interactions
-    this.createResizeOverlay()
+    return this.uiComponents.startResize(e)
   }
   
-  doResize(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    
-    const diff = this.startX - e.pageX  // Reverse because we're resizing from the left edge
-    const newWidth = this.startWidth + diff
-    
-    // Respect min and max width
-    const minWidth = 300
-    const maxWidth = 800
-    
-    if (newWidth >= minWidth && newWidth <= maxWidth) {
-      this.rightSidebarTarget.style.width = `${newWidth}px`
-    }
-  }
-  
-  stopResize(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    
-    // Remove temporary event listeners (with capture flag)
-    document.removeEventListener('mousemove', this.boundDoResize, true)
-    document.removeEventListener('mouseup', this.boundStopResize, true)
-    
-    // Clean up bound functions
-    this.boundDoResize = null
-    this.boundStopResize = null
-    
-    // Reset cursor
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
-    
-    // Remove overlay
-    this.removeResizeOverlay()
-  }
-  
-  // Expand sidebar to max width with animation
   expandSidebarToMax() {
-    if (!this.hasRightSidebarTarget) {
-      return
-    }
-    
-    const maxWidth = 800
-    const currentWidth = this.rightSidebarTarget.offsetWidth
-    
-    // Only expand if not already at max
-    if (currentWidth >= maxWidth) {
-      return
-    }
-    
-    // Add transition for smooth animation
-    this.rightSidebarTarget.style.transition = 'width 0.3s ease-out'
-    this.rightSidebarTarget.style.width = `${maxWidth}px`
-    
-    // Remove transition after animation completes
-    setTimeout(() => {
-      this.rightSidebarTarget.style.transition = ''
-    }, 300)
+    return this.uiComponents.expandSidebarToMax()
   }
   
-  notifySelectionChange() {
-    // Create event with selected nodes data
-    const selectedNodesData = this.selectedNodes.map(node => ({
-      id: node.id,
-      name: node.data.name || 'Unnamed Instance',
-      model: node.data.model || 'Unknown Model',
-      type: node.type
-    }))
-    
-    // Dispatch event for chat controller to listen to
-    window.dispatchEvent(new CustomEvent('nodes:selectionChanged', {
-      detail: {
-        selectedNodes: selectedNodesData,
-        count: this.selectedNodes.length
-      }
-    }))
+  // File Operations methods
+  saveSwarm() {
+    return this.fileOperations.saveSwarm()
   }
   
-  getSelectedNodesContext() {
-    // Return context string for selected nodes
-    if (this.selectedNodes.length === 0) return null
-    
-    const nodeDescriptions = this.selectedNodes.map(node => {
-      const name = node.data.name || 'Unnamed Instance'
-      const model = node.data.model || 'Unknown Model'
-      return `- ${name} (${model})`
-    }).join('\n')
-    
-    return `\n\n[Context: This message is about the following selected instance${this.selectedNodes.length > 1 ? 's' : ''}:\n${nodeDescriptions}]`
+  exportYaml() {
+    return this.fileOperations.exportYaml()
   }
   
-  createResizeOverlay() {
-    // Create an invisible overlay to capture all mouse events during resize
-    this.resizeOverlay = document.createElement('div')
-    this.resizeOverlay.style.position = 'fixed'
-    this.resizeOverlay.style.top = '0'
-    this.resizeOverlay.style.left = '0'
-    this.resizeOverlay.style.width = '100%'
-    this.resizeOverlay.style.height = '100%'
-    this.resizeOverlay.style.zIndex = '9999'
-    this.resizeOverlay.style.cursor = 'ew-resize'
-    this.resizeOverlay.style.userSelect = 'none'
-    document.body.appendChild(this.resizeOverlay)
+  copyYaml() {
+    return this.fileOperations.copyYaml()
   }
   
-  removeResizeOverlay() {
-    if (this.resizeOverlay) {
-      document.body.removeChild(this.resizeOverlay)
-      this.resizeOverlay = null
-    }
+  launchSwarm() {
+    return this.fileOperations.launchSwarm()
+  }
+  
+  // Template Manager methods
+  saveNodeAsTemplate(e) {
+    return this.templateManager.saveNodeAsTemplate(e)
+  }
+  
+  filterTemplates(e) {
+    return this.templateManager.filterTemplates(e)
+  }
+  
+  // MCP Manager methods
+  filterMcpServers(e) {
+    return this.mcpManager.filterMcpServers(e)
+  }
+  
+  removeMcpFromNode(e) {
+    return this.mcpManager.removeMcpFromNode(e)
+  }
+  
+  // YAML Processor methods
+  updateYamlPreview() {
+    return this.yamlProcessor.updateYamlPreview()
+  }
+  
+  buildSwarmData() {
+    return this.yamlProcessor.buildSwarmData()
+  }
+  
+  generateReadableYaml(data) {
+    return this.yamlProcessor.generateReadableYaml(data)
+  }
+  
+  importYaml() {
+    return this.yamlProcessor.importYaml()
+  }
+  
+  handleImportFile(e) {
+    return this.yamlProcessor.handleImportFile(e)
+  }
+  
+  handleCanvasRefresh(event) {
+    return this.yamlProcessor.handleCanvasRefresh(event)
   }
 }

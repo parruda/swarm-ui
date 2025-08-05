@@ -188,12 +188,12 @@
                   <%= heroicon "eye", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
                   View
                 <% end %>
-                <%= link_to export_instance_template_path(template, format: :json), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", title: "Export template" do %>
-                  <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-4 w-4" } %>
-                <% end %>
                 <%= link_to edit_instance_template_path(template), data: { turbo_frame: "_top" }, class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
                   <%= heroicon "pencil", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
                   Edit
+                <% end %>
+                <%= link_to export_instance_template_path(template, format: :json), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", title: "Export template" do %>
+                  <%= heroicon "arrow-up-tray", variant: :mini, options: { class: "h-4 w-4" } %>
                 <% end %>
                 <% unless template.swarm_template_instances.any? %>
                   <%= link_to instance_template_path(template),

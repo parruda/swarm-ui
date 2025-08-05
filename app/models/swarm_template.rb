@@ -4,7 +4,7 @@ class SwarmTemplate < ApplicationRecord
   # Constants
 
   # Associations
-  belongs_to :project, optional: true # nil means general-purpose template
+  belongs_to :project
   has_many :swarm_template_instances, dependent: :destroy
   has_many :instance_templates, through: :swarm_template_instances
 
@@ -19,10 +19,6 @@ class SwarmTemplate < ApplicationRecord
 
   # Scopes
   scope :ordered, -> { order(:name) }
-  scope :system, -> { where(system_template: true) }
-  scope :custom, -> { where(system_template: false) }
-  scope :general_purpose, -> { where(project_id: nil) }
-  scope :for_project, ->(project) { where(project_id: [nil, project.id]) }
   scope :with_tag, ->(tag) { where("tags LIKE ?", "%#{tag}%") }
   scope :public_swarms, -> { where(public: true) }
 
@@ -78,7 +74,6 @@ class SwarmTemplate < ApplicationRecord
     new_template = dup
     new_template.project = project
     new_template.name = name || "Copy of #{self.name}"
-    new_template.system_template = false
     new_template.usage_count = 0
     new_template.yaml_cache = nil
     new_template.yaml_cache_generated_at = nil

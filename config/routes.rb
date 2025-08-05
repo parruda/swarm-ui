@@ -67,8 +67,8 @@ Rails.application.routes.draw do
       post :check_file_exists
     end
 
-    # Nested swarm templates under projects
-    resources :swarm_templates
+    # Nested swarm templates under projects - only for viewing/editing UI
+    resources :swarm_templates, only: [:new, :edit, :destroy]
   end
 
 

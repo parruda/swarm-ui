@@ -914,7 +914,7 @@ class SessionsController < ApplicationController
 
   def file_viewer
     @file_viewer = @session.file_viewer_sessions.find_by!(viewer_id: params[:viewer_id])
-    
+
     # Always render the partial without layout
     render(partial: "file_viewer_content", locals: { file_viewer: @file_viewer })
   end

@@ -7,16 +7,16 @@ class InstanceTemplatesController < ApplicationController
     @instance_templates = InstanceTemplate.includes(:swarm_template_instances).ordered
     @instance_templates = @instance_templates.search(params[:search]) if params[:search].present?
     @instance_templates = @instance_templates.by_category(params[:category]) if params[:category].present?
-    
+
     respond_to do |format|
       format.html
-      format.json { 
-        render json: @instance_templates.to_json(
+      format.json do
+        render(json: @instance_templates.to_json(
           methods: [:model, :provider],
           include: [],
-          only: [:id, :name, :description, :category, :tags, :config, :system_prompt]
-        )
-      }
+          only: [:id, :name, :description, :category, :tags, :config, :system_prompt],
+        ))
+      end
     end
   end
 
@@ -27,12 +27,12 @@ class InstanceTemplatesController < ApplicationController
 
   def show
     @swarm_templates = @instance_template.swarm_templates.includes(:project)
-    
+
     respond_to do |format|
       format.html
-      format.json { 
-        render json: export_data(@instance_template)
-      }
+      format.json do
+        render(json: export_data(@instance_template))
+      end
     end
   end
 
@@ -53,17 +53,19 @@ class InstanceTemplatesController < ApplicationController
     respond_to do |format|
       if @instance_template.save
         format.html { redirect_to(@instance_template, notice: "Instance template was successfully created.") }
-        format.json { 
-          render json: @instance_template.to_json(
-            methods: [:model, :provider],
-            include: [],
-            only: [:id, :name, :description, :category, :tags, :config, :system_prompt]
-          ), 
-          status: :created 
-        }
+        format.json do
+          render(
+            json: @instance_template.to_json(
+              methods: [:model, :provider],
+              include: [],
+              only: [:id, :name, :description, :category, :tags, :config, :system_prompt],
+            ),
+            status: :created,
+          )
+        end
       else
         format.html { render(:new, status: :unprocessable_entity) }
-        format.json { render json: { errors: @instance_template.errors.full_messages }, status: :unprocessable_entity }
+        format.json { render(json: { errors: @instance_template.errors.full_messages }, status: :unprocessable_entity) }
       end
     end
   end
@@ -109,32 +111,36 @@ class InstanceTemplatesController < ApplicationController
 
   def export
     respond_to do |format|
-      format.json {
-        send_data export_data(@instance_template).to_json,
-                  filename: "instance_template_#{@instance_template.name.parameterize}.json",
-                  type: 'application/json',
-                  disposition: 'attachment'
-      }
+      format.json do
+        send_data(
+          export_data(@instance_template).to_json,
+          filename: "instance_template_#{@instance_template.name.parameterize}.json",
+          type: "application/json",
+          disposition: "attachment",
+        )
+      end
     end
   end
 
   def export_all
     @instance_templates = InstanceTemplate.ordered
-    
+
     respond_to do |format|
-      format.json {
+      format.json do
         data = @instance_templates.map { |template| export_data(template) }
-        send_data data.to_json,
-                  filename: "instance_templates_export_#{Date.current}.json",
-                  type: 'application/json',
-                  disposition: 'attachment'
-      }
+        send_data(
+          data.to_json,
+          filename: "instance_templates_export_#{Date.current}.json",
+          type: "application/json",
+          disposition: "attachment",
+        )
+      end
     end
   end
 
   def import
     unless params[:file].present?
-      redirect_to instance_templates_path, alert: "Please select a file to import."
+      redirect_to(instance_templates_path, alert: "Please select a file to import.")
       return
     end
 
@@ -142,13 +148,13 @@ class InstanceTemplatesController < ApplicationController
       file = params[:file]
       json_content = file.read
       data = JSON.parse(json_content)
-      
+
       # Handle both single object and array
       templates_data = data.is_a?(Array) ? data : [data]
-      
+
       imported_count = 0
       errors = []
-      
+
       templates_data.each do |template_data|
         result = import_template(template_data)
         if result[:success]
@@ -157,18 +163,18 @@ class InstanceTemplatesController < ApplicationController
           errors << result[:error]
         end
       end
-      
+
       if errors.any?
-        flash[:alert] = "Imported #{imported_count} template(s). Errors: #{errors.join(', ')}"
+        flash[:alert] = "Imported #{imported_count} template(s). Errors: #{errors.join(", ")}"
       else
         flash[:notice] = "Successfully imported #{imported_count} template(s)."
       end
-      
-      redirect_to instance_templates_path
+
+      redirect_to(instance_templates_path)
     rescue JSON::ParserError => e
-      redirect_to instance_templates_path, alert: "Invalid JSON file: #{e.message}"
+      redirect_to(instance_templates_path, alert: "Invalid JSON file: #{e.message}")
     rescue StandardError => e
-      redirect_to instance_templates_path, alert: "Import failed: #{e.message}"
+      redirect_to(instance_templates_path, alert: "Import failed: #{e.message}")
     end
   end
 
@@ -185,12 +191,12 @@ class InstanceTemplatesController < ApplicationController
       :system_prompt,
       :tags_string,
       tags: [],
-      metadata: {}
+      metadata: {},
     )
-    
+
     # Convert to hash for manipulation
     permitted = permitted_params.to_h
-    
+
     # Handle config separately since it has nested arrays
     if params[:instance_template][:config]
       config_params = params[:instance_template][:config].permit(
@@ -205,7 +211,7 @@ class InstanceTemplatesController < ApplicationController
         :openai_token_env,
         :base_url,
         allowed_tools: [],
-        mcps: [:name, :type, :command, :url, { args: [], env: {}, headers: {} }]
+        mcps: [:name, :type, :command, :url, { args: [], env: {}, headers: {} }],
       )
       permitted[:config] = config_params.to_h
     end
@@ -225,16 +231,16 @@ class InstanceTemplatesController < ApplicationController
     # Process config to handle checkbox and special values
     if permitted[:config].present?
       # Convert vibe checkbox value to boolean (handle both form and JSON input)
-      if permitted[:config][:vibe].present?
-        permitted[:config][:vibe] = case permitted[:config][:vibe]
+      permitted[:config][:vibe] = if permitted[:config][:vibe].present?
+        case permitted[:config][:vibe]
         when true, "true", "1" then true
         when false, "false", "0", nil then false
         else false
         end
       else
-        permitted[:config][:vibe] = false
+        false
       end
-      
+
       # Handle worktree similarly
       if permitted[:config].key?(:worktree)
         permitted[:config][:worktree] = case permitted[:config][:worktree]
@@ -271,40 +277,40 @@ class InstanceTemplatesController < ApplicationController
       tags: template.tags,
       system_prompt: template.system_prompt,
       config: template.config,
-      metadata: template.metadata
+      metadata: template.metadata,
     }
   end
 
   def import_template(data)
     # Check for duplicate name
-    name = data['name'] || data[:name]
-    
+    name = data["name"] || data[:name]
+
     if InstanceTemplate.exists?(name: name)
       name = "#{name}_imported"
       # Keep adding suffix until we find a unique name
       counter = 1
       while InstanceTemplate.exists?(name: name)
-        name = "#{data['name'] || data[:name]}_imported_#{counter}"
+        name = "#{data["name"] || data[:name]}_imported_#{counter}"
         counter += 1
       end
     end
-    
+
     # Ensure system_prompt preserves newlines properly
-    system_prompt = data['system_prompt'] || data[:system_prompt]
-    
+    system_prompt = data["system_prompt"] || data[:system_prompt]
+
     template = InstanceTemplate.new(
       name: name,
-      description: data['description'] || data[:description],
-      tags: data['tags'] || data[:tags] || [],
+      description: data["description"] || data[:description],
+      tags: data["tags"] || data[:tags] || [],
       system_prompt: system_prompt,
-      config: data['config'] || data[:config] || {},
-      metadata: data['metadata'] || data[:metadata] || {}
+      config: data["config"] || data[:config] || {},
+      metadata: data["metadata"] || data[:metadata] || {},
     )
-    
+
     if template.save
       { success: true, template: template }
     else
-      { success: false, error: "#{name}: #{template.errors.full_messages.join(', ')}" }
+      { success: false, error: "#{name}: #{template.errors.full_messages.join(", ")}" }
     end
   end
 end

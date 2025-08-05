@@ -38,7 +38,7 @@ Rails.application.routes.draw do
     post "claude_chat/signed_stream_name", to: "claude_chat#signed_stream_name"
     get "swarm_files/read", to: "swarm_files#read"
     post "swarm_files/notify_change", to: "swarm_files#notify_change"
-    
+
     # File viewer API endpoints
     get "file_viewer/list_files", to: "file_viewer#list_files"
     get "file_viewer/read_file", to: "file_viewer#read_file"

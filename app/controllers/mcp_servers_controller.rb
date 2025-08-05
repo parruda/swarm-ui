@@ -79,32 +79,36 @@ class McpServersController < ApplicationController
 
   def export
     respond_to do |format|
-      format.json {
-        send_data export_data(@mcp_server).to_json,
-                  filename: "mcp_server_#{@mcp_server.name.parameterize}.json",
-                  type: 'application/json',
-                  disposition: 'attachment'
-      }
+      format.json do
+        send_data(
+          export_data(@mcp_server).to_json,
+          filename: "mcp_server_#{@mcp_server.name.parameterize}.json",
+          type: "application/json",
+          disposition: "attachment",
+        )
+      end
     end
   end
 
   def export_all
     @mcp_servers = McpServer.ordered
-    
+
     respond_to do |format|
-      format.json {
+      format.json do
         data = @mcp_servers.map { |server| export_data(server) }
-        send_data data.to_json,
-                  filename: "mcp_servers_export_#{Date.current}.json",
-                  type: 'application/json',
-                  disposition: 'attachment'
-      }
+        send_data(
+          data.to_json,
+          filename: "mcp_servers_export_#{Date.current}.json",
+          type: "application/json",
+          disposition: "attachment",
+        )
+      end
     end
   end
 
   def import
     unless params[:file].present?
-      redirect_to mcp_servers_path, alert: "Please select a file to import."
+      redirect_to(mcp_servers_path, alert: "Please select a file to import.")
       return
     end
 
@@ -112,13 +116,13 @@ class McpServersController < ApplicationController
       file = params[:file]
       json_content = file.read
       data = JSON.parse(json_content)
-      
+
       # Handle both single object and array
       servers_data = data.is_a?(Array) ? data : [data]
-      
+
       imported_count = 0
       errors = []
-      
+
       servers_data.each do |server_data|
         result = import_server(server_data)
         if result[:success]
@@ -127,18 +131,18 @@ class McpServersController < ApplicationController
           errors << result[:error]
         end
       end
-      
+
       if errors.any?
-        flash[:alert] = "Imported #{imported_count} server(s). Errors: #{errors.join(', ')}"
+        flash[:alert] = "Imported #{imported_count} server(s). Errors: #{errors.join(", ")}"
       else
         flash[:notice] = "Successfully imported #{imported_count} server(s)."
       end
-      
-      redirect_to mcp_servers_path
+
+      redirect_to(mcp_servers_path)
     rescue JSON::ParserError => e
-      redirect_to mcp_servers_path, alert: "Invalid JSON file: #{e.message}"
+      redirect_to(mcp_servers_path, alert: "Invalid JSON file: #{e.message}")
     rescue StandardError => e
-      redirect_to mcp_servers_path, alert: "Import failed: #{e.message}"
+      redirect_to(mcp_servers_path, alert: "Import failed: #{e.message}")
     end
   end
 
@@ -205,40 +209,40 @@ class McpServersController < ApplicationController
       args: server.args,
       env: server.env,
       headers: server.headers,
-      tags: server.tags
+      tags: server.tags,
     }
   end
 
   def import_server(data)
     # Check for duplicate name
-    name = data['name'] || data[:name]
-    
+    name = data["name"] || data[:name]
+
     if McpServer.exists?(name: name)
       name = "#{name}_imported"
       # Keep adding suffix until we find a unique name
       counter = 1
       while McpServer.exists?(name: name)
-        name = "#{data['name'] || data[:name]}_imported_#{counter}"
+        name = "#{data["name"] || data[:name]}_imported_#{counter}"
         counter += 1
       end
     end
-    
+
     server = McpServer.new(
       name: name,
-      description: data['description'] || data[:description],
-      server_type: data['server_type'] || data[:server_type] || 'stdio',
-      command: data['command'] || data[:command],
-      url: data['url'] || data[:url],
-      args: data['args'] || data[:args] || [],
-      env: data['env'] || data[:env] || {},
-      headers: data['headers'] || data[:headers] || {},
-      tags: data['tags'] || data[:tags] || []
+      description: data["description"] || data[:description],
+      server_type: data["server_type"] || data[:server_type] || "stdio",
+      command: data["command"] || data[:command],
+      url: data["url"] || data[:url],
+      args: data["args"] || data[:args] || [],
+      env: data["env"] || data[:env] || {},
+      headers: data["headers"] || data[:headers] || {},
+      tags: data["tags"] || data[:tags] || [],
     )
-    
+
     if server.save
       { success: true, server: server }
     else
-      { success: false, error: "#{name}: #{server.errors.full_messages.join(', ')}" }
+      { success: false, error: "#{name}: #{server.errors.full_messages.join(", ")}" }
     end
   end
 end

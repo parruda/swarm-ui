@@ -3,14 +3,14 @@
 module Api
   class ClaudeChatController < ApplicationController
     skip_before_action :verify_authenticity_token, only: [:signed_stream_name]
-    
+
     def signed_stream_name
       stream_name = params[:stream_name]
       signed_stream_name = Turbo::StreamsChannel.signed_stream_name(stream_name)
-      
-      render json: { signed_stream_name: signed_stream_name }
+
+      render(json: { signed_stream_name: signed_stream_name })
     end
-    
+
     def create
       @project = Project.find(params[:project_id])
       @file_path = params[:file_path]

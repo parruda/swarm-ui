@@ -85,12 +85,12 @@ class McpServer < ApplicationRecord
       base_name = "#{name}_copy"
       counter = 1
       new_name = base_name
-      
+
       while McpServer.exists?(name: new_name)
         new_name = "#{base_name}_#{counter}"
         counter += 1
       end
-      
+
       new_server.name = new_name
       new_server.tags = tags
       new_server.args = args
@@ -100,4 +100,3 @@ class McpServer < ApplicationRecord
     end
   end
 end
-

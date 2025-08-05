@@ -9,6 +9,7 @@ AllCops:
   SuggestExtensions: false
   Exclude:
     - ".ruby-lsp/**/*"
+    - "db/schema.rb"
 
 Metrics/ParameterLists:
   Enabled: false

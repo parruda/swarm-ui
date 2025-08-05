@@ -48,11 +48,11 @@ class InstanceTemplate < ApplicationRecord
   scope :custom, -> { where(system_template: false) }
   scope :search, ->(query) {
     return all if query.blank?
-    
+
     query = query.downcase
     where(
       "LOWER(name) LIKE :query OR LOWER(description) LIKE :query OR LOWER(CAST(tags AS TEXT)) LIKE :query OR LOWER(system_prompt) LIKE :query",
-      query: "%#{query}%"
+      query: "%#{query}%",
     )
   }
   scope :claude, -> { where("config->>'provider' = ?", "claude") }
@@ -83,7 +83,7 @@ class InstanceTemplate < ApplicationRecord
   def allowed_tools
     config&.dig("allowed_tools") || []
   end
-  
+
   def mcps
     config&.dig("mcps") || []
   end
@@ -133,7 +133,7 @@ class InstanceTemplate < ApplicationRecord
 
     # Remove any system_prompt from config to avoid duplication
     base_config.delete("system_prompt")
-    
+
     # Include MCP servers if present
     if config["mcps"].present?
       base_config["mcps"] = config["mcps"]

@@ -2749,53 +2749,16 @@ export default class extends Controller {
     const swarmData = this.buildSwarmData()
     const yaml = this.generateReadableYaml(swarmData)
     
-    // Check if we're working with files (either editing or creating new)
-    if (this.isFileEditValue || this.isNewFileValue) {
-      if (this.isFileEditValue && this.filePathValue) {
-        // Editing existing file - save to same path
-        await this.saveToFile(this.filePathValue, yaml)
-      } else if (this.isNewFileValue && this.projectPathValue) {
-        // Creating new file - prompt for filename
-        await this.saveAsNewFile(yaml)
-      }
-      return
-    }
-    
-    const isUpdate = !!this.swarmIdValue
-    const url = isUpdate ? `/swarm_templates/${this.swarmIdValue}` : '/swarm_templates'
-    const method = isUpdate ? 'PATCH' : 'POST'
-    
-    try {
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
-        },
-        body: JSON.stringify({
-          swarm_template: {
-            name: this.nameInputTarget.value || 'Untitled Swarm',
-            tags: this.tags.join(','),
-            yaml_content: yaml,
-            visual_data: JSON.stringify({
-              nodes: this.nodeManager.serialize(),
-              connections: this.connectionManager.serialize(),
-              mainNodeId: this.mainNodeId,
-              tags: this.tags
-            })
-          }
-        })
-      })
-      
-      if (response.ok) {
-        const result = await response.json()
-        window.location.href = result.redirect_url || '/swarm_templates'
-      } else {
-        alert(`Failed to ${isUpdate ? 'update' : 'save'} swarm`)
-      }
-    } catch (error) {
-      console.error('Save error:', error)
-      alert(`Failed to ${isUpdate ? 'update' : 'save'} swarm: ` + error.message)
+    // Always work with files now
+    if (this.isFileEditValue && this.filePathValue) {
+      // Editing existing file - save to same path
+      await this.saveToFile(this.filePathValue, yaml)
+    } else if (this.projectPathValue) {
+      // Creating new file - prompt for filename
+      await this.saveAsNewFile(yaml)
+    } else {
+      // No project path available
+      this.showFlashMessage('Cannot save: No project selected', 'error')
     }
   }
   
@@ -2830,6 +2793,14 @@ export default class extends Controller {
         // Update Save button text from "Save as..." to "Save"
         this.updateSaveButtonText()
         
+        // Enable chat after successful save
+        this.enableChatAfterSave(result.file_path)
+        
+        // Update URL to reflect editing state (for new files)
+        if (!window.location.pathname.includes('/edit_swarm_file')) {
+          this.updateUrlForEditing(result.file_path)
+        }
+        
         // Don't redirect - stay on the page
         if (result.redirect_url) {
           // Only redirect if explicitly requested
@@ -2853,11 +2824,8 @@ export default class extends Controller {
       if (textNode && textNode.nodeType === Node.TEXT_NODE) {
         if (this.isFileEditValue && this.filePathValue) {
           textNode.textContent = 'Save'
-        } else if (this.isNewFileValue) {
-          textNode.textContent = 'Save as...'
         } else {
-          // For database swarms
-          textNode.textContent = saveButton.dataset.persisted === 'true' ? 'Update Swarm' : 'Save Swarm'
+          textNode.textContent = 'Save as...'
         }
       }
     }
@@ -2903,6 +2871,81 @@ export default class extends Controller {
       launchButton.disabled = false
       launchButton.classList.remove('opacity-50', 'cursor-not-allowed')
       launchButton.classList.add('hover:bg-blue-700', 'dark:hover:bg-blue-700')
+    }
+  }
+  
+  enableChatAfterSave(filePath) {
+    // Find the chat controller
+    const chatElement = this.chatTabTarget?.querySelector('[data-controller="claude-chat"]')
+    if (!chatElement) return
+    
+    const chatController = this.application.getControllerForElementAndIdentifier(chatElement, 'claude-chat')
+    if (!chatController) return
+    
+    // Update the file path value in the chat controller
+    chatController.filePathValue = filePath
+    
+    // Update the project ID in the chat controller (in case it wasn't set)
+    if (this.projectIdValue) {
+      chatController.projectIdValue = this.projectIdValue
+    }
+    
+    // Update the hidden form fields
+    const filePathField = chatElement.querySelector('input[name="file_path"]')
+    if (filePathField) {
+      filePathField.value = filePath
+    }
+    
+    const projectIdField = chatElement.querySelector('input[name="project_id"]')
+    if (projectIdField && this.projectIdValue) {
+      projectIdField.value = this.projectIdValue
+    }
+    
+    // Update the status text
+    const statusElement = chatElement.querySelector('[data-claude-chat-target="status"]')
+    if (statusElement) {
+      statusElement.textContent = 'Ready'
+    }
+    
+    // Remove the disabled state from the input
+    const inputElement = chatElement.querySelector('[data-claude-chat-target="input"]')
+    if (inputElement) {
+      inputElement.disabled = false
+      inputElement.placeholder = 'Ask Claude to help build your swarm... (⌘+Enter to send)'
+    }
+    
+    // Show the welcome message instead of the "save first" message
+    const messagesElement = chatElement.querySelector('[data-claude-chat-target="messages"]')
+    if (messagesElement && messagesElement.querySelector('.text-yellow-600')) {
+      messagesElement.innerHTML = `
+        <div id="welcome_message" class="text-center py-8">
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600">
+            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
+              <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
+            </svg>
+          </div>
+          <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Start a Conversation</h3>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+            Ask me to help you build your swarm configuration. I can add instances, configure connections, and explain best practices.
+          </p>
+        </div>
+      `
+    }
+    
+    // Note: Turbo Stream subscription for chat will be set up automatically
+    // when the chat controller sends its first message to the server
+  }
+  
+  updateUrlForEditing(filePath) {
+    // Only update URL if we're creating a new file (not already editing)
+    const currentPath = window.location.pathname
+    const projectId = this.projectIdValue
+    
+    if (projectId && filePath && !currentPath.includes('/edit_swarm_file')) {
+      // Use History API to update URL without reload
+      const newUrl = `/projects/${projectId}/edit_swarm_file?file_path=${encodeURIComponent(filePath)}`
+      window.history.replaceState({ filePath: filePath }, '', newUrl)
     }
   }
   

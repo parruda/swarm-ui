@@ -241,7 +241,9 @@ class ProjectsController < ApplicationController
     file_path = params[:file_path]
 
     unless file_path
-      redirect_back(fallback_location: @project, alert: "Swarm file not found.")
+      @swarm_files = @project.find_swarm_files
+      flash.now[:alert] = "Swarm file not found."
+      render(partial: "projects/tabs/swarms", locals: { project: @project, swarm_files: @swarm_files })
       return
     end
 
@@ -250,19 +252,29 @@ class ProjectsController < ApplicationController
       resolved_path = InputSanitizer.safe_expand_path(file_path, allowed_base_path: @project.path)
 
       unless resolved_path && File.exist?(resolved_path)
-        redirect_back(fallback_location: @project, alert: "Swarm file not found.")
+        @swarm_files = @project.find_swarm_files
+        flash.now[:alert] = "Swarm file not found."
+        render(partial: "projects/tabs/swarms", locals: { project: @project, swarm_files: @swarm_files })
         return
       end
     rescue SecurityError
-      redirect_back(fallback_location: @project, alert: "Cannot delete files outside of project directory.")
+      @swarm_files = @project.find_swarm_files
+      flash.now[:alert] = "Cannot delete files outside of project directory."
+      render(partial: "projects/tabs/swarms", locals: { project: @project, swarm_files: @swarm_files })
       return
     end
 
     begin
       File.delete(resolved_path)
-      redirect_to(@project, notice: "Swarm file deleted successfully.")
+
+      # Always re-render the swarms tab content since deletion only happens from there
+      @swarm_files = @project.find_swarm_files
+      flash.now[:notice] = "Swarm file deleted successfully."
+      render(partial: "projects/tabs/swarms", locals: { project: @project, swarm_files: @swarm_files })
     rescue StandardError => e
-      redirect_back(fallback_location: @project, alert: "Error deleting swarm file: #{e.message}")
+      @swarm_files = @project.find_swarm_files
+      flash.now[:alert] = "Error deleting swarm file: #{e.message}"
+      render(partial: "projects/tabs/swarms", locals: { project: @project, swarm_files: @swarm_files })
     end
   end
 

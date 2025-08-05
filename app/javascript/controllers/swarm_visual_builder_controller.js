@@ -308,10 +308,21 @@ export default class extends Controller {
       }
       
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (this.selectedNode) {
-          this.deleteSelectedNode()
-        } else if (this.selectedConnection !== null) {
-          this.deleteSelectedConnection()
+        // Only handle deletion if no input field is focused
+        const activeElement = document.activeElement
+        const isInputFocused = activeElement && (
+          activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          activeElement.tagName === 'SELECT' ||
+          activeElement.contentEditable === 'true'
+        )
+        
+        if (!isInputFocused) {
+          if (this.selectedNode) {
+            this.deleteSelectedNode()
+          } else if (this.selectedConnection !== null) {
+            this.deleteSelectedConnection()
+          }
         }
       }
     })

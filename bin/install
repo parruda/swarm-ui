@@ -111,6 +111,14 @@ install_macos() {
 
   echo "Installing on macOS..."
   
+  # Install pkg-config (required for building native gems like sqlite3)
+  if ! command_exists pkg-config; then
+    echo "Installing pkg-config..."
+    brew install pkg-config
+  else
+    echo "pkg-config is already installed"
+  fi
+  
   # Install ttyd
   if ! command_exists ttyd; then
     echo "Installing ttyd..."
@@ -170,6 +178,14 @@ install_linux() {
   # Update package lists
   echo "Updating package lists..."
   eval $PKG_UPDATE
+
+  # Install pkg-config (required for building native gems like sqlite3)
+  if ! command_exists pkg-config; then
+    echo "Installing pkg-config..."
+    eval $PKG_INSTALL pkg-config
+  else
+    echo "pkg-config is already installed"
+  fi
 
   # Install tmux
   if ! command_exists tmux; then

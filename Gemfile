@@ -90,5 +90,7 @@ else
   gem "claude_swarm", "~> 0.3.0", require: false
 end
 
+gem "fast-mcp-annotations"
+
 gem "headless_browser_tool", require: false
 gem "claude-code-sdk-ruby"

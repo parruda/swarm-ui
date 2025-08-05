@@ -291,6 +291,7 @@ swarm:
       vibe: true
     github_expert:
       description: GitHub operations specialist using gh CLI
+      model: opus
       directory: .
       prompt: |
         You are the GitHub operations specialist for the Roast gem project. You handle all GitHub-related tasks using

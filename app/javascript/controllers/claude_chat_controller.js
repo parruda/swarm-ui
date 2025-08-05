@@ -838,7 +838,7 @@ export default class extends Controller {
       const form = this.formTarget
       // Make sure form can be submitted
       form.querySelectorAll('input, textarea, button').forEach(el => {
-        if (isEnabled && el.name !== 'authenticity_token') {
+        if (hasFilePath && el.name !== 'authenticity_token') {
           el.removeAttribute('disabled')
         }
       })

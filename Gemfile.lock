@@ -517,6 +517,7 @@ DEPENDENCIES
   debug
   dotenv-rails
   factory_bot_rails
+  fast-mcp-annotations
   headless_browser_tool
   heroicon
   importmap-rails

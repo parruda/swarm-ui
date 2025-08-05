@@ -71,25 +71,6 @@ Rails.application.routes.draw do
     resources :swarm_templates
   end
 
-  # Top-level swarm templates routes (for general purpose swarms)
-  resources :swarm_templates, except: [:index, :new] do
-    member do
-      post :duplicate
-      get :preview_yaml
-      post :launch_session
-      get :export
-    end
-
-    collection do
-      get :library
-    end
-
-    resources :instances, controller: "swarm_template_instances" do
-      member do
-        post :update_connections
-      end
-    end
-  end
 
   resources :instance_templates do
     member do

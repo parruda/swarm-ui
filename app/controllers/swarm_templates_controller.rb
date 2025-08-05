@@ -2,17 +2,8 @@
 
 class SwarmTemplatesController < ApplicationController
   before_action :set_project, only: []
-  before_action :set_swarm_template, only: [:show, :edit, :update, :destroy, :duplicate, :preview_yaml, :launch_session, :export]
+  before_action :set_swarm_template, only: [:edit, :update, :destroy]
 
-
-  def library
-    @system_templates = SwarmTemplate.system.includes(:swarm_template_instances).ordered
-    @general_templates = SwarmTemplate.general_purpose.custom.includes(:swarm_template_instances).ordered
-  end
-
-  def show
-    @instance_templates = @swarm_template.instance_templates.includes(:swarm_template_instances)
-  end
 
   def new
     # Require project context for creating new swarm templates
@@ -46,8 +37,8 @@ class SwarmTemplatesController < ApplicationController
       end
 
       respond_to do |format|
-        format.html { redirect_to(@swarm_template, notice: "Swarm template was successfully created.") }
-        format.json { render(json: { redirect_url: swarm_template_path(@swarm_template) }) }
+        format.html { redirect_to(project_path(@project), notice: "Swarm template was successfully created.") }
+        format.json { render(json: { redirect_url: project_path(@project) }) }
       end
     else
       respond_to do |format|
@@ -88,8 +79,8 @@ class SwarmTemplatesController < ApplicationController
   def update
     if @swarm_template.update(swarm_template_params)
       respond_to do |format|
-        format.html { redirect_to(@swarm_template, notice: "Swarm template was successfully updated.") }
-        format.json { render(json: { redirect_url: swarm_template_path(@swarm_template) }) }
+        format.html { redirect_to(project_path(@swarm_template.project), notice: "Swarm template was successfully updated.") }
+        format.json { render(json: { redirect_url: project_path(@swarm_template.project) }) }
       end
     else
       respond_to do |format|
@@ -121,111 +112,12 @@ class SwarmTemplatesController < ApplicationController
 
     # Redirect to project swarm templates if it belongs to a project, otherwise to general swarm templates
     if project
-      redirect_to(project_swarm_templates_path(project), notice: "Swarm template was successfully deleted.")
+      redirect_to(project_path(project), notice: "Swarm template was successfully deleted.")
     else
-      redirect_to(swarm_templates_path, notice: "Swarm template was successfully deleted.")
+      redirect_to(projects_path, notice: "Swarm template was successfully deleted.")
     end
   end
 
-  def duplicate
-    new_template = @swarm_template.duplicate_for(
-      project: @swarm_template.project,
-      name: "Copy of #{@swarm_template.name}",
-    )
-
-    if new_template.save
-      # Copy all instance associations
-      @swarm_template.swarm_template_instances.each do |sti|
-        new_template.swarm_template_instances.create!(
-          instance_template: sti.instance_template,
-          instance_key: sti.instance_key,
-          overrides: sti.overrides,
-          position: sti.position,
-        )
-      end
-
-      redirect_to(
-        edit_swarm_template_path(new_template),
-        notice: "Swarm template was successfully duplicated.",
-      )
-    else
-      redirect_back(
-        fallback_location: @swarm_template,
-        alert: "Failed to duplicate swarm template.",
-      )
-    end
-  end
-
-  def preview_yaml
-    @yaml_content = @swarm_template.to_yaml
-
-    respond_to do |format|
-      format.html { render(partial: "yaml_preview", locals: { yaml_content: @yaml_content }) }
-      format.text { render(plain: @yaml_content) }
-      format.json { render(json: { yaml: @yaml_content }) }
-    end
-  end
-
-  def export
-    @yaml_content = @swarm_template.to_yaml
-
-    respond_to do |format|
-      format.yaml do
-        send_data(
-          @yaml_content,
-          filename: "#{@swarm_template.name.parameterize}.yaml",
-          type: "text/yaml",
-        )
-      end
-      format.json do
-        render(json: {
-          name: @swarm_template.name,
-          yaml: @yaml_content,
-        })
-      end
-    end
-  end
-
-  def launch_session
-    # Find appropriate project
-    project = @swarm_template.project || current_project
-
-    unless project
-      redirect_back(
-        fallback_location: @swarm_template,
-        alert: "No project available for this swarm template",
-      )
-      return
-    end
-
-    # Generate YAML content with default environment variables
-    env_vars = build_environment_variables(@swarm_template, project)
-    yaml_content = @swarm_template.apply_environment_variables(env_vars)
-
-    # Create a temporary file to store the generated YAML
-    temp_dir = Rails.root.join("tmp", "swarm_templates")
-    FileUtils.mkdir_p(temp_dir)
-
-    temp_file_path = temp_dir.join("swarm_#{@swarm_template.id}_#{Time.current.to_i}.yaml")
-    File.write(temp_file_path, yaml_content)
-
-    # Track template usage
-    @swarm_template.increment!(:usage_count)
-
-    # Redirect to new session with pre-filled data
-    redirect_to(
-      new_session_path(
-        project_id: project.id,
-        session: {
-          swarm_name: @swarm_template.swarm_name,
-          configuration_path: temp_file_path.to_s,
-          use_worktree: params[:use_worktree] || project.default_use_worktree,
-          initial_prompt: params[:initial_prompt],
-        },
-      ),
-      notice: "Ready to launch session from swarm template.",
-    )
-  end
 
   private
 

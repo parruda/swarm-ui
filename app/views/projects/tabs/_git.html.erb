@@ -222,7 +222,7 @@
               <% can_enable_webhooks = Setting.github_username_configured? && (has_enabled_events || project.github_webhook_enabled?) %>
               
               <% if can_enable_webhooks %>
-                <%= link_to toggle_webhook_project_path(project), method: :post, data: { turbo_method: :post }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-orange-900 hover:bg-orange-800 text-white'}" do %>
+                <%= link_to toggle_webhook_project_path(project), method: :post, data: { turbo_method: :post, turbo_frame: "project-tab-content" }, class: "inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm transition-colors duration-200 #{project.github_webhook_enabled? ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-orange-900 hover:bg-orange-800 text-white'}" do %>
                   <% if project.github_webhook_enabled? %>
                     <%= heroicon "stop", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
                     Disable Webhooks

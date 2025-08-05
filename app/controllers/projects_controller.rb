@@ -121,34 +121,41 @@ class ProjectsController < ApplicationController
   def toggle_webhook
     unless @project.github_configured?
       flash.now[:alert] = "Please configure GitHub repository information first."
-      render(:toggle_webhook)
+      respond_to_toggle_webhook
       return
     end
 
     # Check if GitHub username is configured
     unless Setting.github_username_configured?
       flash.now[:alert] = "Please configure your GitHub username in Settings before enabling webhooks."
-      render(:toggle_webhook)
+      respond_to_toggle_webhook
       return
     end
 
     # Check if any events are enabled
     if @project.github_webhook_events.enabled.empty?
       flash.now[:alert] = "Please select at least one webhook event before enabling webhooks."
-      render(:toggle_webhook)
+      respond_to_toggle_webhook
       return
     end
 
     # Toggle webhook state
     @project.update!(github_webhook_enabled: !@project.github_webhook_enabled)
 
-    flash.now[:notice] = if @project.github_webhook_enabled?
+    message = if @project.github_webhook_enabled?
       "GitHub webhooks enabled. The webhook forwarder will start shortly."
     else
       "GitHub webhooks disabled."
     end
 
-    render(:toggle_webhook)
+    # Check if the request is from a turbo frame
+    if turbo_frame_request?
+      flash.now[:notice] = message
+      render(:toggle_webhook)
+    else
+      # Full page reload for non-turbo-frame requests
+      redirect_to(edit_project_path(@project), notice: message)
+    end
   end
 
   def webhook_status
@@ -352,6 +359,14 @@ class ProjectsController < ApplicationController
 
   def set_project
     @project = Project.find(params[:id])
+  end
+
+  def respond_to_toggle_webhook
+    if turbo_frame_request?
+      render(:toggle_webhook)
+    else
+      redirect_to(edit_project_path(@project))
+    end
   end
 
   def project_params

@@ -11,4 +11,4 @@
 #   end
 
 # Load instance templates
-require_relative "seeds/instance_templates"
+# require_relative "seeds/instance_templates"

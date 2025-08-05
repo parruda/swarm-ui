@@ -5,7 +5,6 @@ FactoryBot.define do
     sequence(:name) { |n| "instance-template-#{n}" }
     description { "A test instance template" }
     system_prompt { "You are a helpful assistant" }
-    system_template { false }
     usage_count { 0 }
     tags { [] }
     required_variables { [] }
@@ -109,10 +108,6 @@ FactoryBot.define do
         }
       end
       required_variables { ["ENVIRONMENT", "PROJECT_DIR"] }
-    end
-
-    trait :system do
-      system_template { true }
     end
 
     trait :with_tags do

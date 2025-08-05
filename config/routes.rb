@@ -71,7 +71,6 @@ Rails.application.routes.draw do
     resources :swarm_templates, only: [:new, :edit, :destroy]
   end
 
-
   resources :instance_templates do
     member do
       post :duplicate

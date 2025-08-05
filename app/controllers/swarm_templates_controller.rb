@@ -4,7 +4,6 @@ class SwarmTemplatesController < ApplicationController
   before_action :set_project, only: []
   before_action :set_swarm_template, only: [:edit, :destroy]
 
-
   def new
     # Require project context for creating new swarm templates
     @project = Project.find(params[:project_id])
@@ -23,19 +22,18 @@ class SwarmTemplatesController < ApplicationController
     @instance_templates = InstanceTemplate.ordered
     render("visual_file_editor")
   rescue ActiveRecord::RecordNotFound
-    redirect_to projects_path, alert: "Please select a project to create a swarm template."
+    redirect_to(projects_path, alert: "Please select a project to create a swarm template.")
   end
-
 
   def edit
     # Require project context for editing
     unless @swarm_template.project
-      redirect_to projects_path, alert: "This swarm template cannot be edited without a project context."
+      redirect_to(projects_path, alert: "This swarm template cannot be edited without a project context.")
       return
     end
-    
+
     @instance_templates = InstanceTemplate.ordered
-    
+
     # For project-based swarms, use the file editor view
     @swarm_data = {
       name: @swarm_template.name,
@@ -52,7 +50,6 @@ class SwarmTemplatesController < ApplicationController
     render("visual_file_editor")
   end
 
-
   def destroy
     project = @swarm_template.project
     @swarm_template.destroy!
@@ -64,7 +61,6 @@ class SwarmTemplatesController < ApplicationController
       redirect_to(projects_path, notice: "Swarm template was successfully deleted.")
     end
   end
-
 
   private
 

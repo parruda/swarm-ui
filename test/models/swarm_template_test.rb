@@ -4,7 +4,8 @@ require "test_helper"
 
 class SwarmTemplateTest < ActiveSupport::TestCase
   setup do
-    @template = create(:swarm_template)
+    @project = create(:project)
+    @template = create(:swarm_template, project: @project)
   end
 
   # Validation tests
@@ -37,11 +38,10 @@ class SwarmTemplateTest < ActiveSupport::TestCase
     assert template2.valid?
   end
 
-  test "allows same name for general purpose and project-specific templates" do
-    create(:swarm_template, name: "common", project: nil)
-    project_specific = build(:swarm_template, name: "common", project: create(:project))
-
-    assert project_specific.valid?
+  test "requires project association" do
+    template = build(:swarm_template, project: nil)
+    assert_not template.valid?
+    assert_includes template.errors[:project], "must exist"
   end
 
   test "validates config_data structure" do
@@ -104,9 +104,9 @@ class SwarmTemplateTest < ActiveSupport::TestCase
   end
 
   # Association tests
-  test "belongs to project optionally" do
+  test "belongs to project" do
     assert_respond_to @template, :project
-    assert_nil @template.project
+    assert_not_nil @template.project
 
     project_template = create(:swarm_template, :for_project)
     assert_not_nil project_template.project
@@ -129,47 +129,6 @@ class SwarmTemplateTest < ActiveSupport::TestCase
     ordered = SwarmTemplate.ordered
     names = ordered.pluck(:name)
     assert_equal names.sort, names
-  end
-
-  test "system scope returns system templates" do
-    system = create(:swarm_template, :system)
-    custom = create(:swarm_template)
-
-    results = SwarmTemplate.system
-    assert_includes results, system
-    assert_not_includes results, custom
-  end
-
-  test "custom scope returns non-system templates" do
-    system = create(:swarm_template, :system)
-    custom = create(:swarm_template)
-
-    results = SwarmTemplate.custom
-    assert_not_includes results, system
-    assert_includes results, custom
-  end
-
-  test "general_purpose scope returns templates without project" do
-    general = create(:swarm_template, project: nil)
-    project_specific = create(:swarm_template, :for_project)
-
-    results = SwarmTemplate.general_purpose
-    assert_includes results, general
-    assert_not_includes results, project_specific
-  end
-
-  test "for_project scope returns general and project-specific templates" do
-    project = create(:project)
-    other_project = create(:project)
-
-    general = create(:swarm_template, project: nil)
-    for_project = create(:swarm_template, project: project)
-    for_other = create(:swarm_template, project: other_project)
-
-    results = SwarmTemplate.for_project(project)
-    assert_includes results, general
-    assert_includes results, for_project
-    assert_not_includes results, for_other
   end
 
   test "with_tag scope finds templates by tag" do
@@ -325,7 +284,6 @@ class SwarmTemplateTest < ActiveSupport::TestCase
     assert_not duplicate.persisted?
     assert_equal project, duplicate.project
     assert_equal "Copy", duplicate.name
-    assert_not duplicate.system_template
     assert_equal 0, duplicate.usage_count
     assert_nil duplicate.yaml_cache
     assert_nil duplicate.yaml_cache_generated_at

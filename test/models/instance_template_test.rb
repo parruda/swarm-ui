@@ -62,14 +62,6 @@ class InstanceTemplateTest < ActiveSupport::TestCase
     assert_includes @template.errors[:system_prompt], "can't be blank"
   end
 
-  test "validates category inclusion" do
-    skip "Category feature has been removed from InstanceTemplate model"
-  end
-
-  test "allows nil category" do
-    skip "Category feature has been removed from InstanceTemplate model"
-  end
-
   test "validates allowed_tools are valid" do
     @template.config["allowed_tools"] = ["Read", "Invalid_Tool"]
     assert_not @template.valid?
@@ -118,28 +110,6 @@ class InstanceTemplateTest < ActiveSupport::TestCase
     # @template has a generated name like "instance-template-1"
     ordered = InstanceTemplate.ordered
     assert_equal [template_a, template_b, template_c], ordered.select { |t| t.name.match?(/^[ABC] Template$/) }
-  end
-
-  test "system scope returns system templates" do
-    system_template = create(:instance_template, :system)
-    custom_template = create(:instance_template)
-
-    results = InstanceTemplate.system
-    assert_includes results, system_template
-    assert_not_includes results, custom_template
-  end
-
-  test "custom scope returns non-system templates" do
-    system_template = create(:instance_template, :system)
-    custom_template = create(:instance_template)
-
-    results = InstanceTemplate.custom
-    assert_not_includes results, system_template
-    assert_includes results, custom_template
-  end
-
-  test "by_category scope" do
-    skip "Category feature has been removed from InstanceTemplate model"
   end
 
   test "claude scope" do
@@ -319,7 +289,6 @@ class InstanceTemplateTest < ActiveSupport::TestCase
     new_template = @template.duplicate("New Name")
 
     assert_equal "New Name", new_template.name
-    assert_not new_template.system_template
     assert_equal 0, new_template.usage_count
     assert_not new_template.persisted?
     assert_equal @template.config, new_template.config
@@ -457,10 +426,6 @@ class InstanceTemplateTest < ActiveSupport::TestCase
 
   test "REASONING_EFFORTS contains expected values" do
     assert_equal ["low", "medium", "high"], InstanceTemplate::REASONING_EFFORTS
-  end
-
-  test "CATEGORIES contains expected categories" do
-    skip "Category feature has been removed from InstanceTemplate model"
   end
 
   test "AVAILABLE_TOOLS contains expected tools" do

@@ -2,9 +2,9 @@
 
 FactoryBot.define do
   factory :swarm_template do
+    association :project
     sequence(:name) { |n| "swarm-template-#{n}" }
     description { "A test swarm template" }
-    system_template { false }
     usage_count { 0 }
     tags { [] }
     metadata { {} }
@@ -147,10 +147,6 @@ FactoryBot.define do
           },
         }
       end
-    end
-
-    trait :system do
-      system_template { true }
     end
 
     trait :public do

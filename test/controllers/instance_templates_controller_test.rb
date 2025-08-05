@@ -5,9 +5,8 @@ require "test_helper"
 class InstanceTemplatesControllerTest < ActionDispatch::IntegrationTest
   setup do
     @instance_template = create(:instance_template)
-    @system_template = create(:instance_template, :system)
     @template_with_associations = create(:instance_template)
-    @swarm_template = create(:swarm_template)
+    @swarm_template = create(:swarm_template, :for_project)
     create(
       :swarm_template_instance,
       swarm_template: @swarm_template,
@@ -23,11 +22,6 @@ class InstanceTemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", "Instance Templates"
     # Should show all templates
     assert_match @instance_template.name, @response.body
-    assert_match @system_template.name, @response.body
-  end
-
-  test "index filters by category" do
-    skip "Category feature has been removed from InstanceTemplate model"
   end
 
   test "index includes associations" do
@@ -36,29 +30,6 @@ class InstanceTemplatesControllerTest < ActionDispatch::IntegrationTest
 
     # Should show usage count
     assert_match "1 swarm", @response.body
-  end
-
-  # Library tests
-  test "should get library" do
-    skip "BUG FOUND: library route not accepting HTML format - returns 406 Not Acceptable"
-    get library_instance_templates_url
-    assert_response :success
-
-    assert_select "h1", "Instance Template Library"
-    # Should only show system templates
-    assert_match @system_template.name, @response.body
-    assert_no_match @instance_template.name, @response.body
-  end
-
-  test "library shows categories" do
-    skip "BUG FOUND: library route not accepting HTML format - returns 406 Not Acceptable"
-    get library_instance_templates_url
-    assert_response :success
-
-    # Should list all categories
-    InstanceTemplate::CATEGORIES.each do |category|
-      assert_select "a", text: category.capitalize
-    end
   end
 
   # Show tests
@@ -287,7 +258,6 @@ class InstanceTemplatesControllerTest < ActionDispatch::IntegrationTest
     # Should have copied attributes
     assert_equal "Copy of #{@instance_template.name}", new_template.name
     assert_equal @instance_template.config, new_template.config
-    assert_not new_template.system_template # duplicates are not system templates
   end
 
   test "duplicate handles failure gracefully" do
@@ -306,7 +276,6 @@ class InstanceTemplatesControllerTest < ActionDispatch::IntegrationTest
   # Route tests
   test "routes are configured correctly" do
     assert_routing "/instance_templates", controller: "instance_templates", action: "index"
-    assert_routing "/instance_templates/library", controller: "instance_templates", action: "library"
     assert_routing(
       { method: "post", path: "/instance_templates/1/duplicate" },
       { controller: "instance_templates", action: "duplicate", id: "1" },

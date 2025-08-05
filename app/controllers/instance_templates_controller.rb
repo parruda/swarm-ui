@@ -20,7 +20,6 @@ class InstanceTemplatesController < ApplicationController
     end
   end
 
-
   def show
     @swarm_templates = @instance_template.swarm_templates.includes(:project)
 

@@ -2875,12 +2875,25 @@ export default class extends Controller {
   }
   
   enableChatAfterSave(filePath) {
-    // Find the chat controller
-    const chatElement = this.chatTabTarget?.querySelector('[data-controller="claude-chat"]')
-    if (!chatElement) return
+    // Find the chat tab element
+    if (!this.chatTabTarget) {
+      return
+    }
+    
+    // The chat controller might be on the chatTabTarget itself or a child
+    let chatElement = this.chatTabTarget.querySelector('[data-controller="claude-chat"]')
+    if (!chatElement && this.chatTabTarget.dataset.controller === 'claude-chat') {
+      chatElement = this.chatTabTarget
+    }
+    
+    if (!chatElement) {
+      return
+    }
     
     const chatController = this.application.getControllerForElementAndIdentifier(chatElement, 'claude-chat')
-    if (!chatController) return
+    if (!chatController) {
+      return
+    }
     
     // Update the file path value in the chat controller
     chatController.filePathValue = filePath
@@ -2894,47 +2907,97 @@ export default class extends Controller {
     const filePathField = chatElement.querySelector('input[name="file_path"]')
     if (filePathField) {
       filePathField.value = filePath
+      console.log('Updated file_path field')
     }
     
     const projectIdField = chatElement.querySelector('input[name="project_id"]')
     if (projectIdField && this.projectIdValue) {
       projectIdField.value = this.projectIdValue
+      console.log('Updated project_id field')
     }
     
     // Update the status text
     const statusElement = chatElement.querySelector('[data-claude-chat-target="status"]')
     if (statusElement) {
       statusElement.textContent = 'Ready'
+      console.log('Updated status to Ready')
+    }
+    
+    // Find and enable the form
+    const formElement = chatElement.querySelector('form')
+    if (formElement) {
+      // Remove any disabled state from the form
+      formElement.querySelectorAll('[disabled]').forEach(el => {
+        el.disabled = false
+        console.log('Removed disabled from:', el.tagName, el.name || el.id)
+      })
     }
     
     // Remove the disabled state from the input
     const inputElement = chatElement.querySelector('[data-claude-chat-target="input"]')
     if (inputElement) {
       inputElement.disabled = false
+      inputElement.readOnly = false
       inputElement.placeholder = 'Ask Claude to help build your swarm... (⌘+Enter to send)'
+      // Remove disabled styling classes
+      inputElement.classList.remove('opacity-50', 'cursor-not-allowed')
+      console.log('Enabled input field, classes:', inputElement.className)
+    }
+    
+    // Remove the disabled state from the send button
+    const sendButton = chatElement.querySelector('[data-claude-chat-target="sendButton"]')
+    if (sendButton) {
+      sendButton.disabled = false
+      // Update classes for the submit button
+      sendButton.classList.remove('opacity-50', 'cursor-not-allowed')
+      if (!sendButton.classList.contains('hover:bg-orange-700')) {
+        sendButton.classList.add('hover:bg-orange-700', 'dark:hover:bg-orange-700')
+      }
+      console.log('Enabled send button, classes:', sendButton.className)
+    } else {
+      console.log('Send button not found')
     }
     
     // Show the welcome message instead of the "save first" message
     const messagesElement = chatElement.querySelector('[data-claude-chat-target="messages"]')
-    if (messagesElement && messagesElement.querySelector('.text-yellow-600')) {
-      messagesElement.innerHTML = `
-        <div id="welcome_message" class="text-center py-8">
-          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600">
-            <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
-              <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
-            </svg>
+    if (messagesElement) {
+      // Check for the warning message (could be different selectors)
+      const warningMessage = messagesElement.querySelector('.text-yellow-600, .text-yellow-400, [class*="yellow"]')
+      if (warningMessage || messagesElement.textContent.includes('save') || messagesElement.textContent.includes('Save')) {
+        console.log('Replacing warning message with welcome message')
+        messagesElement.innerHTML = `
+          <div id="welcome_message" class="text-center py-8">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600">
+              <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
+                <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
+              </svg>
+            </div>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Start a Conversation</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+              Ask me to help you build your swarm configuration. I can add instances, configure connections, and explain best practices.
+            </p>
           </div>
-          <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">Start a Conversation</h3>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
-            Ask me to help you build your swarm configuration. I can add instances, configure connections, and explain best practices.
-          </p>
-        </div>
-      `
+        `
+      }
     }
     
-    // Note: Turbo Stream subscription for chat will be set up automatically
-    // when the chat controller sends its first message to the server
+    // Force re-evaluation of the chat controller's state
+    if (chatController && typeof chatController.checkEnabledState === 'function') {
+      chatController.checkEnabledState()
+    }
+    
+    console.log('Chat enabled successfully')
+    
+    // Dispatch a custom event to notify that chat is now enabled
+    chatElement.dispatchEvent(new CustomEvent('chat:enabled', { 
+      detail: { filePath: filePath, projectId: this.projectIdValue },
+      bubbles: true 
+    }))
+    
+    // Optionally switch to the chat tab to show it's now available
+    // This is a UX decision - uncomment if you want to automatically switch to chat after save
+    // this.showChatTab()
   }
   
   updateUrlForEditing(filePath) {

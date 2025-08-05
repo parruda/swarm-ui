@@ -35,6 +35,7 @@ Rails.application.routes.draw do
   # API routes
   namespace :api do
     post "claude_chat", to: "claude_chat#create"
+    post "claude_chat/signed_stream_name", to: "claude_chat#signed_stream_name"
     get "swarm_files/read", to: "swarm_files#read"
     post "swarm_files/notify_change", to: "swarm_files#notify_change"
     

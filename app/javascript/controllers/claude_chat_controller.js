@@ -53,6 +53,10 @@ export default class extends Controller {
     this.handleNodeSelectionChange = this.handleNodeSelectionChange.bind(this)
     window.addEventListener('nodes:selectionChanged', this.handleNodeSelectionChange)
     
+    // Listen for chat being enabled after file save
+    this.handleChatEnabled = this.handleChatEnabled.bind(this)
+    this.element.addEventListener('chat:enabled', this.handleChatEnabled)
+    
     // Hide welcome message on first interaction
     this.welcomeHidden = false
     
@@ -70,6 +74,7 @@ export default class extends Controller {
     window.removeEventListener('claude:status', this.handleClaudeStatus)
     window.removeEventListener('chat:tabVisible', this.handleChatTabVisible)
     window.removeEventListener('nodes:selectionChanged', this.handleNodeSelectionChange)
+    this.element.removeEventListener('chat:enabled', this.handleChatEnabled)
     document.removeEventListener('turbo:before-stream-render', this.handleTurboStreamRender)
     
     // Clean up mutation observer
@@ -602,5 +607,120 @@ export default class extends Controller {
     
     // Notify visual builder to deselect all nodes
     window.dispatchEvent(new CustomEvent('chat:clearNodeSelection'))
+  }
+  
+  handleChatEnabled(event) {
+    // Chat has been enabled after file save
+    console.log('Chat enabled event received:', event.detail)
+    
+    // Update our values from the event
+    if (event.detail?.filePath) {
+      this.filePathValue = event.detail.filePath
+    }
+    if (event.detail?.projectId) {
+      this.projectIdValue = event.detail.projectId
+    }
+    
+    // Re-enable all form elements
+    this.checkEnabledState()
+    
+    // Set up Turbo Stream subscription for real-time updates
+    this.setupTurboStream()
+  }
+  
+  async setupTurboStream() {
+    // Check if Turbo Stream is already set up
+    const existingStream = this.element.querySelector('turbo-cable-stream-source')
+    if (existingStream) {
+      console.log('Turbo Stream already exists')
+      return
+    }
+    
+    // Only set up if we have the required values
+    if (!this.projectIdValue || !this.conversationIdValue) {
+      console.error('Cannot set up Turbo Stream: missing projectId or conversationId')
+      return
+    }
+    
+    const streamName = `claude_chat_${this.projectIdValue}_${this.conversationIdValue}`
+    console.log('Setting up Turbo Stream for:', streamName)
+    
+    try {
+      // Get the signed stream name from the server
+      const response = await fetch('/api/claude_chat/signed_stream_name', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('[name="csrf-token"]')?.content || ''
+        },
+        body: JSON.stringify({
+          stream_name: streamName
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Create the turbo-cable-stream-source element
+        const turboStream = document.createElement('turbo-cable-stream-source')
+        turboStream.setAttribute('channel', 'Turbo::StreamsChannel')
+        turboStream.setAttribute('signed-stream-name', data.signed_stream_name)
+        
+        // Insert it into the chat element
+        this.element.insertBefore(turboStream, this.element.firstChild)
+        
+        console.log('Turbo Stream subscription created successfully')
+      } else {
+        console.error('Failed to get signed stream name from server')
+      }
+    } catch (error) {
+      console.error('Failed to set up Turbo Stream:', error)
+    }
+  }
+  
+  checkEnabledState() {
+    // Check if we have the required values to enable chat
+    const isEnabled = this.filePathValue && this.filePathValue.length > 0
+    
+    console.log('Checking enabled state:', { 
+      filePathValue: this.filePathValue, 
+      projectIdValue: this.projectIdValue,
+      isEnabled: isEnabled 
+    })
+    
+    // Enable/disable input
+    if (this.hasInputTarget) {
+      this.inputTarget.disabled = !isEnabled
+      this.inputTarget.readOnly = !isEnabled
+      if (isEnabled) {
+        this.inputTarget.classList.remove('opacity-50', 'cursor-not-allowed')
+        this.inputTarget.placeholder = 'Ask Claude to help build your swarm... (⌘+Enter to send)'
+      }
+    }
+    
+    // Enable/disable send button
+    if (this.hasSendButtonTarget) {
+      this.sendButtonTarget.disabled = !isEnabled
+      if (isEnabled) {
+        this.sendButtonTarget.classList.remove('opacity-50', 'cursor-not-allowed')
+        this.sendButtonTarget.classList.add('hover:bg-orange-700', 'dark:hover:bg-orange-700')
+      }
+    }
+    
+    // Update status
+    if (this.hasStatusTarget) {
+      this.statusTarget.textContent = isEnabled ? 'Ready' : 'Save file to enable chat'
+    }
+    
+    // Re-enable the form
+    if (this.hasFormTarget) {
+      const form = this.formTarget
+      // Make sure form can be submitted
+      form.querySelectorAll('input, textarea, button').forEach(el => {
+        if (isEnabled && el.name !== 'authenticity_token') {
+          el.removeAttribute('disabled')
+        }
+      })
+    }
   }
 }

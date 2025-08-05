@@ -1,4 +1,0 @@
-version: 1
-swarm:
-  name: test-generation
-  instances: {}

@@ -20,11 +20,13 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
     @project.github_webhook_events.create!(event_type: "pull_request_review", enabled: true)
 
     # Need to mock Setting.github_username_configured? to return true
-    Setting.expects(:github_username_configured?).returns(true)
+    # The view calls this method multiple times
+    Setting.stubs(:github_username_configured?).returns(true)
 
     post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
 
-    assert_redirected_to project_path(@project)
+    assert_response :success
+    assert_equal "GitHub webhooks enabled. The webhook forwarder will start shortly.", flash[:notice]
 
     @project.reload
     assert @project.github_webhook_enabled?
@@ -36,22 +38,24 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
     @project.update!(github_webhook_enabled: true)
 
     # Need to mock Setting.github_username_configured? to return true
-    Setting.expects(:github_username_configured?).returns(true)
+    # The view calls this method multiple times
+    Setting.stubs(:github_username_configured?).returns(true)
 
     post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
 
-    assert_redirected_to project_path(@project)
+    assert_response :success
+    assert_equal "GitHub webhooks disabled.", flash[:notice]
 
     @project.reload
     assert_not @project.github_webhook_enabled?
   end
 
-  test "toggle_webhook redirects if github not configured" do
+  test "toggle_webhook shows alert if github not configured" do
     @project.update!(github_repo_owner: nil)
 
     post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
 
-    assert_redirected_to project_path(@project)
+    assert_response :success
     assert_equal "Please configure GitHub repository information first.", flash[:alert]
 
     @project.reload

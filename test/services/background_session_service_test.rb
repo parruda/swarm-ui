@@ -315,7 +315,7 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
   end
 
   test "start_session_background executes ttyd-bg" do
-    session = create(:session, project: @project, session_id: "test-uuid")
+    session = create(:session, project: @project)
     session.expects(:terminal_url).returns("http://localhost/terminal?arg=abc&arg=def")
 
     # Expect system call to ttyd-bg

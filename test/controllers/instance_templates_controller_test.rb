@@ -27,14 +27,7 @@ class InstanceTemplatesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index filters by category" do
-    frontend_template = create(:instance_template, :frontend)
-    backend_template = create(:instance_template, :backend)
-
-    get instance_templates_url, params: { category: "frontend" }
-    assert_response :success
-
-    assert_match frontend_template.name, @response.body
-    assert_no_match backend_template.name, @response.body
+    skip "Category feature has been removed from InstanceTemplate model"
   end
 
   test "index includes associations" do

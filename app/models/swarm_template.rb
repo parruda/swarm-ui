@@ -38,6 +38,16 @@ class SwarmTemplate < ApplicationRecord
   def swarm_name
     config_data&.dig("swarm", "name") || name
   end
+  
+  # Returns visual builder data if stored (for compatibility with visual builder view)
+  def visual_data
+    nil
+  end
+  
+  # Returns YAML content if generated (for compatibility with visual builder view)
+  def yaml_content
+    to_yaml rescue nil
+  end
 
   def main_instance
     config_data&.dig("swarm", "main")

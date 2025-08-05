@@ -63,14 +63,11 @@ class InstanceTemplateTest < ActiveSupport::TestCase
   end
 
   test "validates category inclusion" do
-    @template.category = "invalid_category"
-    assert_not @template.valid?
-    assert_includes @template.errors[:category], "is not included in the list"
+    skip "Category feature has been removed from InstanceTemplate model"
   end
 
   test "allows nil category" do
-    @template.category = nil
-    assert @template.valid?
+    skip "Category feature has been removed from InstanceTemplate model"
   end
 
   test "validates allowed_tools are valid" do
@@ -142,13 +139,7 @@ class InstanceTemplateTest < ActiveSupport::TestCase
   end
 
   test "by_category scope" do
-    frontend = create(:instance_template, :frontend)
-    backend = create(:instance_template, :backend)
-    general = create(:instance_template)
-
-    assert_includes InstanceTemplate.by_category("frontend"), frontend
-    assert_not_includes InstanceTemplate.by_category("frontend"), backend
-    assert_includes InstanceTemplate.by_category("general"), general
+    skip "Category feature has been removed from InstanceTemplate model"
   end
 
   test "claude scope" do
@@ -469,8 +460,7 @@ class InstanceTemplateTest < ActiveSupport::TestCase
   end
 
   test "CATEGORIES contains expected categories" do
-    expected = ["frontend", "backend", "security", "database", "devops", "testing", "general"]
-    assert_equal expected, InstanceTemplate::CATEGORIES
+    skip "Category feature has been removed from InstanceTemplate model"
   end
 
   test "AVAILABLE_TOOLS contains expected tools" do

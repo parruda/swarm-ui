@@ -3,7 +3,7 @@
 FactoryBot.define do
   factory :session do
     association :project
-    sequence(:session_id) { |n| "session-#{n}-#{SecureRandom.hex(4)}" }
+    session_id { SecureRandom.uuid }
     swarm_name { "MySwarm" }
     project_folder_name { "my-project" }
     started_at { Time.current }

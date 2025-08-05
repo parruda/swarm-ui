@@ -5,7 +5,6 @@ FactoryBot.define do
     sequence(:name) { |n| "instance-template-#{n}" }
     description { "A test instance template" }
     system_prompt { "You are a helpful assistant" }
-    category { "general" }
     system_template { false }
     usage_count { 0 }
     tags { [] }
@@ -114,14 +113,6 @@ FactoryBot.define do
 
     trait :system do
       system_template { true }
-    end
-
-    trait :frontend do
-      category { "frontend" }
-    end
-
-    trait :backend do
-      category { "backend" }
     end
 
     trait :with_tags do

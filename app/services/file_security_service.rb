@@ -9,12 +9,17 @@ class FileSecurityService
     %r{\.git/}, # Git internals
     /\.(ssh|aws|env)/, # Sensitive config files
   ] +
-    # Add user-specific patterns only if USER is defined
+    # Add platform-specific user home restriction if USER is defined
     (if ENV["USER"]
-       [
-         %r{^/(?!Users/#{ENV["USER"]})}, # Paths outside user home (Mac)
-         %r{^/(?!home/#{ENV["USER"]})}, # Paths outside user home (Linux)
-       ]
+       if RUBY_PLATFORM.include?("darwin")
+         # On Mac, reject paths not under /Users/username
+         [%r{^/(?!Users/#{ENV["USER"]})}]
+       elsif RUBY_PLATFORM.include?("linux")
+         # On Linux, reject paths not under /home/username
+         [%r{^/(?!home/#{ENV["USER"]})}]
+       else
+         []
+       end
      else
        []
      end)).freeze

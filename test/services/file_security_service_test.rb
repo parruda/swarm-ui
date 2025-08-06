@@ -146,28 +146,37 @@ class FileSecurityServiceTest < ActiveSupport::TestCase
 
   # Platform-specific path tests
   test "handles Mac user paths correctly" do
-    skip "BUG FOUND: FileSecurityService dangerous pattern check incorrectly rejects valid user paths"
-    skip "Skip on non-Mac systems" unless RUBY_PLATFORM.include?("darwin")
+    # Only run on Mac systems
+    unless RUBY_PLATFORM.include?("darwin")
+      skip "This test is for Mac systems only"
+    end
 
+    # Get the actual username from environment
+    username = ENV["USER"] || ENV["LOGNAME"]
+    
     # Should allow paths under /Users/username
-    user_path = "/Users/#{ENV["USER"]}/Documents/project"
+    user_path = "/Users/#{username}/Documents/project"
     path = FileSecurityService.validate_path(user_path, "file.txt")
 
     assert_equal "#{user_path}/file.txt", path
 
-    # Should reject paths under other users
-    error = assert_raises(RuntimeError) do
-      FileSecurityService.validate_path("/Users/otheruser/project", "file.txt")
+    # Should reject paths under other users when USER is defined
+    if ENV["USER"]
+      error = assert_raises(RuntimeError) do
+        FileSecurityService.validate_path("/Users/otheruser/project", "file.txt")
+      end
+      assert_match(/Path outside session directory|contains dangerous pattern|protected directory/, error.message)
     end
-
-    assert_match(/Path outside session directory|protected directory/, error.message)
   end
 
   test "handles Linux user paths correctly" do
-    skip "Skip on non-Linux systems" if RUBY_PLATFORM.include?("darwin")
+    # Only run on Linux systems
+    unless RUBY_PLATFORM.include?("linux")
+      skip "This test is for Linux systems only"
+    end
 
-    # Use a test username or fall back to 'runner' (common in CI)
-    username = ENV["USER"] || "runner"
+    # Get the actual username from environment
+    username = ENV["USER"] || ENV["LOGNAME"] || "runner"
 
     # Should allow paths under /home/username
     user_path = "/home/#{username}/Documents/project"
@@ -175,12 +184,12 @@ class FileSecurityServiceTest < ActiveSupport::TestCase
 
     assert_equal "#{user_path}/file.txt", path
 
-    # Should reject paths under other users (unless we don't have user restrictions)
+    # Should reject paths under other users when USER is defined
     if ENV["USER"]
       error = assert_raises(RuntimeError) do
         FileSecurityService.validate_path("/home/otheruser/project", "file.txt")
       end
-      assert_match(/Path outside session directory|protected directory/, error.message)
+      assert_match(/Path outside session directory|contains dangerous pattern|protected directory/, error.message)
     end
   end
 

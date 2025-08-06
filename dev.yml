@@ -20,10 +20,6 @@ up:
       met?: "npm list -g @anthropic-ai/claude-code"
       meet: "npm install -g @anthropic-ai/claude-code"
   - custom:
-      name: "Install gh webhooks extension"
-      met?: "gh extension list | grep -q 'cli/gh-webhook'"
-      meet: "gh extension install cli/gh-webhook"
-  - custom:
       name: "Setup Rails credentials"
       met?: "test -f config/master.key && test -f config/credentials.yml.enc"
       meet: "bin/setup --skip-database --skip-server"
@@ -36,6 +32,10 @@ up:
       name: "GitHub CLI authentication"
       met?: "gh auth status >/dev/null 2>&1"
       meet: "gh auth login"
+  - custom:
+      name: "Install gh webhooks extension"
+      met?: "gh extension list | grep -q 'cli/gh-webhook'"
+      meet: "gh extension install cli/gh-webhook"
 commands:
   server:
     aliases: ["s"]

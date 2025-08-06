@@ -33,4 +33,6 @@ commands:
     aliases: ["s"]
     desc: 'start the server'
     run: PORT=4269 TTYD_PORT=4268 bin/start
-  
+
+open:
+  app: http://localhost:4269

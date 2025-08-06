@@ -153,7 +153,7 @@ class FileSecurityServiceTest < ActiveSupport::TestCase
 
     # Get the actual username from environment
     username = ENV["USER"] || ENV["LOGNAME"]
-    
+
     # Should allow paths under /Users/username
     user_path = "/Users/#{username}/Documents/project"
     path = FileSecurityService.validate_path(user_path, "file.txt")

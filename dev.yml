@@ -12,6 +12,7 @@ up:
     - ttyd
     - gh
     - redis
+    - pkg-config
 
   - node: 20.10.0
   - custom:
@@ -22,7 +23,11 @@ up:
       name: "Install gh webhooks extension"
       met?: "gh extension list | grep -q 'cli/gh-webhook'"
       meet: "gh extension install cli/gh-webhook"
-
+  - database:
+      bootstrap: bin/bundle exec rails db:schema:load
+      migrate: bin/bundle exec rails db:migrate db:test:prepare
+      vendor: sqlite3
+      database: storage/development.sqlite3
 commands:
   server:
     aliases: ["s"]

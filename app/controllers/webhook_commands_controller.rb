@@ -28,12 +28,12 @@ class WebhookCommandsController < ApplicationController
     @project.update!(webhook_commands: normalized_commands)
 
     redirect_to(
-      project_path(@project, tab: "github"),
+      project_path(@project, anchor: "github"),
       notice: "Webhook commands updated successfully",
     )
   rescue => e
     redirect_to(
-      project_path(@project, tab: "github"),
+      project_path(@project, anchor: "github"),
       alert: "Failed to update webhook commands: #{e.message}",
     )
   end

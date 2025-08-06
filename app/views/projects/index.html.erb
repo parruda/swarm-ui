@@ -80,13 +80,13 @@
                         Git
                       </span>
                       <!-- Git status badges loaded asynchronously -->
-                      <span class="hidden inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-blue-600/20 dark:ring-blue-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                      <span class="hidden items-center rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-blue-600/20 dark:ring-blue-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0" style="display: none;">
                         <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                         </svg>
                         <span data-project-git-status-target="branch">-</span>
                       </span>
-                      <span class="hidden inline-flex items-center rounded-md bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 ring-yellow-600/20 dark:ring-yellow-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
+                      <span class="hidden items-center rounded-md bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 ring-yellow-600/20 dark:ring-yellow-400/30 px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0" style="display: none;">
                         <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3 w-3 mr-1" } %>
                         <span data-project-git-status-target="dirty">Dirty</span>
                       </span>
@@ -114,13 +114,13 @@
                   <% if project.git? %>
                     <!-- Ahead/behind indicators loaded asynchronously - always reserve space -->
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 min-h-[1rem]" data-project-git-status-target="indicatorContainer">
-                      <span class="hidden inline-flex items-center">
+                      <span class="hidden items-center" style="display: none;">
                         <svg class="h-3 w-3 mr-1 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>
                         </svg>
                         <span class="text-green-600 dark:text-green-400" data-project-git-status-target="ahead">-</span>
                       </span>
-                      <span class="hidden inline-flex items-center ml-2">
+                      <span class="hidden items-center ml-2" style="display: none;">
                         <svg class="h-3 w-3 mr-1 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path>
                         </svg>

@@ -12,6 +12,12 @@ export default class extends Controller {
   async fetchGitStatus() {
     try {
       const response = await fetch(`/projects/${this.projectIdValue}/git_status`)
+      
+      if (!response.ok) {
+        console.error(`Failed to fetch git status for project ${this.projectIdValue}: ${response.status}`)
+        return
+      }
+      
       const data = await response.json()
       
       if (!data.git) {
@@ -21,16 +27,24 @@ export default class extends Controller {
       
       // Update branch badge
       if (this.hasBranchTarget && data.branch) {
+        const branchBadge = this.branchTarget.parentElement
         this.branchTarget.textContent = data.branch
-        this.branchTarget.parentElement.classList.remove('hidden')
+        branchBadge.classList.remove('hidden')
+        branchBadge.classList.add('inline-flex')
+        branchBadge.style.display = '' // Remove inline style
       }
       
-      // Update dirty badge
+      // Update dirty badge - ensure we're checking for boolean true
       if (this.hasDirtyTarget) {
-        if (data.dirty) {
-          this.dirtyTarget.parentElement.classList.remove('hidden')
+        const dirtyBadge = this.dirtyTarget.parentElement
+        if (data.dirty === true) {
+          dirtyBadge.classList.remove('hidden')
+          dirtyBadge.classList.add('inline-flex')
+          dirtyBadge.style.display = '' // Remove inline style
         } else {
-          this.dirtyTarget.parentElement.classList.add('hidden')
+          dirtyBadge.classList.add('hidden')
+          dirtyBadge.classList.remove('inline-flex')
+          dirtyBadge.style.display = 'none'
         }
       }
       
@@ -42,8 +56,12 @@ export default class extends Controller {
         if (data.ahead > 0) {
           this.aheadTarget.textContent = `${data.ahead} ahead`
           aheadContainer.classList.remove('hidden')
+          aheadContainer.classList.add('inline-flex')
+          aheadContainer.style.display = ''
         } else {
           aheadContainer.classList.add('hidden')
+          aheadContainer.classList.remove('inline-flex')
+          aheadContainer.style.display = 'none'
         }
       }
       
@@ -52,6 +70,8 @@ export default class extends Controller {
         if (data.behind > 0) {
           this.behindTarget.textContent = `${data.behind} behind`
           behindContainer.classList.remove('hidden')
+          behindContainer.classList.add('inline-flex')
+          behindContainer.style.display = ''
           // If we have ahead too, ensure ml-2 is present
           if (data.ahead > 0) {
             behindContainer.classList.add('ml-2')
@@ -60,6 +80,8 @@ export default class extends Controller {
           }
         } else {
           behindContainer.classList.add('hidden')
+          behindContainer.classList.remove('inline-flex')
+          behindContainer.style.display = 'none'
         }
       }
       

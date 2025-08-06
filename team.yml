@@ -81,7 +81,8 @@ swarm:
         Read and follow CLAUDE.md guidelines strictly.
 
 
-        NEVER try to run the server. Never run bin/dev or bin/start.
+        NEVER try to run or restart the rails server. Never run bin/dev or bin/start.
+        If you need to restart the rails server, ask the user.
 
 
         The project is a Rails 8 application that provides a web UI for claude-swarm, featuring session management,

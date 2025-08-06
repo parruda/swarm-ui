@@ -39,6 +39,8 @@ This isn't an IDE with AI features added - it's a precision instrument for vibe 
 
 ## Development Commands
 
+NOTE: NEVER TRY TO RUN THE RAILS SERVER! If you need it restarted, ask the user.
+
 ### Initial Setup
 ```bash
 bin/setup

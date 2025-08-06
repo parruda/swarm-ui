@@ -158,11 +158,11 @@
 
         <div class="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
           <div class="flex justify-end space-x-3">
-            <a href="<%= project_path(@project, anchor: "github") %>"
-               data-turbo-frame="_top"
-               class="inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200">
+            <button type="button"
+                    onclick="document.getElementById('webhook_commands_modal').innerHTML = ''"
+                    class="inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200">
               Cancel
-            </a>
+            </button>
             <button type="submit"
                     class="inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200">
               Save Commands

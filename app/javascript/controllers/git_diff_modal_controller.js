@@ -482,8 +482,8 @@ export default class extends Controller {
     let isResizing = false
     let startX = 0
     let startWidth = 0
-    const minWidth = 200
-    const maxWidth = 500
+    const minWidth = 150
+    const maxWidth = 600
     
     const startResize = (e) => {
       isResizing = true

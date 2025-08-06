@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class ProjectsController < ApplicationController
-  before_action :set_project, only: [:show, :edit, :update, :destroy, :archive, :unarchive, :sync, :toggle_webhook, :webhook_status, :git_status, :edit_swarm_file, :delete_swarm_file]
+  before_action :set_project, only: [:show, :edit, :update, :destroy, :archive, :unarchive, :sync, :toggle_webhook, :webhook_status, :git_status, :edit_swarm_file, :show_swarm_editor, :delete_swarm_file]
 
   def index
     @filter = params[:filter] || "active"
@@ -196,6 +196,11 @@ class ProjectsController < ApplicationController
   end
 
   def edit_swarm_file
+    # Redirect to show_swarm_editor to create a proper URL for browser history
+    redirect_to show_swarm_editor_project_path(@project, file_path: params[:file_path], as_template: params[:as_template])
+  end
+
+  def show_swarm_editor
     file_path = params[:file_path]
     as_template = params[:as_template] == "true"
 

@@ -55,6 +55,7 @@ Rails.application.routes.draw do
       get :git_status
       get :environment_variables
       get :edit_swarm_file
+      get :show_swarm_editor
       delete :delete_swarm_file
       # Tab content endpoints
       get "tabs/swarms", to: "project_tabs#swarms", as: :tab_swarms

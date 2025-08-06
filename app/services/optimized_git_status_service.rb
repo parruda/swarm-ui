@@ -76,6 +76,9 @@ class OptimizedGitStatusService
     script = <<~BASH
       cd "#{sanitized_directory}" 2>/dev/null || exit 1
 
+      # Fetch from remote to ensure ahead/behind counts are accurate
+      git fetch --quiet 2>/dev/null || true
+
       # Get all info in one go
       echo "BRANCH:"
       git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown"

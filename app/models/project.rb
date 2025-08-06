@@ -110,6 +110,9 @@ class Project < ApplicationRecord
     Rails.cache.fetch("project_#{id}_git_status", expires_in: 1.minute) do
       return unless git?
 
+      # Fetch from remote to ensure ahead/behind counts are up-to-date
+      git_service.fetch
+
       {
         branch: git_service.current_branch,
         dirty: git_service.dirty?,

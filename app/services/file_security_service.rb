@@ -4,14 +4,12 @@
 # Focus is on preventing accidental access to system files, not security attacks
 class FileSecurityService
   # Patterns to prevent accidental system damage
-  DANGEROUS_PATTERNS = [
+  DANGEROUS_PATTERNS = ([
     %r{\.\./}, # Parent directory traversal
     %r{\.git/}, # Git internals
     /\.(ssh|aws|env)/, # Sensitive config files
-  ].freeze +
+  ] +
     # Add user-specific patterns only if USER is defined
-    # Paths outside user home (Mac)
-    # Paths outside user home (Linux)
     (if ENV["USER"]
        [
          %r{^/(?!Users/#{ENV["USER"]})}, # Paths outside user home (Mac)
@@ -19,7 +17,7 @@ class FileSecurityService
        ]
      else
        []
-     end).freeze
+     end)).freeze
 
   # Protected system directories
   PROTECTED_PATHS = [

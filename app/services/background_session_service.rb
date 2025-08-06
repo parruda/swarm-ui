@@ -64,25 +64,6 @@ class BackgroundSessionService
       false
     end
 
-    def restart_session(session, new_prompt, user_login: nil)
-      if session.stopped?
-        Rails.logger.info("Restarting stopped session #{session.id}")
-        session.update!(
-          status: "active",
-          resumed_at: Time.current,
-          initial_prompt: new_prompt, # Update the prompt for restart
-        )
-
-        # Start the session in background
-        start_session_background(session)
-
-        # Give it a moment to start before sending the comment
-        sleep(1)
-      end
-
-      # Send the prompt to the session
-      send_comment_to_session(session, new_prompt, user_login: user_login)
-    end
 
     def find_existing_github_session(project, issue_number, pr_number, configuration_path = nil)
       scope = project.sessions
@@ -101,8 +82,8 @@ class BackgroundSessionService
         scope = scope.where(configuration_path: configuration_path)
       end
 
-      # Get the most recent session (active or stopped)
-      scope.where(status: ["active", "stopped"]).order(created_at: :desc).first
+      # Only return active sessions - stopped sessions should trigger new session creation
+      scope.where(status: "active").order(created_at: :desc).first
     end
 
     private

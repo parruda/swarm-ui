@@ -96,18 +96,14 @@ class GithubWebhooksController < ApplicationController
     Rails.logger.info("Processing /swarm comment from #{user_login} for #{issue_type} ##{issue["number"]}: #{prompt}")
 
     # Find or create session - now includes swarm_path for uniqueness
+    # Only active sessions are returned, stopped sessions will trigger new session creation
     existing_session = BackgroundSessionService.find_existing_github_session(project, issue_number, pr_number, swarm_path)
 
     if existing_session
-      Rails.logger.info("Found existing session #{existing_session.id} for #{issue_type} ##{issue["number"]}")
+      Rails.logger.info("Found existing active session #{existing_session.id} for #{issue_type} ##{issue["number"]}")
 
-      if existing_session.active?
-        # Send to existing active session
-        BackgroundSessionService.send_comment_to_session(existing_session, prompt, user_login: user_login)
-      else
-        # Restart stopped session
-        BackgroundSessionService.restart_session(existing_session, prompt, user_login: user_login)
-      end
+      # Send to existing active session
+      BackgroundSessionService.send_comment_to_session(existing_session, prompt, user_login: user_login)
 
       Rails.logger.info("Successfully processed comment for session #{existing_session.id}")
     else
@@ -184,18 +180,14 @@ class GithubWebhooksController < ApplicationController
     Rails.logger.info("Processing /swarm review comment from #{user_login} for PR ##{pr["number"]}: #{prompt}")
 
     # Find or create session - now includes swarm_path for uniqueness
+    # Only active sessions are returned, stopped sessions will trigger new session creation
     existing_session = BackgroundSessionService.find_existing_github_session(project, nil, pr["number"], swarm_path)
 
     if existing_session
-      Rails.logger.info("Found existing session #{existing_session.id} for PR ##{pr["number"]}")
+      Rails.logger.info("Found existing active session #{existing_session.id} for PR ##{pr["number"]}")
 
-      if existing_session.active?
-        # Send to existing active session
-        BackgroundSessionService.send_comment_to_session(existing_session, full_prompt, user_login: user_login)
-      else
-        # Restart stopped session
-        BackgroundSessionService.restart_session(existing_session, full_prompt, user_login: user_login)
-      end
+      # Send to existing active session
+      BackgroundSessionService.send_comment_to_session(existing_session, full_prompt, user_login: user_login)
 
       Rails.logger.info("Successfully processed review comment for session #{existing_session.id}")
     else
@@ -264,18 +256,14 @@ class GithubWebhooksController < ApplicationController
     Rails.logger.info("Processing /swarm review from #{user_login} for PR ##{pr["number"]}: #{prompt}")
 
     # Find or create session - now includes swarm_path for uniqueness
+    # Only active sessions are returned, stopped sessions will trigger new session creation
     existing_session = BackgroundSessionService.find_existing_github_session(project, nil, pr["number"], swarm_path)
 
     if existing_session
-      Rails.logger.info("Found existing session #{existing_session.id} for PR ##{pr["number"]}")
+      Rails.logger.info("Found existing active session #{existing_session.id} for PR ##{pr["number"]}")
 
-      if existing_session.active?
-        # Send to existing active session
-        BackgroundSessionService.send_comment_to_session(existing_session, full_prompt, user_login: user_login)
-      else
-        # Restart stopped session
-        BackgroundSessionService.restart_session(existing_session, full_prompt, user_login: user_login)
-      end
+      # Send to existing active session
+      BackgroundSessionService.send_comment_to_session(existing_session, full_prompt, user_login: user_login)
 
       Rails.logger.info("Successfully processed review for session #{existing_session.id}")
     else

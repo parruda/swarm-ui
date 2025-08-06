@@ -193,29 +193,6 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
     assert_not result
   end
 
-  # restart_session tests
-  test "restarts stopped session" do
-    stopped_session = create(:session, project: @project, status: "stopped")
-
-    # Expect background start and comment send
-    BackgroundSessionService.expects(:start_session_background).with(stopped_session)
-    BackgroundSessionService.expects(:sleep).with(1) # Initial sleep
-    BackgroundSessionService.expects(:send_comment_to_session).with(stopped_session, "Restart prompt", user_login: "user")
-
-    BackgroundSessionService.restart_session(stopped_session, "Restart prompt", user_login: "user")
-
-    stopped_session.reload
-    assert_equal "active", stopped_session.status
-    assert_not_nil stopped_session.resumed_at
-    assert_equal "Restart prompt", stopped_session.initial_prompt
-  end
-
-  test "sends comment to already active session without restarting" do
-    BackgroundSessionService.expects(:start_session_background).never
-    BackgroundSessionService.expects(:send_comment_to_session).with(@existing_session, "New prompt", user_login: nil)
-
-    BackgroundSessionService.restart_session(@existing_session, "New prompt")
-  end
 
   # find_existing_github_session tests
   test "finds most recent active session for issue" do
@@ -233,7 +210,7 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
     assert_equal @existing_session, result # Should return the newer one
   end
 
-  test "finds stopped sessions" do
+  test "does not find stopped sessions" do
     stopped_session = create(
       :session,
       project: @project,
@@ -244,7 +221,7 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
 
     result = BackgroundSessionService.find_existing_github_session(@project, nil, 999)
 
-    assert_equal stopped_session, result
+    assert_nil result
   end
 
   test "ignores archived sessions" do
@@ -320,6 +297,32 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
     assert_equal "swarms/test.yml", session2.configuration_path
     assert_equal 555, session1.github_issue_number
     assert_equal 555, session2.github_issue_number
+  end
+
+  test "creates new session when existing session is stopped" do
+    # Create a stopped session
+    stopped_session = create(
+      :session,
+      project: @project,
+      github_issue_number: 666,
+      configuration_path: "swarms/default.yml",
+      status: "stopped",
+    )
+
+    # Try to find or create a session for the same issue
+    new_session = BackgroundSessionService.find_or_create_session(
+      project: @project,
+      issue_number: 666,
+      initial_prompt: "New request",
+      start_background: false,
+      swarm_path: "swarms/default.yml",
+    )
+
+    # Should create a new session, not reuse the stopped one
+    refute_equal stopped_session, new_session
+    assert_equal "active", new_session.status
+    assert_equal 666, new_session.github_issue_number
+    assert_equal "swarms/default.yml", new_session.configuration_path
   end
 
   # Private method tests (testing through public interface)

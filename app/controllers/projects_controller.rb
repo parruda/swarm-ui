@@ -197,7 +197,7 @@ class ProjectsController < ApplicationController
 
   def edit_swarm_file
     # Redirect to show_swarm_editor to create a proper URL for browser history
-    redirect_to show_swarm_editor_project_path(@project, file_path: params[:file_path], as_template: params[:as_template])
+    redirect_to(show_swarm_editor_project_path(@project, file_path: params[:file_path], as_template: params[:as_template]))
   end
 
   def show_swarm_editor

@@ -7,7 +7,7 @@ class BackgroundSessionService
     def find_or_create_session(project:, issue_number: nil, pr_number: nil, issue_type: nil, initial_prompt:, user_login: nil, issue_title: nil, start_background: true, swarm_path: nil)
       # Use provided swarm_path or fall back to project default
       config_path = swarm_path || project.default_config_path
-      
+
       # Try to find existing session for this issue/PR (if GitHub-related)
       session = if issue_number || pr_number
         find_existing_github_session(project, issue_number, pr_number, config_path)
@@ -63,7 +63,6 @@ class BackgroundSessionService
       Rails.logger.error("Error sending comment to session: #{e.message}")
       false
     end
-
 
     def find_existing_github_session(project, issue_number, pr_number, configuration_path = nil)
       scope = project.sessions

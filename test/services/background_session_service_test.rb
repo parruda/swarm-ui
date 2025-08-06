@@ -193,7 +193,6 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
     assert_not result
   end
 
-
   # find_existing_github_session tests
   test "finds most recent active session for issue" do
     create(
@@ -211,7 +210,7 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
   end
 
   test "does not find stopped sessions" do
-    stopped_session = create(
+    create(
       :session,
       project: @project,
       github_pr_number: 999,
@@ -282,7 +281,7 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
       start_background: false,
       swarm_path: "swarms/review.yml",
     )
-    
+
     # Second session with test swarm for same issue
     session2 = BackgroundSessionService.find_or_create_session(
       project: @project,

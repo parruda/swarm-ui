@@ -185,8 +185,141 @@ export default class extends Controller {
     }
   }
 
+  buildFileTree(files) {
+    const root = { name: 'root', children: {}, files: [] }
+    
+    files.forEach((file, index) => {
+      const parts = file.path.split('/')
+      let current = root
+      
+      // Build directory structure
+      for (let i = 0; i < parts.length - 1; i++) {
+        const part = parts[i]
+        if (!current.children[part]) {
+          current.children[part] = {
+            name: part,
+            children: {},
+            files: [],
+            path: parts.slice(0, i + 1).join('/')
+          }
+        }
+        current = current.children[part]
+      }
+      
+      // Add file to the current directory
+      current.files.push({
+        ...file,
+        name: parts[parts.length - 1],
+        index: index
+      })
+    })
+    
+    return root
+  }
+  
+  renderFileTree(node, level = 0, parentExpanded = true) {
+    let html = ''
+    
+    // Render directories first
+    Object.keys(node.children).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())).forEach(dirName => {
+      const dir = node.children[dirName]
+      const dirId = `dir-${dir.path.replace(/[^a-zA-Z0-9]/g, '-')}`
+      const hasChanges = this.hasChangesInDirectory(dir)
+      const fileCount = this.countChangesInDirectory(dir)
+      
+      html += `
+        <div class="directory-item" data-level="${level}">
+          <div class="directory-header cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-150 rounded-md px-2 py-1.5 flex items-center group"
+               data-action="click->git-diff-modal#toggleDirectory"
+               data-directory-id="${dirId}"
+               style="padding-left: ${level * 20}px;">
+            <svg class="directory-chevron w-3 h-3 mr-1.5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${parentExpanded ? '' : 'rotate-[-90deg]'}" 
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+            <svg class="w-4 h-4 mr-2 text-blue-500 dark:text-blue-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
+            </svg>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300 select-none">${dirName}</span>
+            ${hasChanges ? `
+              <span class="ml-auto flex items-center space-x-1">
+                <span class="text-xs px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
+                  ${fileCount}
+                </span>
+              </span>
+            ` : ''}
+          </div>
+          <div class="directory-content ${parentExpanded ? '' : 'hidden'}" id="${dirId}">
+            ${this.renderFileTree(dir, level + 1, parentExpanded)}
+          </div>
+        </div>
+      `
+    })
+    
+    // Sort files by name
+    const sortedFiles = [...node.files].sort((a, b) => 
+      a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+    )
+    
+    // Render files
+    sortedFiles.forEach(file => {
+      const fileIcon = this.getFileIcon(file.name)
+      html += `
+        <div class="file-item cursor-pointer px-2 py-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-150 group"
+             data-file-path="${file.path}"
+             data-file-index="${file.index}"
+             data-level="${level}"
+             style="padding-left: ${(level * 20) + 24}px;">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center flex-1 overflow-hidden">
+              ${fileIcon}
+              <span class="file-name-text text-sm text-gray-600 dark:text-gray-300 truncate group-hover:text-gray-900 dark:group-hover:text-gray-100" title="${file.path}">
+                ${file.name}
+              </span>
+            </div>
+            <div class="flex items-center space-x-2 flex-shrink-0 ml-2">
+              <div class="flex items-center space-x-1 text-xs">
+                <span class="text-green-600 dark:text-green-400 font-medium">+${file.additions}</span>
+                <span class="text-red-600 dark:text-red-400 font-medium">-${file.deletions}</span>
+              </div>
+              ${this.getCompactStatusBadge(file.status)}
+            </div>
+          </div>
+        </div>
+      `
+    })
+    
+    return html
+  }
+  
+  hasChangesInDirectory(dir) {
+    if (dir.files.length > 0) return true
+    return Object.values(dir.children).some(child => this.hasChangesInDirectory(child))
+  }
+  
+  countChangesInDirectory(dir) {
+    let count = dir.files.length
+    Object.values(dir.children).forEach(child => {
+      count += this.countChangesInDirectory(child)
+    })
+    return count
+  }
+  
+  toggleDirectory(event) {
+    event.stopPropagation()
+    const header = event.currentTarget
+    const dirId = header.dataset.directoryId
+    const content = document.getElementById(dirId)
+    const chevron = header.querySelector('.directory-chevron')
+    
+    if (content) {
+      content.classList.toggle('hidden')
+      chevron.classList.toggle('rotate-[-90deg]')
+    }
+  }
+
   async showDiffContent(data) {
-    // Add marquee animation styles
+    // Add marquee animation styles and tree view styles
     const styleId = 'git-diff-marquee-styles'
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style')
@@ -220,45 +353,36 @@ export default class extends Controller {
         .resize-handle.resizing {
           background: rgba(59, 130, 246, 0.1) !important;
         }
+        
+        .directory-chevron {
+          transition: transform 0.2s ease;
+        }
+        
+        .directory-content {
+          transition: all 0.2s ease;
+        }
+        
+        .directory-content.hidden {
+          display: none;
+        }
       `
       document.head.appendChild(style)
     }
+    
+    // Build the file tree structure
+    const fileTree = this.buildFileTree(data.files)
     
     // Create the main content structure with absolute positioning to ensure proper height
     this.contentEl.innerHTML = `
       <div class="flex" style="position: absolute; inset: 0;">
         <!-- File list sidebar -->
         <div class="file-list-sidebar border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0" style="width: 256px; height: 100%; overflow-y: auto; position: relative;" data-git-diff-modal-target="fileList">
-          <div class="p-4">
-            <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3">
+          <div class="p-3">
+            <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3 px-2">
               Changed Files (${data.files.length})
             </h3>
-            <div class="space-y-1">
-              ${data.files.map((file, index) => `
-                <div class="file-item cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${index === 0 ? 'bg-gray-100 dark:bg-gray-700' : ''}"
-                     data-file-path="${file.path}"
-                     data-file-index="${index}">
-                  <div class="flex items-center justify-between mb-1">
-                    <div class="file-name-container overflow-hidden flex-1 mr-2">
-                      <span class="file-name-text text-sm text-gray-700 dark:text-gray-300 inline-block whitespace-nowrap" title="${file.path}">
-                        ${file.path.split('/').pop()}
-                      </span>
-                    </div>
-                    <div class="flex items-center space-x-1 text-xs flex-shrink-0">
-                      <span class="text-green-600 dark:text-green-400">+${file.additions}</span>
-                      <span class="text-red-600 dark:text-red-400">-${file.deletions}</span>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <div class="file-path-container overflow-hidden flex-1 mr-2">
-                      <span class="file-path-text text-xs text-gray-500 dark:text-gray-400 inline-block whitespace-nowrap" title="${file.path}">
-                        ${file.path}
-                      </span>
-                    </div>
-                    ${this.getStatusBadge(file.status)}
-                  </div>
-                </div>
-              `).join('')}
+            <div class="file-tree">
+              ${this.renderFileTree(fileTree)}
             </div>
           </div>
         </div>
@@ -318,22 +442,28 @@ export default class extends Controller {
     if (fileList) {
       fileList.querySelectorAll('.file-item').forEach((item) => {
         item.addEventListener('click', async (e) => {
+          e.stopPropagation()
           const clickedItem = e.currentTarget
           const index = parseInt(clickedItem.dataset.fileIndex)
           
           // Update active state immediately
           fileList.querySelectorAll('.file-item').forEach(el => {
-            el.classList.remove('bg-gray-100', 'dark:bg-gray-700')
+            el.classList.remove('bg-blue-50', 'dark:bg-blue-900/20', 'border-l-2', 'border-blue-500')
           })
-          clickedItem.classList.add('bg-gray-100', 'dark:bg-gray-700')
+          clickedItem.classList.add('bg-blue-50', 'dark:bg-blue-900/20', 'border-l-2', 'border-blue-500')
           
           // Then show the file
           await this.showFile(index)
         })
-        
-        // Add marquee animation on hover for text that overflows
-        this.setupMarqueeAnimation(item)
       })
+      
+      // Select the first file by default if there are any
+      if (data.files.length > 0) {
+        const firstFile = fileList.querySelector('.file-item[data-file-index="0"]')
+        if (firstFile) {
+          firstFile.classList.add('bg-blue-50', 'dark:bg-blue-900/20', 'border-l-2', 'border-blue-500')
+        }
+      }
     }
     
     // Update request changes button state after content is loaded
@@ -663,6 +793,43 @@ export default class extends Controller {
       'untracked': '<span class="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">untracked</span>'
     }
     return badges[status] || ''
+  }
+  
+  getCompactStatusBadge(status) {
+    const badges = {
+      'staged': '<span class="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full inline-block" title="Staged"></span>',
+      'modified': '<span class="w-2 h-2 bg-yellow-500 dark:bg-yellow-400 rounded-full inline-block" title="Modified"></span>',
+      'modified+staged': '<span class="w-2 h-2 bg-orange-500 dark:bg-orange-400 rounded-full inline-block" title="Modified & Staged"></span>',
+      'untracked': '<span class="w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full inline-block" title="Untracked"></span>'
+    }
+    return badges[status] || ''
+  }
+  
+  getFileIcon(filename) {
+    const ext = filename.split('.').pop().toLowerCase()
+    const iconMap = {
+      // Code files
+      'js': '<svg class="w-4 h-4 mr-2 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>',
+      'jsx': '<svg class="w-4 h-4 mr-2 text-cyan-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>',
+      'ts': '<svg class="w-4 h-4 mr-2 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>',
+      'tsx': '<svg class="w-4 h-4 mr-2 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>',
+      'rb': '<svg class="w-4 h-4 mr-2 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>',
+      'py': '<svg class="w-4 h-4 mr-2 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>',
+      // Markup/config files
+      'html': '<svg class="w-4 h-4 mr-2 text-orange-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>',
+      'erb': '<svg class="w-4 h-4 mr-2 text-red-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>',
+      'css': '<svg class="w-4 h-4 mr-2 text-purple-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2H6a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h2a1 1 0 100-2h2a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"></path></svg>',
+      'scss': '<svg class="w-4 h-4 mr-2 text-pink-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2H6a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h2a1 1 0 100-2h2a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"></path></svg>',
+      'json': '<svg class="w-4 h-4 mr-2 text-gray-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>',
+      'yml': '<svg class="w-4 h-4 mr-2 text-indigo-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>',
+      'yaml': '<svg class="w-4 h-4 mr-2 text-indigo-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>',
+      'md': '<svg class="w-4 h-4 mr-2 text-gray-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0h8v12H6V4z" clip-rule="evenodd"></path></svg>'
+    }
+    
+    // Default file icon
+    const defaultIcon = '<svg class="w-4 h-4 mr-2 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>'
+    
+    return iconMap[ext] || defaultIcon
   }
   
   setupMarqueeAnimation(fileItem) {

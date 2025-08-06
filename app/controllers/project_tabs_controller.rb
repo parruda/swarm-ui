@@ -23,6 +23,10 @@ class ProjectTabsController < ApplicationController
     render(partial: "projects/tabs/git", locals: { project: @project })
   end
 
+  def github
+    render(partial: "projects/tabs/github", locals: { project: @project })
+  end
+
   private
 
   def set_project

@@ -1155,26 +1155,17 @@ class SessionsController < ApplicationController
     log_file = session_log_file
     return [] unless log_file && File.exist?(log_file)
 
-    costs = Hash.new(0)
-    call_counts = Hash.new(0)
+    require "claude_swarm/session_cost_calculator"
 
-    File.foreach(log_file) do |line|
-      event = JSON.parse(line)
-      instance_name = event["instance"]
+    # Get the full instance hierarchy with costs
+    instances = ClaudeSwarm::SessionCostCalculator.parse_instance_hierarchy(log_file)
 
-      if event["event"]["type"] == "result" && event["event"]["total_cost_usd"]
-        costs[instance_name] += event["event"]["total_cost_usd"]
-        call_counts[instance_name] += 1
-      end
-    rescue JSON::ParserError
-      next
-    end
-
-    costs.map do |name, cost|
+    # Convert to the format expected by the view
+    instances.values.map do |instance|
       {
-        name: name,
-        cost: cost,
-        calls: call_counts[name],
+        name: instance[:name],
+        cost: instance[:cost],
+        calls: instance[:calls],
       }
     end.sort_by { |i| -i[:cost] }
   end
@@ -1183,17 +1174,10 @@ class SessionsController < ApplicationController
     log_file = session_log_file
     return 0 unless log_file && File.exist?(log_file)
 
-    total = 0
-    File.foreach(log_file) do |line|
-      event = JSON.parse(line)
-      if event["event"]["type"] == "result" && event["event"]["total_cost_usd"]
-        total += event["event"]["total_cost_usd"]
-      end
-    rescue JSON::ParserError
-      next
-    end
+    require "claude_swarm/session_cost_calculator"
 
-    total
+    # Use the simple total method for backward compatibility
+    ClaudeSwarm::SessionCostCalculator.calculate_simple_total(log_file)
   end
 
   def session_log_file

@@ -35,7 +35,9 @@ class GitServiceTest < ActiveSupport::TestCase
   end
 
   test "returns current branch" do
-    assert_equal "main", @git_service.current_branch
+    # Get the actual default branch name (could be main or master)
+    default_branch = @git_service.current_branch
+    assert_includes ["main", "master"], default_branch
 
     # Create and switch to a new branch
     Dir.chdir(@git_project_path) do

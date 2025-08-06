@@ -65,11 +65,25 @@ class GithubWebhooksController < ApplicationController
     # Only process comments from configured GitHub user
     return unless user_login == Setting.github_username
 
-    # Check if comment starts with /swarm
-    match = comment_body&.match(%r{^/swarm\s+(.+)}mi)
-    return unless match
+    # Check for custom webhook commands first
+    webhook_command = project.find_webhook_command(comment_body)
 
-    prompt = match[1].strip
+    if webhook_command
+      # Extract arguments after the command
+      command = webhook_command["command"]
+      prompt = comment_body.strip.sub(/^#{Regexp.escape(command)}\s*/, "")
+      swarm_path = webhook_command["swarm_path"]
+
+      Rails.logger.info("Processing custom command #{command} with swarm #{swarm_path}")
+    else
+      # Fall back to default /swarm command
+      match = comment_body&.match(%r{^/swarm\s+(.+)}mi)
+      return unless match
+
+      prompt = match[1].strip
+      swarm_path = project.default_config_path
+    end
+
     issue = payload["issue"]
     issue_title = issue["title"]
 
@@ -107,6 +121,7 @@ class GithubWebhooksController < ApplicationController
         user_login: user_login,
         issue_title: issue_title,
         start_background: true,
+        swarm_path: swarm_path,
       )
 
       if session.persisted?
@@ -136,11 +151,24 @@ class GithubWebhooksController < ApplicationController
     # Only process comments from configured GitHub user
     return unless user_login == Setting.github_username
 
-    # Check if comment starts with /swarm
-    match = comment_body&.match(%r{^/swarm\s+(.+)}mi)
-    return unless match
+    # Check for custom webhook commands first
+    webhook_command = project.find_webhook_command(comment_body)
 
-    prompt = match[1].strip
+    if webhook_command
+      # Extract arguments after the command
+      command = webhook_command["command"]
+      prompt = comment_body.strip.sub(/^#{Regexp.escape(command)}\s*/, "")
+      swarm_path = webhook_command["swarm_path"]
+
+      Rails.logger.info("Processing custom command #{command} with swarm #{swarm_path}")
+    else
+      # Fall back to default /swarm command
+      match = comment_body&.match(%r{^/swarm\s+(.+)}mi)
+      return unless match
+
+      prompt = match[1].strip
+      swarm_path = project.default_config_path
+    end
     pr = payload["pull_request"]
     pr_title = pr["title"]
 
@@ -180,6 +208,7 @@ class GithubWebhooksController < ApplicationController
         user_login: user_login,
         issue_title: pr_title,
         start_background: true,
+        swarm_path: swarm_path,
       )
 
       if session.persisted?
@@ -207,11 +236,24 @@ class GithubWebhooksController < ApplicationController
     # Only process reviews from configured GitHub user
     return unless user_login == Setting.github_username
 
-    # Check if review body starts with /swarm
-    match = review_body&.match(%r{^/swarm\s+(.+)}mi)
-    return unless match
+    # Check for custom webhook commands first
+    webhook_command = project.find_webhook_command(review_body)
 
-    prompt = match[1].strip
+    if webhook_command
+      # Extract arguments after the command
+      command = webhook_command["command"]
+      prompt = review_body.strip.sub(/^#{Regexp.escape(command)}\s*/, "")
+      swarm_path = webhook_command["swarm_path"]
+
+      Rails.logger.info("Processing custom command #{command} with swarm #{swarm_path}")
+    else
+      # Fall back to default /swarm command
+      match = review_body&.match(%r{^/swarm\s+(.+)}mi)
+      return unless match
+
+      prompt = match[1].strip
+      swarm_path = project.default_config_path
+    end
     pr = payload["pull_request"]
     pr_title = pr["title"]
     review_state = payload["review"]["state"] # approved, changes_requested, commented
@@ -246,6 +288,7 @@ class GithubWebhooksController < ApplicationController
         user_login: user_login,
         issue_title: pr_title,
         start_background: true,
+        swarm_path: swarm_path,
       )
 
       if session.persisted?

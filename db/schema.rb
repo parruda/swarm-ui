@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_05_194029) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_06_011912) do
   create_table "file_viewer_sessions", force: :cascade do |t|
     t.integer "session_id", null: false
     t.string "viewer_id", null: false
@@ -111,6 +111,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_05_194029) do
     t.text "import_error"
     t.datetime "import_started_at"
     t.datetime "import_completed_at"
+    t.json "webhook_commands", default: []
     t.index ["archived"], name: "index_projects_on_archived"
     t.index ["import_status"], name: "index_projects_on_import_status"
     t.index ["path"], name: "index_projects_on_path", unique: true

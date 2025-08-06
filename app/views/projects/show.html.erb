@@ -53,6 +53,35 @@
       </div>
     </div>
 
+    <!-- Webhook Commands Warning -->
+    <% if @project.has_orphaned_webhook_commands? %>
+      <div class="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+        <div class="flex items-start">
+          <%= heroicon "exclamation-triangle", options: { class: "h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3 flex-shrink-0" } %>
+          <div class="flex-1">
+            <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+              Webhook Commands Need Attention
+            </h3>
+            <p class="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+              Some webhook commands are associated with swarm files that no longer exist.
+              <% orphaned = @project.orphaned_webhook_commands %>
+              <% if orphaned.any? %>
+                <span class="font-medium">
+                  Affected commands: <%= orphaned.map { |c| c["command"] }.join(", ") %>
+                </span>
+              <% end %>
+            </p>
+            <div class="mt-2">
+              <%= link_to "Manage Commands", 
+                          edit_project_webhook_commands_path(@project),
+                          data: { turbo_frame: "webhook_commands_modal" },
+                          class: "text-sm font-medium text-yellow-800 dark:text-yellow-200 hover:text-yellow-900 dark:hover:text-yellow-100 underline" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
     <!-- Project Details (formerly Overview tab content) -->
     <div class="bg-white dark:bg-gray-800 shadow dark:shadow-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors duration-200 mb-6">
       <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -201,3 +230,5 @@
     </div>
   </div>
 </div>
+
+<%= turbo_frame_tag "webhook_commands_modal" %>

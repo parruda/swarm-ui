@@ -67,6 +67,8 @@ Rails.application.routes.draw do
       post :check_file_exists
     end
 
+    resource :webhook_commands, only: [:edit, :update]
+
     # Nested swarm templates under projects - only for viewing/editing UI
     resources :swarm_templates, only: [:new, :edit, :destroy]
   end

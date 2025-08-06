@@ -59,7 +59,7 @@ SimpleForm.setup do |config|
 
     ## Inputs
     b.use(:label, class: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1")
-    b.use(:input, class: "block w-full px-3 py-2 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none focus:border-orange-500 dark:focus:border-orange-400 focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 sm:text-sm transition-colors duration-200", error_class: "border-red-300 dark:border-red-600 text-red-900 dark:text-red-400 placeholder-red-300 dark:placeholder-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-1 focus:ring-red-500 dark:focus:ring-red-400")
+    b.use(:input, class: "block w-full px-3 py-2 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none focus:border-orange-500 dark:focus:border-orange-400 focus:ring-0 sm:text-sm transition-colors duration-200", error_class: "border-red-300 dark:border-red-600 text-red-900 dark:text-red-400 placeholder-red-300 dark:placeholder-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-0")
     b.use(:hint,  wrap_with: { tag: :p, class: "mt-1 text-sm text-gray-500 dark:text-gray-400" })
     b.use(:error, wrap_with: { tag: :p, class: "mt-1 text-sm text-red-600 dark:text-red-400" })
 
@@ -80,7 +80,7 @@ SimpleForm.setup do |config|
     b.optional(:min_max)
     b.optional(:readonly)
     b.use(:label, class: "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100")
-    b.use(:input, class: "block w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:outline-none focus:border-orange-500 dark:focus:border-orange-400 focus:ring-1 focus:ring-orange-500 dark:focus:ring-orange-400 sm:text-sm sm:leading-6 transition-colors duration-200", error_class: "border-red-300 dark:border-red-600 text-red-900 dark:text-red-400 placeholder-red-300 dark:placeholder-red-400 focus:ring-1 focus:ring-red-500 dark:focus:ring-red-400 focus:border-red-500 dark:focus:border-red-400")
+    b.use(:input, class: "block w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:outline-none focus:border-orange-500 dark:focus:border-orange-400 focus:ring-0 sm:text-sm sm:leading-6 transition-colors duration-200", error_class: "border-red-300 dark:border-red-600 text-red-900 dark:text-red-400 placeholder-red-300 dark:placeholder-red-400 focus:ring-0 focus:border-red-500 dark:focus:border-red-400")
     b.use(:hint,  wrap_with: { tag: :p, class: "mt-1 text-sm text-gray-500 dark:text-gray-400" })
     b.use(:error, wrap_with: { tag: :p, class: "mt-1 text-sm text-red-600 dark:text-red-400" })
   end
@@ -90,7 +90,7 @@ SimpleForm.setup do |config|
     b.use(:html5)
     b.optional(:readonly)
     b.wrapper(tag: :div, class: "flex items-start") do |ba|
-      ba.use(:input, class: "mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 dark:text-orange-500 bg-white dark:bg-gray-700 focus:ring-orange-500 dark:focus:ring-orange-400")
+      ba.use(:input, class: "mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-orange-600 dark:text-orange-500 bg-white dark:bg-gray-700 focus:outline-none focus:ring-0")
       ba.wrapper(tag: :div, class: "ml-3") do |bb|
         bb.use(:label, class: "text-sm font-medium text-gray-700 dark:text-gray-300")
         bb.use(:hint,  wrap_with: { tag: :p, class: "text-sm text-gray-500 dark:text-gray-400" })
@@ -109,7 +109,7 @@ SimpleForm.setup do |config|
   config.boolean_style = :nested
 
   # Default class for buttons
-  config.button_class = "inline-flex justify-center rounded-md border border-transparent bg-orange-600 dark:bg-orange-900 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-orange-500 dark:hover:bg-orange-800 focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors duration-200"
+  config.button_class = "inline-flex justify-center rounded-md border border-transparent bg-orange-600 dark:bg-orange-900 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-orange-500 dark:hover:bg-orange-800 focus:outline-none focus:ring-0 transition-colors duration-200"
 
   # Method used to tidy up errors. Specify any Rails Array method.
   # :first lists the first message for each field.

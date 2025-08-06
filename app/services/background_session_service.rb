@@ -4,7 +4,7 @@ require "open3"
 
 class BackgroundSessionService
   class << self
-    def find_or_create_session(project:, issue_number: nil, pr_number: nil, issue_type: nil, initial_prompt:, user_login: nil, issue_title: nil, start_background: true)
+    def find_or_create_session(project:, issue_number: nil, pr_number: nil, issue_type: nil, initial_prompt:, user_login: nil, issue_title: nil, start_background: true, swarm_path: nil)
       # Try to find existing session for this issue/PR (if GitHub-related)
       session = if issue_number || pr_number
         find_existing_github_session(project, issue_number, pr_number)
@@ -22,6 +22,7 @@ class BackgroundSessionService
           initial_prompt: initial_prompt,
           user_login: user_login,
           issue_title: issue_title,
+          swarm_path: swarm_path,
         )
 
         # Start the session in background if requested
@@ -97,7 +98,7 @@ class BackgroundSessionService
 
     private
 
-    def create_session(project:, issue_number: nil, pr_number: nil, issue_type: nil, initial_prompt:, user_login: nil, issue_title: nil, session_name: nil)
+    def create_session(project:, issue_number: nil, pr_number: nil, issue_type: nil, initial_prompt:, user_login: nil, issue_title: nil, session_name: nil, swarm_path: nil)
       # Generate session name if not provided
       session_name ||= if issue_number || pr_number
         generate_github_session_name(project, issue_number, pr_number, issue_type, issue_title)
@@ -112,6 +113,9 @@ class BackgroundSessionService
         initial_prompt
       end
 
+      # Use provided swarm_path or fall back to project default
+      config_path = swarm_path || project.default_config_path
+
       Session.create!(
         project: project,
         swarm_name: session_name,
@@ -119,7 +123,7 @@ class BackgroundSessionService
         github_pr_number: pr_number,
         github_issue_type: issue_type,
         initial_prompt: full_prompt,
-        configuration_path: project.default_config_path,
+        configuration_path: config_path,
         use_worktree: project.default_use_worktree,
         environment_variables: project.environment_variables,
         session_id: SecureRandom.uuid,

@@ -7,6 +7,7 @@ class Project < ApplicationRecord
 
   # Attributes
   attribute :environment_variables, :json, default: -> { {} }
+  attribute :webhook_commands, :json, default: -> { [] }
 
   # Encryption
   encrypts :environment_variables
@@ -173,6 +174,42 @@ class Project < ApplicationRecord
 
   def selected_event_names
     github_webhook_events.enabled.pluck(:event_type).sort
+  end
+
+  # Webhook command methods
+  def find_webhook_command(text)
+    return unless webhook_commands.present?
+
+    webhook_commands.find do |cmd|
+      command = cmd["command"]
+      # Ensure command starts with /
+      command = "/#{command}" unless command.start_with?("/")
+      text.strip.start_with?(command)
+    end
+  end
+
+  def webhook_commands_with_validation
+    return [] unless webhook_commands.present?
+
+    available_swarms = find_swarm_files.map { |f| f[:relative_path] }
+
+    webhook_commands.map do |cmd|
+      cmd.merge(
+        "valid" => available_swarms.include?(cmd["swarm_path"]),
+      )
+    end
+  end
+
+  def has_orphaned_webhook_commands?
+    webhook_commands_with_validation.any? { |cmd| !cmd["valid"] }
+  end
+
+  def orphaned_webhook_commands
+    webhook_commands_with_validation.reject { |cmd| cmd["valid"] }
+  end
+
+  def normalize_webhook_command(command)
+    command.start_with?("/") ? command : "/#{command}"
   end
 
   # Import-related methods

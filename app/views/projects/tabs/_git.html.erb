@@ -209,11 +209,28 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Events: <%= project.selected_event_names.join(", ") %>
                 </p>
+                <% if project.webhook_commands.present? %>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Commands: <%= project.webhook_commands.map { |c| c["command"] }.join(", ") %>
+                    <% if project.has_orphaned_webhook_commands? %>
+                      <span class="text-yellow-600 dark:text-yellow-400">(some orphaned)</span>
+                    <% end %>
+                  </p>
+                <% end %>
               <% end %>
             </div>
             
             <div class="flex items-center gap-3">
-              <%= link_to edit_project_path(project, anchor: "webhook-configuration"), class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+              <%= link_to edit_project_webhook_commands_path(project), 
+                          data: { turbo_frame: "webhook_commands_modal" },
+                          class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
+                <%= heroicon "command-line", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
+                Manage Commands
+              <% end %>
+              
+              <%= link_to edit_project_path(project, anchor: "webhook-configuration"), 
+                          data: { turbo_frame: "_top" },
+                          class: "inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200" do %>
                 <%= heroicon "cog-6-tooth", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
                 Configure
               <% end %>

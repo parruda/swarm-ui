@@ -448,9 +448,9 @@ export default class extends Controller {
           
           // Update active state immediately
           fileList.querySelectorAll('.file-item').forEach(el => {
-            el.classList.remove('bg-blue-50', 'dark:bg-blue-900/20', 'border-l-2', 'border-blue-500')
+            el.classList.remove('bg-blue-50', 'dark:bg-blue-900/20')
           })
-          clickedItem.classList.add('bg-blue-50', 'dark:bg-blue-900/20', 'border-l-2', 'border-blue-500')
+          clickedItem.classList.add('bg-blue-50', 'dark:bg-blue-900/20')
           
           // Then show the file
           await this.showFile(index)
@@ -461,7 +461,7 @@ export default class extends Controller {
       if (data.files.length > 0) {
         const firstFile = fileList.querySelector('.file-item[data-file-index="0"]')
         if (firstFile) {
-          firstFile.classList.add('bg-blue-50', 'dark:bg-blue-900/20', 'border-l-2', 'border-blue-500')
+          firstFile.classList.add('bg-blue-50', 'dark:bg-blue-900/20')
         }
       }
     }

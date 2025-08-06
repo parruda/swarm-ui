@@ -5,9 +5,13 @@
         <div class="flex items-center space-x-3">
           <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
             <% if session.status == 'active' %>
-              <%= link_to session.swarm_name || "Session #{session.id}", session_path(session), class: "hover:text-orange-900 dark:hover:text-orange-400 transition-colors duration-200" %>
+              <%= link_to session.swarm_name || "Session #{session.id}", session_path(session), 
+                          data: { turbo_frame: "_top" },
+                          class: "hover:text-orange-900 dark:hover:text-orange-400 transition-colors duration-200" %>
             <% else %>
-              <%= link_to session.swarm_name || "Session #{session.id}", session_path(session, view_only: true), class: "hover:text-orange-900 dark:hover:text-orange-400 transition-colors duration-200" %>
+              <%= link_to session.swarm_name || "Session #{session.id}", session_path(session, view_only: true), 
+                          data: { turbo_frame: "_top" },
+                          class: "hover:text-orange-900 dark:hover:text-orange-400 transition-colors duration-200" %>
             <% end %>
           </h3>
           <span class="inline-flex items-center rounded-md <%= session.status == 'active' ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 ring-green-600/20 dark:ring-green-400/30' : (session.status == 'stopped' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-blue-600/20 dark:ring-blue-400/30' : 'bg-gray-50 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400 ring-gray-600/20 dark:ring-gray-400/30') %> px-2 py-1 text-xs font-medium ring-1 ring-inset flex-shrink-0">
@@ -72,23 +76,33 @@
 
     <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
       <% if session.status == 'active' %>
-        <%= link_to session_path(session), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", title: 'Attach' do %>
+        <%= link_to session_path(session), 
+                    data: { turbo_frame: "_top" },
+                    class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", 
+                    title: 'Attach' do %>
           <%= heroicon 'command-line', variant: :solid, options: { class: "h-4 w-4 mr-1.5" } %>
           Attach
         <% end %>
       <% elsif session.status == 'stopped' %>
-        <%= link_to session_path(session), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", title: 'Resume' do %>
+        <%= link_to session_path(session), 
+                    data: { turbo_frame: "_top" },
+                    class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", 
+                    title: 'Resume' do %>
           <%= heroicon 'play', variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
           Resume
         <% end %>
       <% end %>
       <% if session.status != 'active' %>
-        <%= link_to session_path(session, view_only: true), class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", title: "View session information" do %>
+        <%= link_to session_path(session, view_only: true), 
+                    data: { turbo_frame: "_top" },
+                    class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", 
+                    title: "View session information" do %>
           <%= heroicon 'information-circle', variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
           Info
         <% end %>
       <% end %>
       <%= link_to clone_session_path(session), 
+          data: { turbo_frame: "_top" },
           class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", 
           title: "Use this session as a template for a new session" do %>
         <%= heroicon "document-duplicate", variant: :mini, options: { class: "h-4 w-4 mr-1.5" } %>
@@ -98,7 +112,8 @@
         <%= link_to kill_session_path(session), 
             data: { 
               "turbo-method": "post",
-              "turbo-confirm": "Are you sure you want to kill this session?"
+              "turbo-confirm": "Are you sure you want to kill this session?",
+              "turbo-frame": "_top"
             }, 
             class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-red-600 dark:text-red-400 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200", 
             title: "Kill session" do %>
@@ -109,7 +124,8 @@
         <%= link_to archive_session_path(session), 
             data: { 
               "turbo-method": "post",
-              "turbo-confirm": "Are you sure you want to archive this session?"
+              "turbo-confirm": "Are you sure you want to archive this session?",
+              "turbo-frame": "_top"
             }, 
             class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200", 
             title: "Archive session" do %>
@@ -120,7 +136,8 @@
         <%= link_to unarchive_session_path(session), 
             data: { 
               "turbo-method": "post",
-              "turbo-confirm": "Are you sure you want to unarchive this session?"
+              "turbo-confirm": "Are you sure you want to unarchive this session?",
+              "turbo-frame": "_top"
             }, 
             class: "inline-flex items-center justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200", 
             title: "Unarchive session" do %>

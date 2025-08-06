@@ -2,7 +2,9 @@
   <div class="sm:flex sm:items-center sm:justify-between mb-4">
     <h2 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100">Active Sessions</h2>
     <div class="mt-3 sm:mt-0">
-      <%= link_to sessions_path(project_id: project.id), class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300" do %>
+      <%= link_to sessions_path(project_id: project.id), 
+                  data: { turbo_frame: "_top" },
+                  class: "text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300" do %>
         View all sessions →
       <% end %>
     </div>
@@ -20,7 +22,9 @@
       <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">No active sessions</h3>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Sessions running for this project will appear here.</p>
       <div class="mt-6">
-        <%= link_to new_session_path(project_id: project.id), class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
+        <%= link_to new_session_path(project_id: project.id), 
+                    data: { turbo_frame: "_top" },
+                    class: "inline-flex items-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 transition-colors duration-200" do %>
           <%= heroicon "plus", variant: :mini, options: { class: "h-4 w-4 mr-1" } %>
           Create Session
         <% end %>

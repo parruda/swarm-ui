@@ -79,6 +79,7 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+  gem "cuprite" # Faster JavaScript testing with Chrome DevTools Protocol
 end
 
 gem "dotenv-rails"

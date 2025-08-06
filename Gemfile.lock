@@ -121,6 +121,9 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
+    cuprite (0.17)
+      capybara (~> 3.0)
+      ferrum (~> 0.17.0)
     date (3.4.1)
     debug (1.11.0)
       irb (~> 1.10)
@@ -189,6 +192,12 @@ GEM
       json (~> 2.0)
       mime-types (~> 3.4)
       rack (< 3)
+    ferrum (0.17.1)
+      addressable (~> 2.5)
+      base64 (~> 0.2)
+      concurrent-ruby (~> 1.1)
+      webrick (~> 1.7)
+      websocket-driver (~> 0.7)
     fiber-annotation (0.2.0)
     fiber-local (1.1.0)
       fiber-storage
@@ -514,6 +523,7 @@ DEPENDENCIES
   claude-code-sdk-ruby
   claude_swarm (~> 0.3.0)
   connection_pool (~> 2.4)
+  cuprite
   debug
   dotenv-rails
   factory_bot_rails

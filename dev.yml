@@ -32,6 +32,10 @@ up:
       migrate: bin/bundle exec rails db:migrate db:test:prepare
       vendor: sqlite3
       database: storage/development.sqlite3
+  - custom:
+      name: "GitHub CLI authentication"
+      met?: "gh auth status >/dev/null 2>&1"
+      meet: "gh auth login"
 commands:
   server:
     aliases: ["s"]

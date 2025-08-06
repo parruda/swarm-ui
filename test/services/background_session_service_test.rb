@@ -11,6 +11,7 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
       project: @project,
       github_issue_number: 123,
       status: "active",
+      configuration_path: "/path/to/config.yaml",
     )
   end
 
@@ -31,7 +32,7 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
   end
 
   test "finds existing session for PR" do
-    pr_session = create(:session, project: @project, github_pr_number: 456, status: "active")
+    pr_session = create(:session, project: @project, github_pr_number: 456, status: "active", configuration_path: "/path/to/config.yaml")
 
     session = BackgroundSessionService.find_or_create_session(
       project: @project,
@@ -224,9 +225,10 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
       github_issue_number: 123,
       status: "active",
       created_at: 2.days.ago,
+      configuration_path: "/path/to/config.yaml",
     )
 
-    result = BackgroundSessionService.find_existing_github_session(@project, 123, nil)
+    result = BackgroundSessionService.find_existing_github_session(@project, 123, nil, "/path/to/config.yaml")
 
     assert_equal @existing_session, result # Should return the newer one
   end
@@ -262,6 +264,62 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
     result = BackgroundSessionService.find_existing_github_session(@project, nil, nil)
 
     assert_nil result
+  end
+
+  test "finds session matching configuration path when provided" do
+    # Create two sessions for the same issue but different swarms
+    session_with_review = create(
+      :session,
+      project: @project,
+      github_issue_number: 777,
+      configuration_path: "swarms/review.yml",
+      status: "active",
+    )
+    session_with_test = create(
+      :session,
+      project: @project,
+      github_issue_number: 777,
+      configuration_path: "swarms/test.yml",
+      status: "active",
+    )
+
+    # Should find the review session when searching with review config
+    result = BackgroundSessionService.find_existing_github_session(@project, 777, nil, "swarms/review.yml")
+    assert_equal session_with_review, result
+
+    # Should find the test session when searching with test config
+    result = BackgroundSessionService.find_existing_github_session(@project, 777, nil, "swarms/test.yml")
+    assert_equal session_with_test, result
+
+    # Should return nil when searching with different config
+    result = BackgroundSessionService.find_existing_github_session(@project, 777, nil, "swarms/other.yml")
+    assert_nil result
+  end
+
+  test "creates separate sessions for same issue with different swarms" do
+    # First session with default swarm
+    session1 = BackgroundSessionService.find_or_create_session(
+      project: @project,
+      issue_number: 555,
+      initial_prompt: "Review this",
+      start_background: false,
+      swarm_path: "swarms/review.yml",
+    )
+    
+    # Second session with test swarm for same issue
+    session2 = BackgroundSessionService.find_or_create_session(
+      project: @project,
+      issue_number: 555,
+      initial_prompt: "Test this",
+      start_background: false,
+      swarm_path: "swarms/test.yml",
+    )
+
+    refute_equal session1, session2
+    assert_equal "swarms/review.yml", session1.configuration_path
+    assert_equal "swarms/test.yml", session2.configuration_path
+    assert_equal 555, session1.github_issue_number
+    assert_equal 555, session2.github_issue_number
   end
 
   # Private method tests (testing through public interface)

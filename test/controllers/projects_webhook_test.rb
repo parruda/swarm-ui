@@ -23,7 +23,10 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
     # The view calls this method multiple times
     Setting.stubs(:github_username_configured?).returns(true)
 
-    post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
+    post toggle_webhook_project_path(@project), headers: { 
+      "HTTP_REFERER" => project_path(@project),
+      "Turbo-Frame" => "webhook-toggle"
+    }
 
     assert_response :success
     assert_equal "GitHub webhooks enabled. The webhook forwarder will start shortly.", flash[:notice]
@@ -41,7 +44,10 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
     # The view calls this method multiple times
     Setting.stubs(:github_username_configured?).returns(true)
 
-    post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
+    post toggle_webhook_project_path(@project), headers: { 
+      "HTTP_REFERER" => project_path(@project),
+      "Turbo-Frame" => "webhook-toggle"
+    }
 
     assert_response :success
     assert_equal "GitHub webhooks disabled.", flash[:notice]
@@ -53,7 +59,10 @@ class ProjectsWebhookTest < ActionDispatch::IntegrationTest
   test "toggle_webhook shows alert if github not configured" do
     @project.update!(github_repo_owner: nil)
 
-    post toggle_webhook_project_path(@project), headers: { "HTTP_REFERER" => project_path(@project) }
+    post toggle_webhook_project_path(@project), headers: { 
+      "HTTP_REFERER" => project_path(@project),
+      "Turbo-Frame" => "webhook-toggle"
+    }
 
     assert_response :success
     assert_equal "Please configure GitHub repository information first.", flash[:alert]

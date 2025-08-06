@@ -5,15 +5,18 @@ require "open3"
 class BackgroundSessionService
   class << self
     def find_or_create_session(project:, issue_number: nil, pr_number: nil, issue_type: nil, initial_prompt:, user_login: nil, issue_title: nil, start_background: true, swarm_path: nil)
+      # Use provided swarm_path or fall back to project default
+      config_path = swarm_path || project.default_config_path
+      
       # Try to find existing session for this issue/PR (if GitHub-related)
       session = if issue_number || pr_number
-        find_existing_github_session(project, issue_number, pr_number)
+        find_existing_github_session(project, issue_number, pr_number, config_path)
       end
 
       if session
-        Rails.logger.info("Found existing session #{session.id} for #{issue_type} ##{issue_number || pr_number}")
+        Rails.logger.info("Found existing session #{session.id} for #{issue_type} ##{issue_number || pr_number} using swarm: #{config_path}")
       else
-        Rails.logger.info("Creating new session#{issue_type ? " for #{issue_type} ##{issue_number || pr_number}" : ""}")
+        Rails.logger.info("Creating new session#{issue_type ? " for #{issue_type} ##{issue_number || pr_number}" : ""} using swarm: #{config_path}")
         session = create_session(
           project: project,
           issue_number: issue_number,
@@ -22,7 +25,7 @@ class BackgroundSessionService
           initial_prompt: initial_prompt,
           user_login: user_login,
           issue_title: issue_title,
-          swarm_path: swarm_path,
+          swarm_path: config_path,
         )
 
         # Start the session in background if requested
@@ -81,7 +84,7 @@ class BackgroundSessionService
       send_comment_to_session(session, new_prompt, user_login: user_login)
     end
 
-    def find_existing_github_session(project, issue_number, pr_number)
+    def find_existing_github_session(project, issue_number, pr_number, configuration_path = nil)
       scope = project.sessions
 
       if pr_number
@@ -90,6 +93,12 @@ class BackgroundSessionService
         scope = scope.where(github_issue_number: issue_number)
       else
         return
+      end
+
+      # Also filter by configuration_path if provided
+      # This ensures sessions are unique per GitHub entity AND swarm configuration
+      if configuration_path
+        scope = scope.where(configuration_path: configuration_path)
       end
 
       # Get the most recent session (active or stopped)
@@ -113,8 +122,8 @@ class BackgroundSessionService
         initial_prompt
       end
 
-      # Use provided swarm_path or fall back to project default
-      config_path = swarm_path || project.default_config_path
+      # swarm_path should already be set by the caller
+      config_path = swarm_path
 
       Session.create!(
         project: project,

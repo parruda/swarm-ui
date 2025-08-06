@@ -95,8 +95,8 @@ class GithubWebhooksController < ApplicationController
 
     Rails.logger.info("Processing /swarm comment from #{user_login} for #{issue_type} ##{issue["number"]}: #{prompt}")
 
-    # Find or create session
-    existing_session = BackgroundSessionService.find_existing_github_session(project, issue_number, pr_number)
+    # Find or create session - now includes swarm_path for uniqueness
+    existing_session = BackgroundSessionService.find_existing_github_session(project, issue_number, pr_number, swarm_path)
 
     if existing_session
       Rails.logger.info("Found existing session #{existing_session.id} for #{issue_type} ##{issue["number"]}")
@@ -183,8 +183,8 @@ class GithubWebhooksController < ApplicationController
 
     Rails.logger.info("Processing /swarm review comment from #{user_login} for PR ##{pr["number"]}: #{prompt}")
 
-    # Find or create session
-    existing_session = BackgroundSessionService.find_existing_github_session(project, nil, pr["number"])
+    # Find or create session - now includes swarm_path for uniqueness
+    existing_session = BackgroundSessionService.find_existing_github_session(project, nil, pr["number"], swarm_path)
 
     if existing_session
       Rails.logger.info("Found existing session #{existing_session.id} for PR ##{pr["number"]}")
@@ -263,8 +263,8 @@ class GithubWebhooksController < ApplicationController
 
     Rails.logger.info("Processing /swarm review from #{user_login} for PR ##{pr["number"]}: #{prompt}")
 
-    # Find or create session
-    existing_session = BackgroundSessionService.find_existing_github_session(project, nil, pr["number"])
+    # Find or create session - now includes swarm_path for uniqueness
+    existing_session = BackgroundSessionService.find_existing_github_session(project, nil, pr["number"], swarm_path)
 
     if existing_session
       Rails.logger.info("Found existing session #{existing_session.id} for PR ##{pr["number"]}")

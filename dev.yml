@@ -23,6 +23,10 @@ up:
       name: "Install gh webhooks extension"
       met?: "gh extension list | grep -q 'cli/gh-webhook'"
       meet: "gh extension install cli/gh-webhook"
+  - custom:
+      name: "Setup Rails credentials"
+      met?: "test -f config/master.key && test -f config/credentials.yml.enc"
+      meet: "bin/setup --skip-database --skip-server"
   - database:
       bootstrap: bin/bundle exec rails db:schema:load
       migrate: bin/bundle exec rails db:migrate db:test:prepare

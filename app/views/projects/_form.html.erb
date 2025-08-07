@@ -124,8 +124,9 @@
     <div class="space-y-2">
       <label class="text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Environment Variables</label>
       <div data-controller="environment-variables">
-        <!-- Hidden field to ensure environment_variables is always sent -->
-        <input type="hidden" name="project[environment_variables]" value="">
+        <!-- Hidden field to establish environment_variables as a hash structure -->
+        <input type="hidden" name="project[environment_variables][__placeholder__][key]" value="">
+        <input type="hidden" name="project[environment_variables][__placeholder__][value]" value="">
         <div data-environment-variables-target="container" class="space-y-2">
           <% if project.environment_variables.present? %>
             <% project.environment_variables.each do |key, value| %>

@@ -392,7 +392,9 @@ class ProjectsController < ApplicationController
     if params[:project].key?(:environment_variables)
       env_vars = {}
       if params[:project][:environment_variables].present?
-        params[:project][:environment_variables].each do |_, var_data|
+        params[:project][:environment_variables].each do |key, var_data|
+          # Skip placeholder entry
+          next if key == "__placeholder__"
           next unless var_data[:key].present? && var_data[:value].present?
 
           env_vars[var_data[:key]] = var_data[:value]

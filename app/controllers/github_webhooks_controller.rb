@@ -72,7 +72,8 @@ class GithubWebhooksController < ApplicationController
       # Extract arguments after the command
       command = webhook_command["command"]
       prompt = comment_body.strip.sub(/^#{Regexp.escape(command)}\s*/, "")
-      swarm_path = webhook_command["swarm_path"]
+      # Convert relative path to absolute path
+      swarm_path = File.join(project.path, webhook_command["swarm_path"])
 
       Rails.logger.info("Processing custom command #{command} with swarm #{swarm_path}")
     else
@@ -81,7 +82,9 @@ class GithubWebhooksController < ApplicationController
       return unless match
 
       prompt = match[1].strip
+      # Ensure default_config_path returns absolute path
       swarm_path = project.default_config_path
+      swarm_path = File.join(project.path, swarm_path) unless swarm_path.start_with?("/")
     end
 
     issue = payload["issue"]
@@ -154,7 +157,8 @@ class GithubWebhooksController < ApplicationController
       # Extract arguments after the command
       command = webhook_command["command"]
       prompt = comment_body.strip.sub(/^#{Regexp.escape(command)}\s*/, "")
-      swarm_path = webhook_command["swarm_path"]
+      # Convert relative path to absolute path
+      swarm_path = File.join(project.path, webhook_command["swarm_path"])
 
       Rails.logger.info("Processing custom command #{command} with swarm #{swarm_path}")
     else
@@ -163,7 +167,9 @@ class GithubWebhooksController < ApplicationController
       return unless match
 
       prompt = match[1].strip
+      # Ensure default_config_path returns absolute path
       swarm_path = project.default_config_path
+      swarm_path = File.join(project.path, swarm_path) unless swarm_path.start_with?("/")
     end
     pr = payload["pull_request"]
     pr_title = pr["title"]
@@ -235,7 +241,8 @@ class GithubWebhooksController < ApplicationController
       # Extract arguments after the command
       command = webhook_command["command"]
       prompt = review_body.strip.sub(/^#{Regexp.escape(command)}\s*/, "")
-      swarm_path = webhook_command["swarm_path"]
+      # Convert relative path to absolute path
+      swarm_path = File.join(project.path, webhook_command["swarm_path"])
 
       Rails.logger.info("Processing custom command #{command} with swarm #{swarm_path}")
     else
@@ -244,7 +251,9 @@ class GithubWebhooksController < ApplicationController
       return unless match
 
       prompt = match[1].strip
+      # Ensure default_config_path returns absolute path
       swarm_path = project.default_config_path
+      swarm_path = File.join(project.path, swarm_path) unless swarm_path.start_with?("/")
     end
     pr = payload["pull_request"]
     pr_title = pr["title"]

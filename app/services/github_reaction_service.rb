@@ -1,15 +1,37 @@
 # frozen_string_literal: true
 
 require "open3"
+require "uri"
 
 class GithubReactionService
   class << self
+    # Extracts the numeric comment ID from various GitHub URL formats using proper URI parsing
+    # Handles:
+    # - API URLs: https://api.github.com/repos/owner/repo/issues/comments/123456 → 123456
+    # - Web URLs with anchors: https://github.com/owner/repo/issues/1#issuecomment-888 → 888
+    # - PR review comments: https://github.com/owner/repo/pull/1#discussion_r123456 → 123456
+    def extract_comment_id_from_url(url)
+      uri = URI(url)
+
+      # Check if URL has a fragment (part after #)
+      if uri.fragment
+        # Extract numeric ID from fragment
+        # Handles patterns like "issuecomment-123456" or "discussion_r789012"
+        uri.fragment.gsub(/\D/, "")
+      else
+        # For API URLs or simple paths, extract the last path segment
+        uri.path.split("/").last
+      end
+    rescue URI::InvalidURIError
+      # Fallback for non-URI strings (e.g., simple paths)
+      url.split("/").last
+    end
+
     def add_thumbs_up_to_comment(repo_full_name, comment_url)
       Rails.logger.info("Adding thumbs up reaction to comment: #{comment_url}")
 
-      # Extract comment ID from the URL
-      # URL format: https://api.github.com/repos/owner/repo/issues/comments/123456
-      comment_id = comment_url.split("/").last
+      # Extract comment ID from the URL (handles both API and web URLs)
+      comment_id = extract_comment_id_from_url(comment_url)
       # Sanitize comment_id to ensure it's numeric
       sanitized_comment_id = InputSanitizer.sanitize_numeric_id(comment_id)
 
@@ -45,9 +67,8 @@ class GithubReactionService
     def add_thumbs_up_to_pr_review_comment(repo_full_name, comment_url)
       Rails.logger.info("Adding thumbs up reaction to PR review comment: #{comment_url}")
 
-      # Extract comment ID from the URL
-      # URL format: https://api.github.com/repos/owner/repo/pulls/comments/123456
-      comment_id = comment_url.split("/").last
+      # Extract comment ID from the URL (handles both API and web URLs)
+      comment_id = extract_comment_id_from_url(comment_url)
       # Sanitize comment_id to ensure it's numeric
       sanitized_comment_id = InputSanitizer.sanitize_numeric_id(comment_id)
 

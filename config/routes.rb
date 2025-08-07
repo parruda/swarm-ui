@@ -72,7 +72,7 @@ Rails.application.routes.draw do
     resource :webhook_commands, only: [:edit, :update]
 
     # Nested swarm templates under projects - only for viewing/editing UI
-    resources :swarm_templates, only: [:new, :edit, :destroy]
+    resources :swarm_templates, only: [:new, :create, :edit, :destroy]
   end
 
   resources :instance_templates do

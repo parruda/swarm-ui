@@ -7,20 +7,49 @@ class SwarmTemplatesController < ApplicationController
   def new
     # Require project context for creating new swarm templates
     @project = Project.find(params[:project_id])
+    # Render the intermediate page for entering swarm name
+  rescue ActiveRecord::RecordNotFound
+    redirect_to(projects_path, alert: "Please select a project to create a swarm template.")
+  end
 
-    # For project files, use simple data structure
-    @swarm_data = {
-      name: "",
-      yaml_content: "",
-      visual_data: {
-        project_id: @project.id,
-        project_name: @project.name,
-        project_path: @project.path,
-        is_new_file: true,
+  def create
+    # Require project context for creating new swarm templates
+    @project = Project.find(params[:project_id])
+
+    swarm_name = params[:swarm_name]
+    if swarm_name.blank?
+      redirect_to(new_project_swarm_template_path(@project), alert: "Swarm name is required.")
+      return
+    end
+
+    # Generate filename from swarm name
+    filename = swarm_name.downcase.gsub(/\s+/, "-").gsub(/[^a-z0-9\-_]/, "") + ".yml"
+    file_path = File.join(@project.path, filename)
+
+    # Check if file already exists
+    if File.exist?(file_path)
+      redirect_to(new_project_swarm_template_path(@project), alert: "A file with this name already exists.")
+      return
+    end
+
+    # Create initial YAML content
+    yaml_content = {
+      "version" => 1,
+      "swarm" => {
+        "name" => swarm_name,
+        "instances" => {},
       },
     }
-    @instance_templates = InstanceTemplate.ordered
-    render("visual_file_editor")
+
+    # Write the file
+    begin
+      File.write(file_path, yaml_content.to_yaml)
+
+      # Redirect to the visual editor
+      redirect_to(edit_swarm_file_project_path(@project, file_path: file_path))
+    rescue StandardError => e
+      redirect_to(new_project_swarm_template_path(@project), alert: "Failed to create swarm file: #{e.message}")
+    end
   rescue ActiveRecord::RecordNotFound
     redirect_to(projects_path, alert: "Please select a project to create a swarm template.")
   end

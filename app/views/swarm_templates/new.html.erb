@@ -1,0 +1,132 @@
+<% content_for :title, "New Swarm Configuration" %>
+
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Breadcrumb navigation -->
+    <div class="mb-8">
+      <nav class="flex mb-4" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-4">
+          <li>
+            <div>
+              <%= link_to projects_path, class: "text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400" do %>
+                <%= heroicon "folder", variant: :outline, options: { class: "h-5 w-5 flex-shrink-0" } %>
+              <% end %>
+            </div>
+          </li>
+          <li>
+            <div class="flex items-center">
+              <%= heroicon "chevron-right", variant: :solid, options: { class: "h-5 w-5 flex-shrink-0 text-gray-400" } %>
+              <%= link_to @project.name, project_path(@project), class: "ml-4 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" %>
+            </div>
+          </li>
+          <li>
+            <div class="flex items-center">
+              <%= heroicon "chevron-right", variant: :solid, options: { class: "h-5 w-5 flex-shrink-0 text-gray-400" } %>
+              <span class="ml-4 text-sm font-medium text-gray-500 dark:text-gray-400">New Swarm</span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+    </div>
+
+    <!-- Main card -->
+    <div class="bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden">
+      <!-- Header -->
+      <div class="bg-gray-100 dark:bg-gray-700 px-8 py-6">
+        <div class="flex items-center">
+          <%= heroicon "beaker", variant: :solid, options: { class: "h-8 w-8 text-gray-600 dark:text-gray-300 mr-3" } %>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Create New Swarm</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Define your swarm configuration name</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <%= form_with url: project_swarm_templates_path(@project), method: :post, local: true, 
+                    data: { controller: "swarm-name-preview" } do |form| %>
+        <div class="p-8">
+          <!-- Name input -->
+          <div class="mb-8">
+            <%= form.label :swarm_name, "Swarm Name", class: "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" %>
+            <%= form.text_field :swarm_name, 
+                                placeholder: "My Awesome Swarm",
+                                required: true,
+                                autofocus: true,
+                                data: { 
+                                  swarm_name_preview_target: "nameInput",
+                                  action: "input->swarm-name-preview#updatePreview"
+                                },
+                                class: "w-full px-4 py-3 text-lg border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-gray-400 dark:focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400/20 dark:focus:ring-gray-500/20 transition-all" %>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Enter a descriptive name for your swarm configuration
+            </p>
+          </div>
+
+          <!-- File preview -->
+          <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 border-2 border-gray-200 dark:border-gray-700">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+              <%= heroicon "document-text", variant: :outline, options: { class: "h-4 w-4 mr-2" } %>
+              File Preview
+            </h3>
+            
+            <div class="space-y-3">
+              <!-- File path -->
+              <div>
+                <label class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</label>
+                <div class="mt-1 font-mono text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded px-3 py-2 border border-gray-200 dark:border-gray-600">
+                  <span class="text-gray-500 dark:text-gray-400"><%= @project.path %>/</span><span data-swarm-name-preview-target="filename" class="text-gray-900 dark:text-gray-100 font-semibold">swarm-config.yml</span>
+                </div>
+              </div>
+
+              <!-- YAML preview -->
+              <div>
+                <label class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Initial Content</label>
+                <div class="mt-1 font-mono text-xs text-gray-700 dark:text-gray-300 bg-gray-900 dark:bg-black rounded px-4 py-3 border border-gray-200 dark:border-gray-600">
+                  <pre class="text-gray-300"><span class="text-blue-400">version:</span> <span class="text-yellow-400">1</span>
+<span class="text-blue-400">swarm:</span>
+  <span class="text-blue-400">name:</span> <span class="text-green-400" data-swarm-name-preview-target="yamlName">My Awesome Swarm</span>
+  <span class="text-blue-400">instances:</span> <span class="text-gray-500">{}</span></pre>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <div class="flex">
+                <%= heroicon "information-circle", variant: :solid, options: { class: "h-5 w-5 text-blue-400 mr-2 flex-shrink-0 mt-0.5" } %>
+                <div class="text-sm text-blue-700 dark:text-blue-300">
+                  <p>The file will be created in your project directory with the initial YAML structure.</p>
+                  <p class="mt-1">You'll be redirected to the visual editor to add instances and configure your swarm.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Flash messages -->
+          <% if flash[:alert] %>
+            <div class="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div class="flex">
+                <%= heroicon "exclamation-triangle", variant: :solid, options: { class: "h-5 w-5 text-red-400 mr-2" } %>
+                <p class="text-sm text-red-700 dark:text-red-300"><%= flash[:alert] %></p>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Actions -->
+        <div class="px-8 py-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div>
+            <%= link_to "Cancel", 
+                        project_path(@project), 
+                        class: "px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 transition-all" %>
+          </div>
+          
+          <div>
+            <%= form.submit "Create Swarm", 
+                            class: "px-6 py-2.5 text-sm font-semibold text-white bg-orange-900 dark:bg-orange-900 rounded-lg hover:bg-orange-800 dark:hover:bg-orange-800 focus:outline-none focus:ring-2 focus:ring-orange-900 dark:focus:ring-orange-900 transition-all shadow-sm cursor-pointer" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -1,15 +1,11 @@
 # frozen_string_literal: true
 
 class SwarmTemplatesController < ApplicationController
-  before_action :set_project, only: []
   before_action :set_swarm_template, only: [:edit, :destroy]
 
   def new
-    # Require project context for creating new swarm templates
+    # Project context is required by routing - params[:project_id] will always be present
     @project = Project.find(params[:project_id])
-    # Render the intermediate page for entering swarm name
-  rescue ActiveRecord::RecordNotFound
-    redirect_to(projects_path, alert: "Please select a project to create a swarm template.")
   end
 
   def create
@@ -92,10 +88,6 @@ class SwarmTemplatesController < ApplicationController
   end
 
   private
-
-  def set_project
-    @project = Project.find(params[:project_id]) if params[:project_id]
-  end
 
   def set_swarm_template
     @swarm_template = SwarmTemplate.find(params[:id])

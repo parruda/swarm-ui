@@ -6,6 +6,12 @@ class TerminalSessionTest < ActiveSupport::TestCase
   setup do
     @session = create(:session)
     @terminal = create(:terminal_session, session: @session)
+    @env_port = ENV["TTYD_PORT"]
+    ENV["TTYD_PORT"] = "4444"
+  end
+
+  teardown do
+    ENV["TTYD_PORT"] = @env_port
   end
 
   # Validation tests
@@ -124,13 +130,16 @@ class TerminalSessionTest < ActiveSupport::TestCase
 
     url = @terminal.terminal_url
 
-    assert url.start_with?("http://127.0.0.1:4268/?")
-    assert_includes url, "arg="
+    uri = URI.parse(url)
+
+    assert_equal "http", uri.scheme
+    assert_equal "127.0.0.1", uri.host
+    assert_equal 4444, uri.port
+    assert_equal "/", uri.path
 
     # Decode and verify payload
-    query_string = url.split("?", 2).last
-    args = query_string.split("&").map { |param| param.split("=", 2).last }
-    encoded_payload = args.join
+    query_args = Rack::Utils.parse_query(uri.query)
+    encoded_payload = query_args["arg"]&.join # query_args is a hash of arrays
     payload = JSON.parse(Base64.urlsafe_decode64(encoded_payload))
 
     assert_equal "terminal", payload["mode"]

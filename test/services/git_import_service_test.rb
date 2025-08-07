@@ -230,8 +230,9 @@ class GitImportServiceTest < ActiveSupport::TestCase
     path = "/some/path"
 
     Dir.expects(:chdir).with(path).yields
-    service.expects(:`).with("git config --get remote.origin.url 2>&1").returns(@https_url)
-    service.stubs(:$CHILD_STATUS).returns(stub(success?: true))
+    Open3.expects(:capture3).with("git", "config", "--get", "remote.origin.url").returns(
+      [@https_url, "", stub(success?: true)],
+    )
 
     assert service.same_repository?(path)
   end
@@ -244,8 +245,9 @@ class GitImportServiceTest < ActiveSupport::TestCase
 
     Dir.expects(:chdir).with(path).yields
     # Return SSH format URL but for same repo
-    service.expects(:`).with("git config --get remote.origin.url 2>&1").returns(@ssh_url)
-    service.stubs(:$CHILD_STATUS).returns(stub(success?: true))
+    Open3.expects(:capture3).with("git", "config", "--get", "remote.origin.url").returns(
+      [@ssh_url, "", stub(success?: true)],
+    )
 
     assert service.same_repository?(path)
   end
@@ -255,8 +257,9 @@ class GitImportServiceTest < ActiveSupport::TestCase
     path = "/some/path"
 
     Dir.expects(:chdir).with(path).yields
-    service.expects(:`).with("git config --get remote.origin.url 2>&1").returns("https://github.com/different/repo.git")
-    service.stubs(:$CHILD_STATUS).returns(stub(success?: true))
+    Open3.expects(:capture3).with("git", "config", "--get", "remote.origin.url").returns(
+      ["https://github.com/different/repo.git", "", stub(success?: true)],
+    )
 
     assert_not service.same_repository?(path)
   end
@@ -266,10 +269,41 @@ class GitImportServiceTest < ActiveSupport::TestCase
     path = "/some/path"
 
     Dir.expects(:chdir).with(path).yields
-    service.expects(:`).with("git config --get remote.origin.url 2>&1").returns("error")
-    service.stubs(:$CHILD_STATUS).returns(stub(success?: false))
+    Open3.expects(:capture3).with("git", "config", "--get", "remote.origin.url").returns(
+      ["", "error", stub(success?: false)],
+    )
 
     assert_not service.same_repository?(path)
+  end
+
+  test "Open3 is properly mockable for testing" do
+    # This test demonstrates that switching from %x to Open3 makes testing easier
+    # and addresses issue #83 - the inability to mock %x operator
+    service = GitImportService.new(@https_url)
+    target_path = "/test/path"
+
+    # The key point: We can mock Open3 methods, which was impossible with %x operator
+    # This makes the code testable without actually executing shell commands
+
+    # Test 1: Mock a successful git config call
+    Dir.expects(:chdir).with(target_path).yields
+    Open3.expects(:capture3).with("git", "config", "--get", "remote.origin.url").returns(
+      ["some-url", "", stub(success?: true)],
+    )
+
+    # We don't care about the result here, just that Open3 can be mocked
+    service.same_repository?(target_path)
+
+    # Test 2: Mock a failed git config call
+    Dir.expects(:chdir).with(target_path).yields
+    Open3.expects(:capture3).with("git", "config", "--get", "remote.origin.url").returns(
+      ["", "fatal: not a git repository", stub(success?: false)],
+    )
+
+    result = service.same_repository?(target_path)
+    assert_not result, "Should return false when git command fails"
+
+    # This proves Open3 is fully mockable, solving issue #83
   end
 
   test "handles exceptions in same_repository?" do

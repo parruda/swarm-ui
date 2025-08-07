@@ -36,11 +36,24 @@
           </div>
         </div>
         
-        <!-- Center section - now empty as fields moved to canvas -->
+        <!-- Center section - spacer -->
         <div class="flex-1"></div>
         
         <!-- Right section -->
         <div class="flex items-center gap-3 flex-shrink-0">
+          <!-- Swarm Name Input -->
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <%= heroicon "beaker", variant: :outline, options: { class: "h-5 w-5 text-gray-400" } %>
+            </div>
+            <input type="text"
+                   id="swarm_template_name"
+                   data-swarm-visual-builder-target="nameInput"
+                   data-action="input->swarm-visual-builder#updateYamlPreview"
+                   placeholder="Enter swarm name..."
+                   class="w-64 pl-10 pr-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:border-orange-500 dark:focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 dark:focus:ring-orange-400/20 transition-all shadow-sm hover:shadow-md">
+          </div>
+          
           <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-900 rounded-lg p-1">
             <!-- Import Dropdown -->
             <div class="relative inline-block text-left" data-controller="dropdown">
@@ -274,32 +287,6 @@
         </button>
       </div>
       
-      <!-- Floating form fields - top right -->
-      <div class="absolute top-4 right-4 flex items-center gap-3" style="z-index: 10;">
-        <!-- Swarm Name -->
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <%= heroicon "beaker", variant: :outline, options: { class: "h-5 w-5 text-gray-400" } %>
-          </div>
-          <input type="text"
-                 id="swarm_template_name"
-                 data-swarm-visual-builder-target="nameInput"
-                 data-action="input->swarm-visual-builder#updateYamlPreview"
-                 placeholder="Enter swarm name..."
-                 class="w-64 pl-10 pr-4 py-2.5 text-sm font-medium border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:border-orange-500 dark:focus:border-orange-400 focus:outline-none focus:ring-4 focus:ring-orange-500/20 dark:focus:ring-orange-400/20 transition-all shadow-lg">
-        </div>
-        
-        <!-- Tags -->
-        <div class="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 shadow-lg">
-          <%= heroicon "tag", variant: :outline, options: { class: "h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0" } %>
-          <input type="text"
-                 data-swarm-visual-builder-target="tagInput"
-                 data-action="keydown->swarm-visual-builder#addTag"
-                 placeholder="Add tags..."
-                 class="w-48 bg-transparent border-0 outline-none text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 px-0 py-0">
-          <div data-swarm-visual-builder-target="tagsContainer" class="flex items-center gap-2 flex-wrap flex-1 min-h-[20px]"></div>
-        </div>
-      </div>
     </div>
 
     <!-- Right Panel - Properties/YAML -->

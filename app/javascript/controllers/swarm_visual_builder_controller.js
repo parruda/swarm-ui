@@ -15,8 +15,6 @@ export default class extends Controller {
   static targets = [
     "canvas",
     "nameInput",
-    "tagInput",
-    "tagsContainer",
     "searchInput",
     "instanceTemplates",
     "propertiesPanel",
@@ -70,7 +68,6 @@ export default class extends Controller {
     this.yamlProcessor = new YamlProcessor(this)
     
     // Initialize state
-    this.tags = []
     this.selectedNodes = []
     this.selectedNode = null
     this.selectedConnection = null
@@ -1485,42 +1482,6 @@ export default class extends Controller {
     })
   }
   
-  // Tags operations
-  addTag(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      const tag = e.target.value.trim()
-      
-      if (tag && !this.tags.includes(tag)) {
-        this.tags.push(tag)
-        this.renderTags()
-        e.target.value = ''
-        this.updateYamlPreview()
-      }
-    }
-  }
-  
-  renderTags() {
-    this.tagsContainerTarget.innerHTML = this.tags.map(tag => `
-      <span class="inline-flex items-center gap-1 px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
-        ${tag}
-        <button type="button" 
-                data-tag="${tag}"
-                data-action="click->swarm-visual-builder#removeTag"
-                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-          ×
-        </button>
-      </span>
-    `).join('')
-  }
-  
-  removeTag(e) {
-    const tag = e.target.dataset.tag
-    this.tags = this.tags.filter(t => t !== tag)
-    this.renderTags()
-    this.updateYamlPreview()
-  }
-  
   // Load existing swarm
   loadExistingSwarm() {
     if (!this.existingDataValue && !this.existingYamlValue) return
@@ -1540,11 +1501,6 @@ export default class extends Controller {
         if (data.mainNodeId) {
           this.mainNodeId = data.mainNodeId
           this.updateMainNodeBadge(data.mainNodeId)
-        }
-        
-        if (data.tags) {
-          this.tags = data.tags
-          this.renderTags()
         }
         
         this.updateConnections()
@@ -1610,8 +1566,6 @@ export default class extends Controller {
     this.nodeKeyMap.clear()
     
     this.nameInputTarget.value = ''
-    this.tags = []
-    this.renderTags()
     
     this.updateConnections()
     this.uiComponents.updateEmptyState()

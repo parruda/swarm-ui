@@ -236,7 +236,6 @@ export default class YamlProcessor {
     // Handle claude-swarm format (version: 1, swarm: {...})
     let swarmData = null
     let swarmName = null
-    let tags = []
     
     if (data.version === 1 && data.swarm) {
       // Standard claude-swarm format
@@ -248,10 +247,6 @@ export default class YamlProcessor {
         if (value && typeof value === 'object' && value.instances) {
           swarmData = value
           swarmName = key
-          // Extract tags if present (SwarmUI-specific)
-          if (value.tags) {
-            tags = value.tags
-          }
           break
         }
       }
@@ -265,13 +260,9 @@ export default class YamlProcessor {
     // Clear existing canvas (skip confirmation for programmatic refresh)
     this.controller.clearAll(true)
     
-    // Set name and tags
+    // Set name
     if (swarmName) {
       this.controller.nameInputTarget.value = swarmName
-    }
-    if (tags.length > 0) {
-      this.controller.tags = tags
-      this.controller.renderTags()
     }
     
     // Import nodes

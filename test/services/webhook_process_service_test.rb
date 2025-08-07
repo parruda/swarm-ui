@@ -37,7 +37,7 @@ class WebhookProcessServiceTest < ActiveSupport::TestCase
   end
 
   test "start creates process when webhook enabled" do
-    Rails.application.routes.url_helpers.expects(:github_webhooks_url).returns("http://localhost:3000/webhooks")
+    Rails.application.routes.url_helpers.expects(:github_webhooks_url).returns("http://localhost:4269/webhooks")
 
     WebhookProcessService.start(@project)
 

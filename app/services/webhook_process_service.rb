@@ -42,8 +42,8 @@ class WebhookProcessService
 
         url = Rails.application.routes.url_helpers.github_webhooks_url(
           project_id: project.id,
-          host: ENV.fetch("WEBHOOK_HOST", "localhost"),
-          port: ENV.fetch("WEBHOOK_PORT", "3000"),
+          host: ENV.fetch("SWARMUI_HOST", "localhost"),
+          port: ENV.fetch("SWARMUI_PORT", "4269"),
         )
 
         # Use array form with separate arguments for safety

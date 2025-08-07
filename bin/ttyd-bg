@@ -4,6 +4,8 @@
 require "base64"
 require "json"
 require "shellwords"
+require "fileutils"
+require "time"
 
 # Get the base64 encoded argument
 encoded_arg = ARGV.join("")
@@ -36,6 +38,10 @@ end
 
 rails_root = File.expand_path("..", __dir__)
 status_script = File.join(rails_root, "bin", "update_session_status")
+log_file = File.join(rails_root, "tmp", "tmux-bg.log")
+
+# Ensure tmp directory exists
+FileUtils.mkdir_p(File.dirname(log_file))
 
 # Mark session as active before starting
 system(status_script, session_id, "active")
@@ -66,13 +72,46 @@ if environment_variables && !environment_variables.empty?
   end
 end
 
-puts "Starting background session: #{session_id}"
-puts "Tmux session: #{tmux_session_name}"
+# Log to file and console
+def log_message(log_file, message)
+  timestamp = Time.now.strftime("%Y-%m-%d %H:%M:%S")
+  log_entry = "[#{timestamp}] #{message}"
 
-# Start tmux session in detached mode
-system(env, "tmux", "-f", "config/tmux.conf", "new-session", "-d", "-s", tmux_session_name, command)
+  puts message
+  File.open(log_file, "a") do |f|
+    f.puts log_entry
+  end
+end
 
-puts "Background session started successfully"
+log_message(log_file, "=" * 60)
+log_message(log_file, "Starting background session: #{session_id}")
+log_message(log_file, "Tmux session: #{tmux_session_name}")
+log_message(log_file, "Working directory: #{project_path}")
+log_message(log_file, "Swarm file: #{swarm_file}")
+log_message(log_file, "Command: #{command}")
+
+# Create a wrapper command that logs failures
+wrapper_command = <<~BASH
+  #{command} || {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Claude-swarm command failed with exit code: $?" >> #{log_file}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Session ID: #{session_id}" >> #{log_file}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Command was: #{command}" >> #{log_file}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Working directory: $(pwd)" >> #{log_file}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ========================================" >> #{log_file}
+    exit $?
+  }
+BASH
+
+# Start tmux session in detached mode with the wrapper command
+success = system(env, "tmux", "-f", "config/tmux.conf", "new-session", "-d", "-s", tmux_session_name, "bash", "-c", wrapper_command)
+
+if success
+  log_message(log_file, "Background session started successfully")
+else
+  log_message(log_file, "Failed to start tmux session")
+  log_message(log_file, "=" * 60)
+  exit 1
+end
 
 # NOTE: We cannot mark as stopped here because tmux -d returns immediately
 # The session will remain active until manually stopped or claude-swarm exits

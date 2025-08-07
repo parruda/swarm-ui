@@ -1,5 +1,5 @@
-web: sleep 2 && bin/rails server -p $PORT
+web: sleep 2 && bin/rails server -p $SWARMUI_PORT
 css: bin/rails tailwindcss:watch
 redis: redis-server config/redis.conf
-ttyd: ttyd -i 127.0.0.1 -p $TTYD_PORT -W -a -t 'fontSize=14' -t 'macOptionClickForcesSelection=true' -t 'disableLeaveAlert=true' bin/ttyd
+ttyd: SWARMUI_PORT=$SWARMUI_PORT ttyd -i 127.0.0.1 -p $TTYD_PORT -W -a -t 'fontSize=14' -t 'macOptionClickForcesSelection=true' -t 'disableLeaveAlert=true' bin/ttyd
 webhook_manager: sleep 2 && bin/rails webhook:manager

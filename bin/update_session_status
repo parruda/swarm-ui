@@ -29,7 +29,8 @@ end
 
 # Try API endpoint first
 def update_session_status_via_api(session_id, status)
-  uri = URI("http://localhost:3000/api/sessions/#{session_id}/status")
+  port = ENV.fetch("SWARMUI_PORT", 4269)
+  uri = URI("http://localhost:#{port}/api/sessions/#{session_id}/status")
 
   begin
     response = Net::HTTP.start(uri.host, uri.port, open_timeout: 2, read_timeout: 2) do |http|

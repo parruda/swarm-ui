@@ -36,11 +36,14 @@ up:
       name: "Install gh webhooks extension"
       met?: "gh extension list | grep -q 'cli/gh-webhook'"
       meet: "gh extension install cli/gh-webhook"
+env:
+  SWARMUI_PORT: 4269
+  TTYD_PORT: 4268
 commands:
   server:
     aliases: ["s"]
     desc: 'start the server'
-    run: PORT=4269 TTYD_PORT=4268 bin/start
+    run: bin/start
 
 open:
   app: http://localhost:4269

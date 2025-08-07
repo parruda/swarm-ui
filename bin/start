@@ -5,10 +5,10 @@ if ! gem list foreman -i --silent; then
   gem install foreman
 fi
 
-echo "Starting SwarmUI on PORT: $PORT"
+echo "Starting SwarmUI on PORT: $SWARMUI_PORT"
 
 # Set ports for all services
-export PORT="${PORT:-4269}"  # Rails app
+export SWARMUI_PORT="${SWARMUI_PORT:-4269}"  # Rails app
 export TTYD_PORT="${TTYD_PORT:-4268}"  # ttyd terminal
 
 

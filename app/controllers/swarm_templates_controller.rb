@@ -46,8 +46,6 @@ class SwarmTemplatesController < ApplicationController
     rescue StandardError => e
       redirect_to(new_project_swarm_template_path(@project), alert: "Failed to create swarm file: #{e.message}")
     end
-  rescue ActiveRecord::RecordNotFound
-    redirect_to(projects_path, alert: "Please select a project to create a swarm template.")
   end
 
   def edit

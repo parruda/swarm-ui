@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "English"
+require "open3"
 class GitImportService
   GIT_URL_PATTERNS = [
     # HTTPS URLs
@@ -85,9 +86,10 @@ class GitImportService
   def same_repository?(path)
     # Get the remote URL from the existing repository
     Dir.chdir(path) do
-      remote_url = %x(git config --get remote.origin.url 2>&1).strip
-      return false unless $CHILD_STATUS.success?
+      stdout, _, status = Open3.capture3("git", "config", "--get", "remote.origin.url")
+      return false unless status.success?
 
+      remote_url = stdout.strip
       # Normalize URLs for comparison (remove .git suffix, handle different formats)
       normalize_url(remote_url) == normalize_url(git_url)
     end

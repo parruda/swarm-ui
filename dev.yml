@@ -6,6 +6,7 @@ up:
   - ruby
   - bundler
   - gcloud
+  - openai
   - packages:
     - uv
     - tmux

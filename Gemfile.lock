@@ -102,7 +102,7 @@ GEM
     claude-code-sdk-ruby (0.1.6)
       async (~> 2)
       logger (~> 1)
-    claude_swarm (0.3.10)
+    claude_swarm (0.3.11)
       claude-code-sdk-ruby (~> 0.1)
       faraday-net_http_persistent (~> 2.0)
       faraday-retry (~> 2.0)
@@ -528,7 +528,7 @@ DEPENDENCIES
   brakeman
   capybara
   claude-code-sdk-ruby
-  claude_swarm (~> 0.3.0)
+  claude_swarm (~> 0.3.11)
   connection_pool (~> 2.4)
   cuprite
   debug

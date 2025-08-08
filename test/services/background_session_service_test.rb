@@ -105,7 +105,7 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
 
     prompt = session.initial_prompt
     assert_match(/Issue #100/, prompt)
-    assert_match(%r{Repository: test/repo}, prompt)
+    assert_match(%r{test/repo repository}, prompt)
     assert_match(/@octocat/, prompt)
     assert_match(/Fix this/, prompt)
   end

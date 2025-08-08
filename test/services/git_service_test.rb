@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "open3"
 
 class GitServiceTest < ActiveSupport::TestCase
   setup do
@@ -9,12 +10,12 @@ class GitServiceTest < ActiveSupport::TestCase
 
     # Initialize a git repository
     Dir.chdir(@git_project_path) do
-      system("git init", out: File::NULL, err: File::NULL)
-      system("git config user.email 'test@example.com'", out: File::NULL, err: File::NULL)
-      system("git config user.name 'Test User'", out: File::NULL, err: File::NULL)
+      Open3.capture3("git", "init")
+      Open3.capture3("git", "config", "user.email", "test@example.com")
+      Open3.capture3("git", "config", "user.name", "Test User")
       File.write("README.md", "# Test Project")
-      system("git add README.md", out: File::NULL, err: File::NULL)
-      system("git commit -m 'Initial commit'", out: File::NULL, err: File::NULL)
+      Open3.capture3("git", "add", "README.md")
+      Open3.capture3("git", "commit", "-m", "Initial commit")
     end
 
     @git_service = GitService.new(@git_project_path)
@@ -41,7 +42,7 @@ class GitServiceTest < ActiveSupport::TestCase
 
     # Create and switch to a new branch
     Dir.chdir(@git_project_path) do
-      system("git checkout -b feature-branch", out: File::NULL, err: File::NULL)
+      Open3.capture3("git", "checkout", "-b", "feature-branch")
     end
 
     assert_equal "feature-branch", @git_service.current_branch
@@ -80,7 +81,7 @@ class GitServiceTest < ActiveSupport::TestCase
 
     # Stage the file
     Dir.chdir(@git_project_path) do
-      system("git add untracked.txt", out: File::NULL, err: File::NULL)
+      Open3.capture3("git", "add", "untracked.txt")
     end
 
     summary = @git_service.status_summary

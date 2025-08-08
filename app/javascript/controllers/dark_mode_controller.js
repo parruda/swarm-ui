@@ -20,7 +20,7 @@ export default class extends Controller {
   async toggle() {
     const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light'
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark'
-    
+
     // Update the server with the new preference
     try {
       const response = await fetch('/theme', {
@@ -31,7 +31,7 @@ export default class extends Controller {
         },
         body: JSON.stringify({ theme: newTheme })
       })
-      
+
       if (response.ok) {
         // Update the UI
         this.setTheme(newTheme)
@@ -66,7 +66,7 @@ export default class extends Controller {
   handleSystemThemeChange(e) {
     // Check if there's a cookie preference by looking at current state
     const hasCookiePreference = document.cookie.includes('theme=')
-    
+
     // Only respond to system changes if user hasn't set a preference
     if (!hasCookiePreference) {
       // Reload the page to get the new theme from server
@@ -84,7 +84,7 @@ export default class extends Controller {
         },
         body: JSON.stringify({ theme: '' })
       })
-      
+
       // Reload to get system preference from server
       window.location.reload()
     } catch (error) {

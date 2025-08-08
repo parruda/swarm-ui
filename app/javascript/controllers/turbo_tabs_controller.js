@@ -3,26 +3,26 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["tab", "frame"]
   static values = { projectId: String }
-  
+
   connect() {
     // Set up hash change listener for browser back/forward
     this.handleHashChange = this.onHashChange.bind(this)
     window.addEventListener('hashchange', this.handleHashChange)
-    
+
     // Check URL hash to see if we should load a specific tab
     this.loadTabFromHash()
   }
-  
+
   disconnect() {
     // Clean up event listener
     window.removeEventListener('hashchange', this.handleHashChange)
   }
-  
+
   onHashChange() {
     // Handle browser back/forward navigation
     this.loadTabFromHash()
   }
-  
+
   loadTabFromHash() {
     const hash = window.location.hash.substring(1)
     if (hash) {
@@ -42,11 +42,11 @@ export default class extends Controller {
       }
     }
   }
-  
+
   switchTab(event) {
     const tab = event.currentTarget
     const panelName = tab.dataset.panel
-    
+
     // Update URL hash - but for the default tab (swarms), remove the hash
     if (panelName === 'swarms') {
       // Use replaceState to avoid creating a history entry when going to default tab
@@ -54,36 +54,36 @@ export default class extends Controller {
     } else {
       window.location.hash = panelName
     }
-    
+
     // Update tab styles
     this.activateTab(tab)
-    
+
     // Load content into turbo frame if not already loaded
     const frame = this.frameTarget
     const frameUrl = tab.dataset.frameUrl
-    
+
     // Check if frame src is already set to this URL
     if (frame.src !== frameUrl) {
       frame.src = frameUrl
     }
   }
-  
+
   switchTabWithoutHashUpdate(event) {
     const tab = event.currentTarget
-    
+
     // Update tab styles
     this.activateTab(tab)
-    
+
     // Load content into turbo frame if not already loaded
     const frame = this.frameTarget
     const frameUrl = tab.dataset.frameUrl
-    
+
     // Check if frame src is already set to this URL
     if (frame.src !== frameUrl) {
       frame.src = frameUrl
     }
   }
-  
+
   activateTab(selectedTab) {
     // Update tab styles
     this.tabTargets.forEach(tab => {

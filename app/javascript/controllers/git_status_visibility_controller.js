@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static values = { 
+  static values = {
     sessionId: Number,
     pollInterval: { type: Number, default: 10000 }  // Changed to 10 seconds
   }
@@ -9,7 +9,7 @@ export default class extends Controller {
   connect() {
     this.isPolling = false
     this.pollTimer = null
-    
+
     // Check if we need to do initial load (no git status data present)
     const gitStatusDisplay = document.getElementById('git-status-display')
     const needsInitialLoad = gitStatusDisplay &&
@@ -24,7 +24,7 @@ export default class extends Controller {
     if (!document.hidden) {
       this.startPolling()
     }
-    
+
     // Listen for visibility changes
     document.addEventListener("visibilitychange", this.handleVisibilityChange)
   }
@@ -44,7 +44,7 @@ export default class extends Controller {
 
   startPolling() {
     if (this.isPolling) return
-    
+
     this.isPolling = true
     this.poll()
   }
@@ -63,7 +63,7 @@ export default class extends Controller {
       clearTimeout(this.pollTimer)
       this.pollTimer = null
     }
-    
+
     // Schedule next poll if still active
     if (this.isPolling && !document.hidden) {
       this.pollTimer = setTimeout(() => this.poll(), this.pollIntervalValue)
@@ -81,7 +81,7 @@ export default class extends Controller {
           "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
         }
       })
-      
+
       if (!response.ok) {
         console.error("[GitStatus] Poll failed:", response.status)
       }
@@ -92,7 +92,7 @@ export default class extends Controller {
       this.resetTimer()
     }
   }
-  
+
   // Method to manually trigger refresh (called by refresh button)
   async manualRefresh() {
     try {
@@ -103,7 +103,7 @@ export default class extends Controller {
           "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
         }
       })
-      
+
       if (!response.ok) {
         console.error("[GitStatus] Manual refresh failed:", response.status)
       } else {

@@ -3,28 +3,28 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static values = { projectId: Number, projectPath: String }
   static targets = ["branch", "dirty", "ahead", "behind", "indicatorContainer"]
-  
+
   connect() {
     // Fetch git status immediately on connect
     this.fetchGitStatus()
   }
-  
+
   async fetchGitStatus() {
     try {
       const response = await fetch(`/projects/${this.projectIdValue}/git_status`)
-      
+
       if (!response.ok) {
         console.error(`Failed to fetch git status for project ${this.projectIdValue}: ${response.status}`)
         return
       }
-      
+
       const data = await response.json()
-      
+
       if (!data.git) {
         // Not a git repository, nothing to show
         return
       }
-      
+
       // Update branch badge
       if (this.hasBranchTarget && data.branch) {
         const branchBadge = this.branchTarget.parentElement
@@ -33,7 +33,7 @@ export default class extends Controller {
         branchBadge.classList.add('inline-flex')
         branchBadge.style.display = '' // Remove inline style
       }
-      
+
       // Update dirty badge - ensure we're checking for boolean true
       if (this.hasDirtyTarget) {
         const dirtyBadge = this.dirtyTarget.parentElement
@@ -47,10 +47,10 @@ export default class extends Controller {
           dirtyBadge.style.display = 'none'
         }
       }
-      
+
       // Update ahead/behind indicators
       const hasAheadBehind = data.ahead > 0 || data.behind > 0
-      
+
       if (this.hasAheadTarget) {
         const aheadContainer = this.aheadTarget.parentElement
         if (data.ahead > 0) {
@@ -64,7 +64,7 @@ export default class extends Controller {
           aheadContainer.style.display = 'none'
         }
       }
-      
+
       if (this.hasBehindTarget) {
         const behindContainer = this.behindTarget.parentElement
         if (data.behind > 0) {
@@ -84,7 +84,7 @@ export default class extends Controller {
           behindContainer.style.display = 'none'
         }
       }
-      
+
       // If no ahead/behind data, we could optionally show a placeholder
       // The container always stays visible to prevent layout shift
       if (this.hasIndicatorContainerTarget && !hasAheadBehind) {
@@ -93,7 +93,7 @@ export default class extends Controller {
           this.indicatorContainerTarget.innerHTML = '&nbsp;'
         }
       }
-      
+
     } catch (error) {
       console.error('Failed to fetch git status:', error)
       // Silently fail - just don't show git status

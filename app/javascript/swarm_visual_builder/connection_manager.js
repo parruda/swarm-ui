@@ -4,30 +4,30 @@ export default class ConnectionManager {
     this.controller = controller
     this.connections = []
   }
-  
+
   // Initialize connections
   init() {
     this.connections = []
   }
-  
+
   // Get all connections
   getConnections() {
     return this.connections
   }
-  
+
   // Count connections for a specific socket
   getSocketConnectionCount(nodeId, side) {
-    return this.connections.filter(c => 
+    return this.connections.filter(c =>
       (c.from === nodeId && c.fromSide === side) ||
       (c.to === nodeId && c.toSide === side)
     ).length
   }
-  
+
   // Find the least occupied socket on a given node
   findLeastOccupiedSocket(nodeId, preferredSides = ['right', 'bottom', 'left', 'top']) {
     let minConnections = Infinity
     let bestSide = preferredSides[0]
-    
+
     for (const side of preferredSides) {
       const count = this.getSocketConnectionCount(nodeId, side)
       if (count < minConnections) {
@@ -35,10 +35,10 @@ export default class ConnectionManager {
         bestSide = side
       }
     }
-    
+
     return { side: bestSide, count: minConnections }
   }
-  
+
   // Find optimal socket pair for connection based on natural flow and connection load
   findBestSocketPair(fromNode, toNode) {
     const canvasCenter = this.controller.canvasCenter || 0
@@ -46,14 +46,14 @@ export default class ConnectionManager {
     const fromY = (fromNode.data?.y || 0) + canvasCenter
     const toX = (toNode.data?.x || 0) + canvasCenter
     const toY = (toNode.data?.y || 0) + canvasCenter
-    
+
     const dx = toX - fromX
     const dy = toY - fromY
-    
+
     // Determine preferred sides based on relative positions
     let fromPreferred = []
     let toPreferred = []
-    
+
     // For horizontal flow (most natural for reading order)
     if (Math.abs(dx) > Math.abs(dy)) {
       if (dx > 0) {
@@ -77,11 +77,11 @@ export default class ConnectionManager {
         toPreferred = ['bottom', 'left', 'right', 'top']
       }
     }
-    
+
     // Find the least occupied socket on the source side
     const fromSocketInfo = this.findLeastOccupiedSocket(fromNode.id, fromPreferred)
     let fromSide = fromSocketInfo.side
-    
+
     // Adjust target preferences based on selected source socket
     if (fromSide === 'right') {
       toPreferred = ['left', 'top', 'bottom', 'right']
@@ -92,11 +92,11 @@ export default class ConnectionManager {
     } else if (fromSide === 'top') {
       toPreferred = ['bottom', 'left', 'right', 'top']
     }
-    
+
     // Find best socket on target side based on connection count
     const toElement = toNode.element
     let toSide = toPreferred[0]
-    
+
     if (toElement) {
       // Find the least occupied socket
       let minConnections = Infinity
@@ -111,28 +111,28 @@ export default class ConnectionManager {
         }
       }
     }
-    
+
     return { fromSide, toSide }
   }
-  
+
   getSmartAlternatives(fromSide, dx, dy) {
     // Smart alternatives based on the source direction
     if (fromSide === 'right') {
       return dy > 0 ? ['left', 'top', 'bottom'] : ['left', 'bottom', 'top']
     } else if (fromSide === 'left') {
-      return dy > 0 ? ['right', 'top', 'bottom'] : ['right', 'bottom', 'top']  
+      return dy > 0 ? ['right', 'top', 'bottom'] : ['right', 'bottom', 'top']
     } else if (fromSide === 'bottom') {
       return dx > 0 ? ['top', 'left', 'right'] : ['top', 'right', 'left']
     } else {
       return dx > 0 ? ['bottom', 'left', 'right'] : ['bottom', 'right', 'left']
     }
   }
-  
+
   // Find best target socket when dragging from a specific source socket
   findBestSocketPairForDrag(fromNode, toNode, fromSide) {
     // Determine preferred target sides based on the source side
     let toPreferred = []
-    
+
     switch (fromSide) {
       case 'right':
         toPreferred = ['left', 'top', 'bottom', 'right']
@@ -149,10 +149,10 @@ export default class ConnectionManager {
       default:
         toPreferred = ['left', 'top', 'right', 'bottom']
     }
-    
+
     const toElement = toNode.element
     let toSide = toPreferred[0]
-    
+
     if (toElement) {
       // Find the least occupied socket
       let minConnections = Infinity
@@ -167,10 +167,10 @@ export default class ConnectionManager {
         }
       }
     }
-    
+
     return { toSide }
   }
-  
+
   getAlternativeSockets(side) {
     // Return alternative socket sides in order of preference
     switch (side) {
@@ -186,27 +186,27 @@ export default class ConnectionManager {
         return []
     }
   }
-  
+
   // Create a new connection
   createConnection(fromId, fromSide, toId, toSide) {
     const connection = { from: fromId, fromSide, to: toId, toSide }
     this.connections.push(connection)
-    
+
     // Don't mark sockets here - let updateSocketStates handle it
-    
+
     return connection
   }
-  
+
   // Remove a connection
   removeConnection(index) {
     const conn = this.connections[index]
     if (!conn) return
-    
+
     // Don't handle socket states here - let updateSocketStates handle it
-    
+
     this.connections.splice(index, 1)
   }
-  
+
   // Clear all connections for a node
   clearNodeConnections(nodeId) {
     // Remove connections where this node is source or target
@@ -216,17 +216,17 @@ export default class ConnectionManager {
       }
     }
   }
-  
+
   // Find connections for a specific node
   getNodeConnections(nodeId) {
     return this.connections.filter(c => c.from === nodeId || c.to === nodeId)
   }
-  
+
   // Check if a node has incoming connections
   hasIncomingConnections(nodeId) {
     return this.connections.some(c => c.to === nodeId)
   }
-  
+
   // Serialize connections for export
   serialize() {
     return this.connections.map(c => ({
@@ -236,7 +236,7 @@ export default class ConnectionManager {
       toSide: c.toSide
     }))
   }
-  
+
   // Load connections from data
   load(connectionsData) {
     this.connections = connectionsData || []

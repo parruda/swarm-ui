@@ -11,27 +11,27 @@ export default class UIComponents {
     if (existingFlash) {
       existingFlash.remove()
     }
-    
+
     // Create flash message element - positioned in horizontal center
     const flash = document.createElement('div')
     flash.className = `flash-message fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-4 rounded-lg shadow-lg transition-all transform ${
-      type === 'success' 
-        ? 'bg-green-500 text-white' 
+      type === 'success'
+        ? 'bg-green-500 text-white'
         : 'bg-red-500 text-white'
     }`
-    
+
     flash.innerHTML = `
       <div class="flex items-center">
-        ${type === 'success' 
+        ${type === 'success'
           ? '<svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>'
           : '<svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>'
         }
         <span>${message}</span>
       </div>
     `
-    
+
     document.body.appendChild(flash)
-    
+
     // Auto-remove after 5 seconds
     setTimeout(() => {
       flash.classList.add('-translate-y-full', 'opacity-0')
@@ -46,7 +46,7 @@ export default class UIComponents {
     if (existingNotification) {
       existingNotification.remove()
     }
-    
+
     // Create notification at top of canvas
     const notification = document.createElement('div')
     notification.className = 'swarm-notification fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 transition-all duration-300 translate-y-0 opacity-100'
@@ -57,7 +57,7 @@ export default class UIComponents {
       <span class="font-medium">${message}</span>
     `
     document.body.appendChild(notification)
-    
+
     // Fade out and remove after 3 seconds
     setTimeout(() => {
       notification.classList.add('translate-y-2', 'opacity-0')
@@ -72,13 +72,13 @@ export default class UIComponents {
     if (this.controller.hasChatTabTarget) {
       this.controller.chatTabTarget.classList.add('hidden')
     }
-    
+
     this.controller.propertiesTabButtonTarget.classList.add('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
     this.controller.propertiesTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400')
-    
+
     this.controller.yamlTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
     this.controller.yamlTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
-    
+
     if (this.controller.hasChatTabButtonTarget) {
       this.controller.chatTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
       this.controller.chatTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
@@ -91,18 +91,18 @@ export default class UIComponents {
     if (this.controller.hasChatTabTarget) {
       this.controller.chatTabTarget.classList.add('hidden')
     }
-    
+
     this.controller.yamlTabButtonTarget.classList.add('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
     this.controller.yamlTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400')
-    
+
     this.controller.propertiesTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
     this.controller.propertiesTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
-    
+
     if (this.controller.hasChatTabButtonTarget) {
       this.controller.chatTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-b-2', 'border-orange-600', 'dark:border-orange-400')
       this.controller.chatTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400')
     }
-    
+
     this.controller.updateYamlPreview()
   }
 
@@ -113,7 +113,7 @@ export default class UIComponents {
     this.controller.instancesTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent')
     this.controller.mcpServersTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-orange-600', 'dark:border-orange-400')
     this.controller.mcpServersTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent')
-    
+
     // Show/hide tab content
     this.controller.instancesTabTarget.classList.remove('hidden')
     this.controller.mcpServersTabTarget.classList.add('hidden')
@@ -125,7 +125,7 @@ export default class UIComponents {
     this.controller.mcpServersTabButtonTarget.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent')
     this.controller.instancesTabButtonTarget.classList.remove('text-orange-600', 'dark:text-orange-400', 'border-orange-600', 'dark:border-orange-400')
     this.controller.instancesTabButtonTarget.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent')
-    
+
     // Show/hide tab content
     this.controller.mcpServersTabTarget.classList.remove('hidden')
     this.controller.instancesTabTarget.classList.add('hidden')
@@ -137,21 +137,21 @@ export default class UIComponents {
     e.stopPropagation()
     this.controller.startX = e.pageX
     this.controller.startWidth = this.controller.rightSidebarTarget.offsetWidth
-    
+
     // Store bound functions so we can remove them later
     this.controller.boundDoResize = (e) => this.doResize(e)
     this.controller.boundStopResize = (e) => this.stopResize(e)
-    
+
     // Add temporary event listeners with capture to ensure they run first
     document.addEventListener('mousemove', this.controller.boundDoResize, true)
     document.addEventListener('mouseup', this.controller.boundStopResize, true)
-    
+
     // Add resize cursor to body during resize
     document.body.style.cursor = 'ew-resize'
-    
+
     // Prevent text selection during resize
     document.body.style.userSelect = 'none'
-    
+
     // Add a transparent overlay to prevent other interactions
     this.createResizeOverlay()
   }
@@ -159,14 +159,14 @@ export default class UIComponents {
   doResize(e) {
     e.preventDefault()
     e.stopPropagation()
-    
+
     const diff = this.controller.startX - e.pageX  // Reverse because we're resizing from the left edge
     const newWidth = this.controller.startWidth + diff
-    
+
     // Respect min and max width
     const minWidth = 300
     const maxWidth = 800
-    
+
     if (newWidth >= minWidth && newWidth <= maxWidth) {
       this.controller.rightSidebarTarget.style.width = `${newWidth}px`
     }
@@ -175,19 +175,19 @@ export default class UIComponents {
   stopResize(e) {
     e.preventDefault()
     e.stopPropagation()
-    
+
     // Remove temporary event listeners (with capture flag)
     document.removeEventListener('mousemove', this.controller.boundDoResize, true)
     document.removeEventListener('mouseup', this.controller.boundStopResize, true)
-    
+
     // Clean up bound functions
     this.controller.boundDoResize = null
     this.controller.boundStopResize = null
-    
+
     // Reset cursor
     document.body.style.cursor = ''
     document.body.style.userSelect = ''
-    
+
     // Remove overlay
     this.removeResizeOverlay()
   }
@@ -196,19 +196,19 @@ export default class UIComponents {
     if (!this.controller.hasRightSidebarTarget) {
       return
     }
-    
+
     const maxWidth = 800
     const currentWidth = this.controller.rightSidebarTarget.offsetWidth
-    
+
     // Only expand if not already at max
     if (currentWidth >= maxWidth) {
       return
     }
-    
+
     // Add transition for smooth animation
     this.controller.rightSidebarTarget.style.transition = 'width 0.3s ease-out'
     this.controller.rightSidebarTarget.style.width = `${maxWidth}px`
-    
+
     // Remove transition after animation completes
     setTimeout(() => {
       this.controller.rightSidebarTarget.style.transition = ''

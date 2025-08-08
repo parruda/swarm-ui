@@ -325,15 +325,15 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
   test "should return git dirty status for git project" do
     # Create a git project (default factory creates git projects)
     git_project = create(:project)
-    
+
     # Mock git service to return dirty status
-    git_service = mock()
+    git_service = mock
     git_service.expects(:dirty?).returns(true)
     GitService.expects(:new).with(git_project.path).returns(git_service)
-    
+
     get git_dirty_check_project_url(git_project)
     assert_response :success
-    
+
     json_response = JSON.parse(@response.body)
     assert json_response["git"]
     assert json_response["dirty"]
@@ -342,15 +342,15 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
   test "should return clean status for clean git project" do
     # Create a git project (default factory creates git projects)
     git_project = create(:project)
-    
+
     # Mock git service to return clean status
-    git_service = mock()
+    git_service = mock
     git_service.expects(:dirty?).returns(false)
     GitService.expects(:new).with(git_project.path).returns(git_service)
-    
+
     get git_dirty_check_project_url(git_project)
     assert_response :success
-    
+
     json_response = JSON.parse(@response.body)
     assert json_response["git"]
     assert_not json_response["dirty"]
@@ -358,10 +358,10 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
 
   test "should return git false for non-git project" do
     non_git_project = create(:project, :non_git)
-    
+
     get git_dirty_check_project_url(non_git_project)
     assert_response :success
-    
+
     json_response = JSON.parse(@response.body)
     assert_not json_response["git"]
   end
@@ -372,20 +372,20 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
       { path: "/path/to/swarm1.yml", name: "Swarm 1" },
       { path: "/path/to/swarm2.yml", name: "Swarm 2" },
     ])
-    
+
     get swarm_count_project_url(@project)
     assert_response :success
-    
+
     json_response = JSON.parse(@response.body)
     assert_equal 2, json_response["count"]
   end
 
   test "should return zero swarm count for project with no swarm files" do
     Project.any_instance.expects(:find_swarm_files).returns([])
-    
+
     get swarm_count_project_url(@project)
     assert_response :success
-    
+
     json_response = JSON.parse(@response.body)
     assert_equal 0, json_response["count"]
   end

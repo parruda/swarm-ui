@@ -392,7 +392,7 @@ swarm:
       description: Testing Specialist examining test coverage, critical paths, integration points, and test quality
       model: opus
       directory: .
-      worktree: "testing_reviewer-${}"
+      worktree: "testing_reviewer-${SWARM_SESSION_ID}"
       prompt: |
         You are a Testing Specialist focused on evaluating the quality and completeness of tests and testing strategies
         for code changes.

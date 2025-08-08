@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = [
     "configData",
-    "instancesContainer", 
+    "instancesContainer",
     "yamlPreview",
     "instancePickerModal",
     "templatesTab",
@@ -12,20 +12,20 @@ export default class extends Controller {
     "instanceConfigModal",
     "instanceConfigForm"
   ]
-  
+
   connect() {
     this.instances = {}
     this.connections = {}
     this.nextInstanceId = 1
-    
+
     // Load existing config if editing
     const existingConfig = this.getExistingConfig()
     if (existingConfig && existingConfig.swarm && existingConfig.swarm.instances) {
       this.loadExistingInstances(existingConfig.swarm.instances)
     }
-    
+
     this.updateYamlPreview()
-    
+
     // Listen for name changes
     const nameField = document.querySelector('#swarm_template_name')
     if (nameField) {
@@ -35,7 +35,7 @@ export default class extends Controller {
       })
     }
   }
-  
+
   getExistingConfig() {
     try {
       return JSON.parse(this.configDataTarget.value || '{}')
@@ -44,49 +44,49 @@ export default class extends Controller {
       return {}
     }
   }
-  
+
   loadExistingInstances(instances) {
     Object.entries(instances).forEach(([key, config]) => {
       // Extract connections from config
       const connections = config.connections || []
       const instanceConfig = { ...config }
       delete instanceConfig.connections // Remove from config as we track separately
-      
+
       this.instances[key] = {
         id: this.nextInstanceId++,
         key: key,
         config: instanceConfig
       }
-      
+
       if (connections.length > 0) {
         this.connections[key] = connections
       }
     })
-    
+
     this.renderInstances()
   }
-  
+
   // Instance Picker Modal
   openInstancePicker() {
     this.instancePickerModalTarget.classList.remove("hidden")
   }
-  
+
   closeInstancePicker() {
     this.instancePickerModalTarget.classList.add("hidden")
   }
-  
+
   switchTab(event) {
     const tab = event.currentTarget.dataset.tab
-    
+
     // Update tab styles
     event.currentTarget.parentElement.querySelectorAll("button").forEach(btn => {
       btn.classList.remove("border-orange-500", "text-orange-600", "dark:text-orange-400")
       btn.classList.add("border-transparent", "text-gray-500", "dark:text-gray-400")
     })
-    
+
     event.currentTarget.classList.remove("border-transparent", "text-gray-500", "dark:text-gray-400")
     event.currentTarget.classList.add("border-orange-500", "text-orange-600", "dark:text-orange-400")
-    
+
     // Show/hide tab content
     if (tab === "templates") {
       this.templatesTabTarget.classList.remove("hidden")
@@ -96,38 +96,38 @@ export default class extends Controller {
       this.customTabTarget.classList.remove("hidden")
     }
   }
-  
+
   selectInstanceTemplate(event) {
     const templateEl = event.currentTarget
     const templateId = templateEl.dataset.templateId
     const templateName = templateEl.dataset.templateName
     const templateConfig = JSON.parse(templateEl.dataset.templateConfig)
-    
+
     // Generate unique instance key
     const baseKey = templateName.toLowerCase().replace(/[^a-z]/g, '_')
     let instanceKey = baseKey
     let counter = 1
-    
+
     while (this.instances[instanceKey]) {
       instanceKey = `${baseKey}_${counter}`
       counter++
     }
-    
+
     // Add instance with template config
     this.addInstance(instanceKey, {
       ...templateConfig,
       instance_template_id: templateId
     })
-    
+
     this.closeInstancePicker()
   }
-  
+
   addCustomInstance(event) {
     event.preventDefault()
-    
+
     const form = this.customInstanceFormTarget
     const formData = new FormData(form)
-    
+
     const instanceKey = formData.get('instance_key')
     const config = {
       description: formData.get('description'),
@@ -136,40 +136,40 @@ export default class extends Controller {
       directory: formData.get('directory') || '.',
       allowed_tools: formData.getAll('allowed_tools[]')
     }
-    
+
     if (!instanceKey || !config.description) {
       alert('Instance key and description are required')
       return
     }
-    
+
     if (this.instances[instanceKey]) {
       alert('An instance with this key already exists')
       return
     }
-    
+
     this.addInstance(instanceKey, config)
     form.reset()
     this.closeInstancePicker()
   }
-  
+
   addInstance(key, config) {
     this.instances[key] = {
       id: this.nextInstanceId++,
       key: key,
       config: config
     }
-    
+
     this.renderInstances()
     this.updateConfigData()
     this.updateYamlPreview()
   }
-  
+
   removeInstance(event) {
     const instanceKey = event.currentTarget.dataset.instanceKey
-    
+
     // Remove instance
     delete this.instances[instanceKey]
-    
+
     // Remove connections to/from this instance
     Object.keys(this.connections).forEach(fromKey => {
       this.connections[fromKey] = this.connections[fromKey]?.filter(toKey => toKey !== instanceKey)
@@ -178,12 +178,12 @@ export default class extends Controller {
       }
     })
     delete this.connections[instanceKey]
-    
+
     this.renderInstances()
     this.updateConfigData()
     this.updateYamlPreview()
   }
-  
+
   renderInstances() {
     if (Object.keys(this.instances).length === 0) {
       this.instancesContainerTarget.innerHTML = `
@@ -196,24 +196,24 @@ export default class extends Controller {
       `
       return
     }
-    
+
     let html = ''
     let isFirst = true
-    
+
     Object.entries(this.instances).forEach(([key, instance]) => {
       const config = instance.config
       const isMain = isFirst // First instance is main by default
       isFirst = false
-      
+
       html += `
         <div class="relative rounded-lg border ${isMain ? 'border-orange-500 dark:border-orange-400' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-700 px-4 py-4 shadow-sm">
           ${isMain ? '<div class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded">Main</div>' : ''}
-          
+
           <div class="flex items-start justify-between">
             <div class="flex-1">
               <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100">${key}</h4>
               <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">${config.description || 'No description'}</p>
-              
+
               <div class="mt-2 flex flex-wrap gap-2">
                 <span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-200">
                   ${config.model || 'sonnet'}
@@ -227,7 +227,7 @@ export default class extends Controller {
                   </span>
                 ` : ''}
               </div>
-              
+
               <!-- Connections -->
               <div class="mt-3">
                 <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Connects to:</label>
@@ -242,8 +242,8 @@ export default class extends Controller {
                                 data-from-key="${key}"
                                 data-to-key="${targetKey}"
                                 class="inline-flex items-center rounded px-2 py-1 text-xs font-medium transition-colors ${
-                                  isConnected 
-                                    ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200' 
+                                  isConnected
+                                    ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
                                     : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                                 }">
                           ${targetKey}
@@ -253,7 +253,7 @@ export default class extends Controller {
                 </div>
               </div>
             </div>
-            
+
             <div class="ml-4 flex-shrink-0">
               <button type="button"
                       data-action="click->swarm-builder#removeInstance"
@@ -268,18 +268,18 @@ export default class extends Controller {
         </div>
       `
     })
-    
+
     this.instancesContainerTarget.innerHTML = html
   }
-  
+
   toggleConnection(event) {
     const fromKey = event.currentTarget.dataset.fromKey
     const toKey = event.currentTarget.dataset.toKey
-    
+
     if (!this.connections[fromKey]) {
       this.connections[fromKey] = []
     }
-    
+
     const index = this.connections[fromKey].indexOf(toKey)
     if (index > -1) {
       this.connections[fromKey].splice(index, 1)
@@ -294,28 +294,28 @@ export default class extends Controller {
       }
       this.connections[fromKey].push(toKey)
     }
-    
+
     this.renderInstances()
     this.updateConfigData()
     this.updateYamlPreview()
   }
-  
+
   wouldCreateCycle(from, to) {
     // Simple DFS to detect cycles
     const visited = new Set()
     const recursionStack = new Set()
-    
+
     const hasCycle = (node) => {
       visited.add(node)
       recursionStack.add(node)
-      
+
       const neighbors = this.connections[node] || []
-      
+
       // Check if adding this edge would create a cycle
       if (node === from) {
         neighbors.push(to)
       }
-      
+
       for (const neighbor of neighbors) {
         if (!visited.has(neighbor)) {
           if (hasCycle(neighbor)) return true
@@ -323,38 +323,38 @@ export default class extends Controller {
           return true
         }
       }
-      
+
       recursionStack.delete(node)
       return false
     }
-    
+
     // Start DFS from all nodes
     for (const node of Object.keys(this.instances)) {
       if (!visited.has(node)) {
         if (hasCycle(node)) return true
       }
     }
-    
+
     return false
   }
-  
+
   updateConfigData() {
     const instances = {}
     const instanceKeys = Object.keys(this.instances)
-    
+
     // Build instances config
     instanceKeys.forEach(key => {
       const instance = this.instances[key]
       const config = { ...instance.config }
-      
+
       // Add connections if any
       if (this.connections[key]?.length > 0) {
         config.connections = this.connections[key]
       }
-      
+
       instances[key] = config
     })
-    
+
     const configData = {
       version: 1,
       swarm: {
@@ -363,39 +363,39 @@ export default class extends Controller {
         instances: instances
       }
     }
-    
+
     this.configDataTarget.value = JSON.stringify(configData)
   }
-  
+
   updateYamlPreview() {
     const config = JSON.parse(this.configDataTarget.value || '{}')
-    
+
     // Simple YAML generation (in production, use a proper YAML library)
     let yaml = 'version: 1\n'
     yaml += 'swarm:\n'
     yaml += `  name: "${config.swarm?.name || ''}"\n`
-    
+
     if (config.swarm?.main) {
       yaml += `  main: ${config.swarm.main}\n`
     }
-    
+
     yaml += '  instances:\n'
-    
+
     Object.entries(config.swarm?.instances || {}).forEach(([key, instance]) => {
       yaml += `    ${key}:\n`
       yaml += `      description: "${instance.description || ''}"\n`
-      
+
       if (instance.model) yaml += `      model: ${instance.model}\n`
       if (instance.provider && instance.provider !== 'claude') yaml += `      provider: ${instance.provider}\n`
       if (instance.directory && instance.directory !== '.') yaml += `      directory: "${instance.directory}"\n`
-      
+
       if (instance.allowed_tools?.length > 0) {
         yaml += '      allowed_tools:\n'
         instance.allowed_tools.forEach(tool => {
           yaml += `        - ${tool}\n`
         })
       }
-      
+
       if (instance.connections?.length > 0) {
         yaml += '      connections:\n'
         instance.connections.forEach(conn => {
@@ -403,7 +403,7 @@ export default class extends Controller {
         })
       }
     })
-    
+
     this.yamlPreviewTarget.textContent = yaml
   }
 }

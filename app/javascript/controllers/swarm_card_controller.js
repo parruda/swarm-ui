@@ -4,7 +4,7 @@ export default class extends Controller {
   export(event) {
     event.preventDefault()
     const swarmId = event.currentTarget.dataset.swarmId
-    
+
     // Create a temporary link to download the YAML
     const link = document.createElement('a')
     link.href = `/swarm_templates/${swarmId}/export.yaml`

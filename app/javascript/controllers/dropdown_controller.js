@@ -17,7 +17,7 @@ export default class extends Controller {
   toggle(event) {
     event.stopPropagation()
     const isHidden = this.menuTarget.classList.contains('hidden')
-    
+
     if (isHidden) {
       this.show()
     } else {

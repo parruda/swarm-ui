@@ -285,40 +285,14 @@ class Project < ApplicationRecord
 
       swarm_files = []
 
-      # Common directories to exclude for performance
-      excluded_dirs = [
-        "node_modules",
-        "vendor",
-        "tmp",
-        "log",
-        "public/assets",
-        "coverage",
-        "build",
-        "dist",
-        "cache",
-        "target", # Rust
-        "debug", # Rust
-        "release", # Rust
-        "__pycache__", # Python
-        "venv", # Python virtual environments
-        "env", # Python
-        "virtualenv", # Python
-        "pods", # iOS/CocoaPods
-        "Pods", # iOS/CocoaPods
-        "DerivedData", # iOS/Xcode
-      ]
-
       # Build the glob pattern with exclusions using Find
       require "find"
 
       Find.find(path) do |file|
         # Skip if it's a directory
         if File.directory?(file)
-          # Prune excluded directories
-          dir_name = File.basename(file)
-          
-          # Skip all dot directories and explicitly excluded directories
-          if dir_name.start_with?(".") || excluded_dirs.include?(dir_name)
+          # For git projects, check if directory should be ignored
+          if git? && should_ignore_path?(file)
             Find.prune # Skip this directory and its contents
           end
           next
@@ -330,6 +304,9 @@ class Project < ApplicationRecord
         # Skip if path is too deep (more than 5 levels)
         relative_path = file.sub("#{path}/", "")
         next if relative_path.count("/") > 5
+
+        # For git projects, check if file should be ignored
+        next if git? && should_ignore_path?(file)
 
         next unless valid_swarm_config?(file)
 
@@ -359,6 +336,29 @@ class Project < ApplicationRecord
   end
 
   private
+
+  def should_ignore_path?(file_path)
+    return false unless git?
+
+    # Get relative path from project root
+    relative_path = file_path.sub("#{path}/", "")
+
+    # For directories, check if a hypothetical file within would be ignored
+    # For files, check the file itself
+    check_path = if File.directory?(file_path)
+      "#{relative_path}/_check"
+    else
+      relative_path
+    end
+
+    # Use git check-ignore to see if this path should be ignored
+    # The command returns 0 if the path is ignored, non-zero otherwise
+    require "open3"
+    Dir.chdir(path) do
+      _stdout, _stderr, status = Open3.capture3("git", "check-ignore", "-q", check_path)
+      status.success?
+    end
+  end
 
   def valid_swarm_config?(file_path)
     return false unless File.exist?(file_path)

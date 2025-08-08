@@ -243,11 +243,8 @@ class SessionsController < ApplicationController
       ""
     end
 
-    # Escape file path for shell
-    escaped_path = Shellwords.escape(file_path)
-
     # Get git status for this specific file
-    git_status, _, _ = Open3.capture3("git status --porcelain #{escaped_path}", chdir: safe_dir)
+    git_status, _, _ = Open3.capture3("git", "status", "--porcelain", file_path, chdir: safe_dir)
     git_status = git_status.strip
 
     # Determine file status and get appropriate content
@@ -260,13 +257,13 @@ class SessionsController < ApplicationController
     elsif git_status.match?(/^[AM]M/)
       # File has both staged and unstaged changes
       # Show HEAD vs working directory (to see all changes)
-      original_content, _, _ = Open3.capture3("git show HEAD:#{escaped_path}", chdir: safe_dir)
+      original_content, _, _ = Open3.capture3("git", "show", "HEAD:#{file_path}", chdir: safe_dir)
       # modified_content already has the working directory content
     elsif git_status.match?(/^[AM]\s/)
       # File is only staged (not modified in working directory)
       # This means working directory matches staged version
       # Show HEAD vs working directory (which equals staged)
-      original_content, _, status = Open3.capture3("git show HEAD:#{escaped_path}", chdir: safe_dir)
+      original_content, _, status = Open3.capture3("git", "show", "HEAD:#{file_path}", chdir: safe_dir)
       unless status.success?
         # New file, show empty vs working directory
         original_content = ""
@@ -275,11 +272,11 @@ class SessionsController < ApplicationController
     elsif git_status.match?(/^\sM/)
       # File is only modified (not staged)
       # Show HEAD vs working directory
-      original_content, _, _ = Open3.capture3("git show HEAD:#{escaped_path}", chdir: safe_dir)
+      original_content, _, _ = Open3.capture3("git", "show", "HEAD:#{file_path}", chdir: safe_dir)
       # modified_content already has the working directory content
     else
       # Default: show HEAD vs working directory
-      original_content, _, _ = Open3.capture3("git show HEAD:#{escaped_path}", chdir: safe_dir)
+      original_content, _, _ = Open3.capture3("git", "show", "HEAD:#{file_path}", chdir: safe_dir)
       # modified_content already has the working directory content
     end
 

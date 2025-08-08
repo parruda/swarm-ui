@@ -27,9 +27,9 @@ export default class extends Controller {
         </button>
       </div>
     `
-    
+
     this.containerTarget.insertAdjacentHTML("beforeend", template)
-    
+
     // Focus on the new key input
     const newRow = this.containerTarget.lastElementChild
     const keyInput = newRow.querySelector('[data-environment-variables-target="keyInput"]')

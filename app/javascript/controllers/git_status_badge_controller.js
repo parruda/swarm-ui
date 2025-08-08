@@ -13,10 +13,10 @@ export default class extends Controller {
   async checkGitStatus() {
     try {
       const response = await fetch(`/projects/${this.projectIdValue}/git_dirty_check`)
-      
+
       if (response.ok) {
         const data = await response.json()
-        
+
         if (data.git && data.dirty) {
           this.indicatorTarget.classList.remove("hidden")
         }

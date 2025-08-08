@@ -13,10 +13,10 @@ export default class extends Controller {
   async loadSwarmCount() {
     try {
       const response = await fetch(`/projects/${this.projectIdValue}/swarm_count`)
-      
+
       if (response.ok) {
         const data = await response.json()
-        
+
         if (data.count > 0) {
           this.countTarget.textContent = data.count
           this.countTarget.classList.remove("hidden")

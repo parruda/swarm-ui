@@ -6,19 +6,19 @@ export default class extends Controller {
 
   connect() {
     this.currentPathValue = this.currentPathValue || ""
-    
+
     // If we're on a project form and project path is already filled
     if (this.hasProjectPathInputTarget && this.projectPathInputTarget.value && this.hasConfigSelectTarget) {
       this.currentPathValue = this.projectPathInputTarget.value
       this.scanForSwarmConfigs()
     }
-    
+
     // If we're on a session form with a pre-selected project
     if (this.hasProjectSelectTarget && this.projectSelectTarget.value && this.hasConfigSelectTarget) {
       // Trigger project changed to load configs
       this.projectChanged({ target: this.projectSelectTarget })
     }
-    
+
     // Focus on name field if requested
     const nameField = document.querySelector('[data-focus-on-load="true"]')
     if (nameField) {
@@ -42,7 +42,7 @@ export default class extends Controller {
     this.modalTarget.querySelector('[data-action="click->filesystem-browser#close"]').classList.remove("opacity-100")
     this.modalTarget.querySelector('.relative.transform').classList.remove("opacity-100", "translate-y-0", "scale-100")
     this.modalTarget.querySelector('.relative.transform').classList.add("opacity-0", "translate-y-4", "scale-95")
-    
+
     // Hide after transition
     setTimeout(() => {
       this.modalTarget.classList.add("hidden")
@@ -63,10 +63,10 @@ export default class extends Controller {
           </div>
         </div>
       `
-      
+
       const response = await fetch(`/filesystem/browse?path=${encodeURIComponent(path)}`)
       const data = await response.json()
-      
+
       this.currentPathValue = data.current_path
       this.currentPathTarget.textContent = data.current_path || "/"
       this.renderFileList(data.entries)
@@ -97,7 +97,7 @@ export default class extends Controller {
       `
       return
     }
-    
+
     this.fileListTarget.innerHTML = entries.map(entry => `
       <button type="button"
               class="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center gap-3 transition-all duration-150 group"
@@ -134,7 +134,7 @@ export default class extends Controller {
     // Update the hidden input value
     this.projectPathInputTarget.value = this.currentPathValue
     this.close()
-    
+
     // Enable config select and scan for configs
     if (this.hasConfigSelectTarget) {
       this.configSelectTarget.disabled = false
@@ -148,10 +148,10 @@ export default class extends Controller {
 
     try {
       this.configSelectTarget.innerHTML = '<option value="">Scanning for swarm configurations...</option>'
-      
+
       const response = await fetch(`/filesystem/scan_swarm_configs?path=${encodeURIComponent(this.currentPathValue)}`)
       const data = await response.json()
-      
+
       if (data.configs.length > 0) {
         this.configSelectTarget.innerHTML = '<option value="">Select a swarm configuration file</option>'
         data.configs.forEach(config => {
@@ -160,13 +160,13 @@ export default class extends Controller {
           option.textContent = config.relative_path
           this.configSelectTarget.appendChild(option)
         })
-        
+
         // If there's a prefilled configuration path, select it
         const currentValue = this.configSelectTarget.dataset.currentValue || this.configSelectTarget.value
         if (currentValue) {
           this.configSelectTarget.value = currentValue
         }
-        
+
         // Update hint text
         if (this.hasConfigSectionTarget) {
           const hint = this.configSectionTarget.querySelector('p.text-gray-500')
@@ -176,7 +176,7 @@ export default class extends Controller {
         }
       } else {
         this.configSelectTarget.innerHTML = '<option value="">No swarm configuration files found</option>'
-        
+
         // Update hint text
         if (this.hasConfigSectionTarget) {
           const hint = this.configSectionTarget.querySelector('p.text-gray-500')
@@ -211,13 +211,13 @@ export default class extends Controller {
 
   async projectChanged(event) {
     const projectId = event.target.value
-    
+
     if (!projectId) {
       // No project selected
       this.configSelectTarget.disabled = true
       this.configSelectTarget.classList.add('opacity-50', 'cursor-not-allowed')
       this.configSelectTarget.innerHTML = '<option value="">Select a project first</option>'
-      
+
       // Update hint text
       if (this.hasConfigSectionTarget) {
         const hint = this.configSectionTarget.querySelector('p.text-gray-500')
@@ -233,28 +233,28 @@ export default class extends Controller {
       this.configSelectTarget.disabled = false
       this.configSelectTarget.classList.remove('opacity-50', 'cursor-not-allowed')
       this.configSelectTarget.innerHTML = '<option value="">Loading project information...</option>'
-      
+
       // Fetch project details to get the path and default config
       const response = await fetch(`/projects/${projectId}.json`)
       const project = await response.json()
-      
+
       if (project && project.path) {
         this.currentPathValue = project.path
-        
+
         // Store the default config path
         const defaultConfigPath = project.default_config_path
-        
+
         // Scan for configs
         await this.scanForSwarmConfigs()
-        
+
         // Check if there's a pre-selected value from data-current-value (e.g., from visual builder launch)
         const currentValue = this.configSelectTarget.dataset.currentValue
-        
+
         if (currentValue) {
           // Use the pre-selected value
           const options = Array.from(this.configSelectTarget.options)
           const matchingOption = options.find(opt => opt.value === currentValue || opt.value.endsWith(`/${currentValue}`))
-          
+
           if (matchingOption) {
             this.configSelectTarget.value = matchingOption.value
           }
@@ -262,7 +262,7 @@ export default class extends Controller {
           // Otherwise, use the project's default config if it exists
           const options = Array.from(this.configSelectTarget.options)
           const defaultOption = options.find(opt => opt.value === defaultConfigPath || opt.value.endsWith(`/${defaultConfigPath}`))
-          
+
           if (defaultOption) {
             this.configSelectTarget.value = defaultOption.value
           }

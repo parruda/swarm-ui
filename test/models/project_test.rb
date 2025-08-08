@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "open3"
 
 class ProjectTest < ActiveSupport::TestCase
   setup do
@@ -397,19 +398,19 @@ class ProjectTest < ActiveSupport::TestCase
 
   test "git_dirty_quick_check returns dirty status without caching" do
     project = create(:project)
-    
+
     # Mock the git_service instance method on the project
-    git_service_mock = mock()
+    git_service_mock = mock
     git_service_mock.expects(:dirty?).returns(true)
     project.expects(:git_service).returns(git_service_mock)
-    
+
     assert project.git_dirty_quick_check
   end
 
   test "git_status_with_fetch performs fetch before getting status" do
     project = create(:project)
     git_service_mock = project.git_service
-    
+
     # Expect fetch to be called first
     git_service_mock.expects(:fetch).once
     git_service_mock.expects(:current_branch).returns("main")
@@ -418,9 +419,9 @@ class ProjectTest < ActiveSupport::TestCase
     git_service_mock.expects(:ahead_behind).returns({ ahead: 1, behind: 0 })
     git_service_mock.expects(:last_commit).returns({ hash: "abc123" })
     git_service_mock.expects(:remote_url).returns("https://github.com/test/repo.git")
-    
+
     status = project.git_status_with_fetch
-    
+
     assert_equal "main", status[:branch]
     assert_equal 1, status[:ahead_behind][:ahead]
   end
@@ -428,7 +429,7 @@ class ProjectTest < ActiveSupport::TestCase
   test "git_status does not perform fetch" do
     project = create(:project)
     git_service_mock = project.git_service
-    
+
     # Expect NO fetch to be called
     git_service_mock.expects(:fetch).never
     git_service_mock.expects(:current_branch).returns("main")
@@ -437,104 +438,172 @@ class ProjectTest < ActiveSupport::TestCase
     git_service_mock.expects(:ahead_behind).returns({ ahead: 0, behind: 0 })
     git_service_mock.expects(:last_commit).returns({ hash: "abc123" })
     git_service_mock.expects(:remote_url).returns("https://github.com/test/repo.git")
-    
+
     status = project.git_status
-    
+
     assert_equal "main", status[:branch]
   end
 
   test "clear_swarm_files_cache removes cached swarm files" do
     project = create(:project)
-    
+
     # Cache some swarm files
     Rails.cache.write("project_#{project.id}_swarm_files", [{ name: "test" }])
-    
+
     project.clear_swarm_files_cache
-    
+
     assert_nil Rails.cache.read("project_#{project.id}_swarm_files")
   end
 
-  test "find_swarm_files excludes common directories and all dot directories" do
+  test "find_swarm_files uses git ignore for git projects" do
     project = create(:project)
-    
+
     # Clear any cached values first
     project.clear_swarm_files_cache
-    
-    # Create directories that should be excluded
+
+    # Create a .gitignore file
+    gitignore_content = <<~GITIGNORE
+      node_modules/
+      vendor/
+      *.log
+      ignored_dir/
+    GITIGNORE
+    File.write(File.join(project.path, ".gitignore"), gitignore_content)
+
+    # Create directories that should be ignored by git
     FileUtils.mkdir_p(File.join(project.path, "node_modules"))
-    FileUtils.mkdir_p(File.join(project.path, ".git"))
-    FileUtils.mkdir_p(File.join(project.path, ".vscode"))
     FileUtils.mkdir_p(File.join(project.path, "vendor"))
-    FileUtils.mkdir_p(File.join(project.path, ".any-dot-dir"))
-    
-    # Create swarm files in excluded directories (should not be found)
-    excluded_swarm = File.join(project.path, "node_modules", "test.yml")
-    File.write(excluded_swarm, {
+    FileUtils.mkdir_p(File.join(project.path, "ignored_dir"))
+
+    # Create swarm files in ignored directories (should not be found)
+    ignored_swarm = File.join(project.path, "node_modules", "test.yml")
+    File.write(ignored_swarm, {
       "version" => 1,
       "swarm" => {
-        "name" => "Hidden Swarm",
-        "instances" => { 
-          "worker" => { "description" => "Should not be found" } 
+        "name" => "Ignored Swarm",
+        "instances" => {
+          "worker" => { "description" => "Should not be found" },
         },
       },
     }.to_yaml)
-    
-    # Also test that any dot directory is excluded
-    dot_dir_swarm = File.join(project.path, ".any-dot-dir", "test.yml")
-    File.write(dot_dir_swarm, {
+
+    vendor_swarm = File.join(project.path, "vendor", "test.yml")
+    File.write(vendor_swarm, {
       "version" => 1,
       "swarm" => {
-        "name" => "Dot Dir Swarm",
-        "instances" => { 
-          "worker" => { "description" => "Should not be found in dot dir" } 
+        "name" => "Vendor Swarm",
+        "instances" => {
+          "worker" => { "description" => "Should not be found in vendor" },
         },
       },
     }.to_yaml)
-    
+
     # Create a valid swarm file in allowed directory (should be found)
     valid_swarm = File.join(project.path, "swarm.yml")
     File.write(valid_swarm, {
       "version" => 1,
       "swarm" => {
         "name" => "Valid Swarm",
-        "instances" => { 
-          "worker" => { "description" => "Should be found" }
+        "instances" => {
+          "worker" => { "description" => "Should be found" },
         },
       },
     }.to_yaml)
-    
+
+    # Initialize git repo and add .gitignore
+    Dir.chdir(project.path) do
+      Open3.capture3("git", "init")
+      Open3.capture3("git", "add", ".gitignore")
+      Open3.capture3("git", "commit", "-m", "Initial commit")
+    end
+
     # Force a fresh scan by clearing cache again
     project.clear_swarm_files_cache
     swarm_files = project.find_swarm_files
-    
-    # Should only find the valid swarm, not the one in node_modules
+
+    # Should only find the valid swarm, not the ones in ignored directories
     assert_equal 1, swarm_files.size
     assert_equal "Valid Swarm", swarm_files.first[:name]
     assert_equal "swarm.yml", swarm_files.first[:relative_path]
   end
 
-  test "find_swarm_files skips deeply nested files" do
-    project = create(:project)
-    
+  test "find_swarm_files includes all files for non-git projects" do
+    project = create(:project, :non_git)
+
     # Clear any cached values first
     project.clear_swarm_files_cache
-    
+
+    # Create directories that would be ignored in git
+    FileUtils.mkdir_p(File.join(project.path, "node_modules"))
+    FileUtils.mkdir_p(File.join(project.path, "vendor"))
+
+    # Create swarm files in these directories (should be found since not a git project)
+    node_swarm = File.join(project.path, "node_modules", "test.yml")
+    File.write(node_swarm, {
+      "version" => 1,
+      "swarm" => {
+        "name" => "Node Swarm",
+        "instances" => {
+          "worker" => { "description" => "Should be found in non-git" },
+        },
+      },
+    }.to_yaml)
+
+    vendor_swarm = File.join(project.path, "vendor", "test.yml")
+    File.write(vendor_swarm, {
+      "version" => 1,
+      "swarm" => {
+        "name" => "Vendor Swarm",
+        "instances" => {
+          "worker" => { "description" => "Should be found in non-git" },
+        },
+      },
+    }.to_yaml)
+
+    # Create a valid swarm file in root (should be found)
+    valid_swarm = File.join(project.path, "swarm.yml")
+    File.write(valid_swarm, {
+      "version" => 1,
+      "swarm" => {
+        "name" => "Root Swarm",
+        "instances" => {
+          "worker" => { "description" => "Should be found" },
+        },
+      },
+    }.to_yaml)
+
+    # Force a fresh scan by clearing cache again
+    project.clear_swarm_files_cache
+    swarm_files = project.find_swarm_files
+
+    # Should find all swarm files since this is not a git project
+    assert_equal 3, swarm_files.size
+    swarm_names = swarm_files.map { |f| f[:name] }.sort
+    assert_equal ["Node Swarm", "Root Swarm", "Vendor Swarm"], swarm_names
+  end
+
+  test "find_swarm_files skips deeply nested files" do
+    project = create(:project)
+
+    # Clear any cached values first
+    project.clear_swarm_files_cache
+
     # Create a deeply nested directory (more than 5 levels)
     deep_path = File.join(project.path, "a", "b", "c", "d", "e", "f")
     FileUtils.mkdir_p(deep_path)
-    
+
     # Create a swarm file that's too deep (should not be found)
     deep_swarm = File.join(deep_path, "deep.yml")
     File.write(deep_swarm, {
       "version" => 1,
       "swarm" => {
         "name" => "Too Deep",
-        "instances" => { 
-          "worker" => { "description" => "Should not be found" }
+        "instances" => {
+          "worker" => { "description" => "Should not be found" },
         },
       },
     }.to_yaml)
-    
+
     # Create a swarm file at acceptable depth (should be found)
     shallow_path = File.join(project.path, "a", "b")
     FileUtils.mkdir_p(shallow_path)
@@ -543,16 +612,16 @@ class ProjectTest < ActiveSupport::TestCase
       "version" => 1,
       "swarm" => {
         "name" => "Shallow Swarm",
-        "instances" => { 
-          "worker" => { "description" => "Should be found" }
+        "instances" => {
+          "worker" => { "description" => "Should be found" },
         },
       },
     }.to_yaml)
-    
+
     # Force a fresh scan by clearing cache again
     project.clear_swarm_files_cache
     swarm_files = project.find_swarm_files
-    
+
     # Should only find the shallow swarm
     assert_equal 1, swarm_files.size
     assert_equal "Shallow Swarm", swarm_files.first[:name]

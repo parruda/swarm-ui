@@ -11,12 +11,12 @@ export default class extends Controller {
 
   selectInstance(event) {
     const selectedInstance = event.target.value
-    
+
     // Hide all instance details
     this.detailsTargets.forEach(detail => {
       detail.classList.add('hidden')
     })
-    
+
     // Show selected instance
     const selectedDetail = document.getElementById(`instance-${selectedInstance}`)
     if (selectedDetail) {

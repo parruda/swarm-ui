@@ -146,6 +146,16 @@ swarm:
         Provide specific, actionable feedback with code examples where issues are found. Prioritize critical correctness
         issues that could cause system failures or data corruption.
 
+        **TESTING YOUR ASSUMPTIONS**: You are encouraged and expected to test your assumptions by:
+        - Writing small test scripts to verify your understanding of the code behavior
+        - Running existing tests to see if they pass/fail with your theoretical changes
+        - Making small experimental changes to understand code flow and validate issues
+        - Creating proof-of-concept fixes to test if your suggestions actually work
+        - Running the application locally if needed to observe actual behavior
+        - Writing additional tests to verify edge cases you've identified
+        
+        This hands-on verification ensures your feedback is accurate, actionable, and valuable.
+        
         **IMPORTANT**: Do NOT post any comments on the PR yourself. Provide your analysis to the PR Review Lead who will
         decide which issues are important enough to post and will handle all PR commenting.
 
@@ -154,6 +164,8 @@ swarm:
         simultaneously rather than sequentially.
       allowed_tools:
         - Read
+        - Edit
+        - Write
         - Grep
         - Bash
     architecture_reviewer:
@@ -224,6 +236,16 @@ swarm:
         Provide specific recommendations for architectural improvements, including refactoring suggestions and pattern
         applications. Focus on long-term maintainability and scalability.
 
+        **TESTING YOUR ASSUMPTIONS**: You are encouraged and expected to test your assumptions by:
+        - Writing small test scripts to verify your understanding of the architecture
+        - Running existing tests to understand current behavior and dependencies
+        - Making small experimental changes to validate design concerns
+        - Creating example implementations to test architectural suggestions
+        - Running the application to observe actual coupling and performance impacts
+        - Writing integration tests to verify your architectural recommendations
+        
+        This hands-on verification ensures your architectural feedback is sound and implementable.
+        
         **IMPORTANT**: Do NOT post any comments on the PR yourself. Provide your analysis to the PR Review Lead who will
         decide which issues are important enough to post and will handle all PR commenting.
 
@@ -232,6 +254,8 @@ swarm:
         simultaneously rather than sequentially.
       allowed_tools:
         - Read
+        - Edit
+        - Write
         - Grep
         - Bash
     maintainability_reviewer:
@@ -302,6 +326,16 @@ swarm:
         Provide actionable suggestions for improving code maintainability, including naming improvements, documentation
         needs, and technical debt reduction opportunities.
 
+        **TESTING YOUR ASSUMPTIONS**: You are encouraged and expected to test your assumptions by:
+        - Writing small test scripts to verify code readability and debugging scenarios
+        - Running existing tests to understand maintenance burden
+        - Making small experimental changes to test modification difficulty
+        - Creating documentation examples to verify clarity
+        - Running dependency analysis and testing isolation
+        - Measuring technical debt impact through actual code metrics
+        
+        This hands-on verification ensures your maintainability feedback is grounded in reality.
+        
         **IMPORTANT**: Do NOT post any comments on the PR yourself. Provide your analysis to the PR Review Lead who will
         decide which issues are important enough to post and will handle all PR commenting.
 
@@ -310,6 +344,8 @@ swarm:
         simultaneously rather than sequentially.
       allowed_tools:
         - Read
+        - Edit
+        - Write
         - Grep
         - Bash
     testing_reviewer:
@@ -380,6 +416,16 @@ swarm:
         Provide specific recommendations for improving test coverage and quality, including missing test scenarios,
         better test organization, and more effective testing strategies.
 
+        **TESTING YOUR ASSUMPTIONS**: You are encouraged and expected to test your assumptions by:
+        - Writing additional tests to verify edge cases and critical paths you've identified
+        - Running existing tests to understand current coverage gaps
+        - Creating integration tests to validate testing strategy
+        - Writing failing tests to demonstrate issues, then fixing them to validate solutions
+        - Running test suites to measure actual coverage and effectiveness
+        - Creating realistic test scenarios based on actual usage patterns
+        
+        This hands-on verification ensures your testing feedback includes working examples and proven solutions.
+        
         **IMPORTANT**: Do NOT post any comments on the PR yourself. Provide your analysis to the PR Review Lead who will
         decide which issues are important enough to post and will handle all PR commenting.
 
@@ -388,6 +434,8 @@ swarm:
         simultaneously rather than sequentially.
       allowed_tools:
         - Read
+        - Edit
+        - Write
         - Grep
         - Bash
   main: pr_review_lead

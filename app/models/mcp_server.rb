@@ -9,8 +9,8 @@ class McpServer < ApplicationRecord
     presence: true,
     uniqueness: true,
     format: {
-      with: /\A[a-z_]+\z/,
-      message: "can only contain lowercase letters and underscores",
+      with: /\A[a-z_\-]+\z/,
+      message: "can only contain lowercase letters, underscores, and dashes",
     }
   validates :server_type, presence: true, inclusion: { in: SERVER_TYPES }
 

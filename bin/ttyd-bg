@@ -93,14 +93,15 @@ log_message(log_file, "Command: #{command}")
 
 # Create a wrapper command that logs failures
 wrapper_command = <<~BASH
-  #{command} || {
+  #{command} || echo "Environment:\n$(env)" && read -p "Press Enter to continue..." && ({
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Claude-swarm command failed with exit code: $?" >> #{log_file}
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Session ID: #{session_id}" >> #{log_file}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ENV: #{env.inspect}" >> #{log_file}
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Command was: #{command}" >> #{log_file}
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Working directory: $(pwd)" >> #{log_file}
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] ========================================" >> #{log_file}
     exit $?
-  }
+  })
 BASH
 
 # Start tmux session in detached mode with the wrapper command

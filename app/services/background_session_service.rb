@@ -144,14 +144,9 @@ class BackgroundSessionService
 
       # Add context about what we're working on
       if pr_number
-        parts << "You are assisting with Pull Request ##{pr_number} in the #{project.name} project."
+        parts << "You are assisting with Pull Request ##{pr_number} in the #{project.github_repo_full_name} repository."
       elsif issue_number
-        parts << "You are assisting with Issue ##{issue_number} in the #{project.name} project."
-      end
-
-      # Add repository context
-      if project.github_configured?
-        parts << "Repository: #{project.github_repo_full_name}"
+        parts << "You are assisting with Issue ##{issue_number} in the #{project.github_repo_full_name} repository."
       end
 
       # Add user context

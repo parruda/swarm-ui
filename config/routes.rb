@@ -53,6 +53,8 @@ Rails.application.routes.draw do
       post :toggle_webhook
       get :webhook_status
       get :git_status
+      get :git_dirty_check
+      get :swarm_count
       get :environment_variables
       get :edit_swarm_file
       get :show_swarm_editor

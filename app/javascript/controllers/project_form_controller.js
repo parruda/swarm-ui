@@ -9,12 +9,12 @@ export default class extends Controller {
 
   toggleImportSection() {
     const isImport = this.importToggleTarget.checked
-    
+
     if (isImport) {
       this.importSectionTarget.classList.remove("hidden")
       this.browseSectionTarget.classList.add("hidden")
       this.configSectionTarget.classList.add("hidden")
-      
+
       // Clear path when switching to import
       if (this.hasProjectPathInputTarget) {
         this.projectPathInputTarget.value = ""
@@ -23,7 +23,7 @@ export default class extends Controller {
       this.importSectionTarget.classList.add("hidden")
       this.browseSectionTarget.classList.remove("hidden")
       this.configSectionTarget.classList.remove("hidden")
-      
+
       // Clear git URL when switching to browse
       if (this.hasGitUrlInputTarget) {
         this.gitUrlInputTarget.value = ""
@@ -51,7 +51,7 @@ export default class extends Controller {
           .split('-')
           .map(word => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ')
-        
+
         // Only update if name field is empty
         if (this.nameInputTarget.value === '') {
           this.nameInputTarget.value = projectName

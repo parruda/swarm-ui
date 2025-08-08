@@ -18,7 +18,8 @@ class GitService
   def current_branch
     return unless git_repository?
 
-    run_git_command("rev-parse --abbrev-ref HEAD").strip
+    results, _, _ = run_git_command(["rev-parse", "--abbrev-ref", "--short", "HEAD"])
+    results.strip
   rescue StandardError
     nil
   end
@@ -26,7 +27,10 @@ class GitService
   def dirty?
     return false unless git_repository?
 
-    !run_git_command("status --porcelain").strip.empty?
+    # This can be expensive; but I don't know a way to simplify without ignoring untracked files.
+    # Seems like untracked files is an important part of being dirty.
+    results, _, _ = run_git_command(["status", "--porcelain"])
+    !results.strip.empty?
   rescue StandardError
     false
   end
@@ -34,8 +38,8 @@ class GitService
   def status_summary
     return {} unless git_repository?
 
-    output = run_git_command("status --porcelain")
-    lines = output.strip.split("\n")
+    output, _, _ = run_git_command(["status", "--porcelain"])
+    lines = output.lines.map(&:strip)
 
     modified = 0
     staged = 0
@@ -68,17 +72,17 @@ class GitService
     return { ahead: 0, behind: 0, base_branch: base_branch } unless git_repository?
 
     # First check if base branch exists
-    branches = run_git_command("branch -a").strip
+    branches, _, _ = run_git_command(["branch", "-a"]).strip
     unless branches.include?(base_branch) || branches.include?("remotes/origin/#{base_branch}")
       base_branch = "master" if branches.include?("master") || branches.include?("remotes/origin/master")
     end
 
     # Check if remote exists
-    remotes = run_git_command("remote").strip
+    remotes, _, _ = run_git_command(["remote"]).strip
     return { ahead: 0, behind: 0, base_branch: base_branch } if remotes.empty?
 
     # Get ahead/behind counts
-    output = run_git_command("rev-list --left-right --count HEAD...origin/#{base_branch}").strip
+    output, _, _ = run_git_command(["rev-list", "--left-right", "--count", "HEAD...origin/#{base_branch}"]).strip
     if output.empty?
       return { ahead: 0, behind: 0, base_branch: base_branch }
     end
@@ -97,14 +101,13 @@ class GitService
   def last_commit
     return unless git_repository?
 
-    hash = run_git_command("rev-parse HEAD").strip[0..7]
-    message = run_git_command("log -1 --pretty=%s").strip
-    author = run_git_command("log -1 --pretty=%an").strip
-    date = run_git_command("log -1 --pretty=%ar").strip
+    results, _, _ = run_git_command(["log", "-1", "--pretty=%H%n%an%n%ar%n%s"])
+
+    hash, author, date, *message = results.lines.map(&:strip)
 
     {
-      hash: hash,
-      message: message,
+      hash: hash.strip[0..7],
+      message: message.join("\n"),
       author: author,
       date: date,
     }
@@ -115,7 +118,7 @@ class GitService
   def remote_url
     return unless git_repository?
 
-    url = run_git_command("config --get remote.origin.url").strip
+    url, _, _ = run_git_command(["config", "--get", "remote.origin.url"]).strip
     url.empty? ? nil : url
   rescue StandardError
     nil
@@ -124,7 +127,12 @@ class GitService
   def fetch
     return { success: false, error: "Not a git repository" } unless git_repository?
 
-    output, error, status = run_git_command_with_output("fetch")
+    # so there's a few options here to optimize this command for large repos
+    # but you might have dependencies on some behaviors. `--no-tags` and `--depth=1`
+    # are the most impactful options but might have an impact on *other* git operations in the
+    # repository. Right now I do not suggest implementing those, but perhaps we can put them behind
+    # a feature flag.
+    output, error, status = run_git_command(["fetch"])
 
     {
       success: status.success?,
@@ -144,7 +152,11 @@ class GitService
       }
     end
 
-    output, error, status = run_git_command_with_output("pull")
+    # `--ff-only` and `--no-tags` are options but unsure what people's workflows might be.
+    # For example, `pull -r` is a common command and using `--ff-only` would not match up to that.
+    # Like `this.fetch`'s commends, I suggest we put some options behind a feature flag or configuration
+    # instead of implementing them for everyone/repo.
+    output, error, status = run_git_command(["pull"])
 
     {
       success: status.success?,
@@ -173,18 +185,8 @@ class GitService
 
   private
 
-  def run_git_command(command)
+  def run_git_command(command_array)
     # Use Open3 with array form for safety
-    # Split command carefully to avoid injection
-    cmd_parts = command.split(/\s+/)
-    stdout, _, _ = Open3.capture3("git", *cmd_parts, chdir: project_path)
-    # Return stdout for backward compatibility
-    stdout
-  end
-
-  def run_git_command_with_output(command)
-    # Use Open3 with array form for safety
-    cmd_parts = command.split(/\s+/)
-    Open3.capture3("git", *cmd_parts, chdir: project_path)
+    Open3.capture3("git", *command_array, chdir: project_path)
   end
 end

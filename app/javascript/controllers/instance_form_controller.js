@@ -15,19 +15,19 @@ export default class extends Controller {
     const vibeCheckbox = this.element.querySelector('[data-provider-field="vibe-mode"] input[type="checkbox"]')
     const vibeModeField = this.element.querySelector('[data-provider-field="vibe-mode"]')
     const vibeMode = vibeCheckbox ? vibeCheckbox.checked : false
-    
+
     if (provider === 'claude') {
       // Claude settings
       temperatureField.style.display = 'none'
       // Show/hide allowed tools based on vibe mode
       allowedToolsSection.style.display = vibeMode ? 'none' : 'block'
-      
+
       // Clear temperature value for Claude
       const temperatureInput = temperatureField.querySelector('input')
       if (temperatureInput) {
         temperatureInput.value = ''
       }
-      
+
       // Enable vibe mode checkbox for Claude
       if (vibeCheckbox) {
         vibeCheckbox.disabled = false
@@ -46,13 +46,13 @@ export default class extends Controller {
       // OpenAI settings
       temperatureField.style.display = 'block'
       allowedToolsSection.style.display = 'none'
-      
+
       // Check all tools for OpenAI (all tools are allowed)
       const toolCheckboxes = allowedToolsSection.querySelectorAll('input[type="checkbox"]')
       toolCheckboxes.forEach(checkbox => {
         checkbox.checked = true
       })
-      
+
       // OpenAI is always vibe mode
       if (vibeCheckbox) {
         vibeCheckbox.checked = true
@@ -70,11 +70,11 @@ export default class extends Controller {
       }
     }
   }
-  
+
   toggleVibeMode(event) {
     const isChecked = event.target.checked
     const allowedToolsSection = this.element.querySelector('[data-provider-field="allowed-tools"]')
-    
+
     if (allowedToolsSection) {
       allowedToolsSection.style.display = isChecked ? 'none' : 'block'
     }

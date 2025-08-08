@@ -6,11 +6,11 @@ export default class extends Controller {
     this.boundBeforeRender = this.beforeRender.bind(this)
     document.addEventListener("turbo:before-stream-render", this.boundBeforeRender)
   }
-  
+
   disconnect() {
     document.removeEventListener("turbo:before-stream-render", this.boundBeforeRender)
   }
-  
+
   beforeRender(event) {
     // Check if this is a git status update and dropdown is open
     const target = event.target

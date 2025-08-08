@@ -27,7 +27,7 @@ export default class extends Controller {
       }
     }
   }
-  
+
   async handleProjectChange(event) {
     const projectId = event.target.value
     if (projectId) {
@@ -38,36 +38,36 @@ export default class extends Controller {
       this.updateTextfield()
     }
   }
-  
+
   async fetchProjectEnvVars(projectId, isInitialLoad = false) {
     try {
       const response = await fetch(`/projects/${projectId}/environment_variables`)
       const data = await response.json()
-      
+
       // Save current session-specific variables before clearing
       let currentSessionVars = this.getCurrentSessionVariables()
-      
+
       // On initial load, we need to parse existing values and separate project from session vars
       if (isInitialLoad && this.initialTextFieldValue) {
         const allVarsFromTextField = this.parseTextToVariables(this.initialTextFieldValue)
         const projectVarKeys = new Set(Object.keys(data.environment_variables || {}))
-        
+
         // Separate session-specific vars from project vars
         currentSessionVars = allVarsFromTextField.filter(({key}) => !projectVarKeys.has(key))
       }
-      
+
       // Clear everything
       this.containerTarget.innerHTML = ''
-      
+
       if (data.environment_variables && Object.keys(data.environment_variables).length > 0) {
         // Add section header for project variables
         this.addSectionHeader('project', Object.keys(data.environment_variables).length)
-        
+
         // Add project environment variables
         Object.entries(data.environment_variables).forEach(([key, value]) => {
           this.addVariableRow(key, value, true) // true indicates it's from project
         })
-        
+
         // Add divider and section header for session-specific variables
         this.addDivider()
         this.addSectionHeader('session')
@@ -75,22 +75,22 @@ export default class extends Controller {
         // No project vars, but we have session vars - just show session section
         this.addSectionHeader('session')
       }
-      
+
       // Restore session-specific variables
       currentSessionVars.forEach(({key, value}) => {
         this.addVariableRow(key, value, false)
       })
-      
+
       this.updateTextfield()
     } catch (error) {
       console.error("Failed to fetch project environment variables:", error)
     }
   }
-  
+
   getCurrentSessionVariables() {
     const sessionVars = []
     const rows = this.rowTargets
-    
+
     rows.forEach(row => {
       // Only get session-specific variables (not from project)
       if (row.dataset.fromProject === 'false') {
@@ -98,16 +98,16 @@ export default class extends Controller {
         const inputs = inputContainer ? inputContainer.querySelectorAll('input[type="text"]') : row.querySelectorAll('input[type="text"]')
         const key = inputs[0]?.value.trim()
         const value = inputs[1]?.value.trim()
-        
+
         if (key || value) { // Keep even if only one field has data
           sessionVars.push({ key, value })
         }
       }
     })
-    
+
     return sessionVars
   }
-  
+
   addSectionHeader(type, count = null) {
     const headerHtml = type === 'project' ? `
       <div class="flex items-center gap-3 mb-3" data-section-header="project">
@@ -138,10 +138,10 @@ export default class extends Controller {
         </div>
       </div>
     `
-    
+
     this.containerTarget.insertAdjacentHTML("beforeend", headerHtml)
   }
-  
+
   addDivider() {
     const dividerHtml = `
       <div class="relative my-6" data-divider="true">
@@ -158,7 +158,7 @@ export default class extends Controller {
 
   parseAndDisplayVariables(text) {
     const lines = text.trim().split('\n').filter(line => line.trim())
-    
+
     if (lines.length > 0) {
       // Only add session header if we have variables to display
       // and there's no project section already
@@ -166,7 +166,7 @@ export default class extends Controller {
       if (!hasProjectSection) {
         this.addSectionHeader('session')
       }
-      
+
       lines.forEach(line => {
         const [key, ...valueParts] = line.split('=')
         if (key) {
@@ -176,11 +176,11 @@ export default class extends Controller {
       })
     }
   }
-  
+
   parseTextToVariables(text) {
     const lines = text.trim().split('\n').filter(line => line.trim())
     const variables = []
-    
+
     lines.forEach(line => {
       const [key, ...valueParts] = line.split('=')
       if (key) {
@@ -188,22 +188,22 @@ export default class extends Controller {
         variables.push({ key: key.trim(), value: value.trim() })
       }
     })
-    
+
     return variables
   }
 
   addVariableRow(key = '', value = '', fromProject = false) {
     const timestamp = new Date().getTime()
-    
+
     // Different styles for project vs session variables
-    const rowClasses = fromProject 
+    const rowClasses = fromProject
       ? 'group relative pl-4 border-l-2 border-orange-200 dark:border-orange-900/50'
       : 'pl-4'
-    
+
     const inputClasses = fromProject
       ? 'flex-1 px-3 py-2 bg-orange-50 dark:bg-orange-900/10 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 dark:focus:ring-orange-500 font-mono text-sm placeholder-gray-400 dark:placeholder-gray-500'
       : 'flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 dark:focus:ring-orange-500 font-mono text-sm'
-    
+
     const template = `
       <div class="${rowClasses} mb-2" data-session-environment-variables-target="row" data-from-project="${fromProject}">
         <div class="flex gap-2 items-start">
@@ -234,9 +234,9 @@ export default class extends Controller {
         ` : ''}
       </div>
     `
-    
+
     this.containerTarget.insertAdjacentHTML("beforeend", template)
-    
+
     // Focus on the new key input if it's a new empty row
     if (!key && !value && !fromProject) {
       const newRow = this.containerTarget.lastElementChild
@@ -251,7 +251,7 @@ export default class extends Controller {
     // Check if we have sections
     const hasProjectSection = this.containerTarget.querySelector('[data-section-header="project"]')
     const sessionHeader = this.containerTarget.querySelector('[data-section-header="session"]')
-    
+
     if (hasProjectSection && !sessionHeader) {
       // Add session section if it doesn't exist
       this.addDivider()
@@ -260,7 +260,7 @@ export default class extends Controller {
       // If no sections exist, add session header first
       this.addSectionHeader('session')
     }
-    
+
     // Add the new row at the end (which will be in the session section)
     this.addVariableRow()
   }
@@ -270,11 +270,11 @@ export default class extends Controller {
     if (row) {
       const isProjectVar = row.dataset.fromProject === 'true'
       row.remove()
-      
+
       // Check if we need to clean up empty sections
       const projectRows = this.containerTarget.querySelectorAll('[data-from-project="true"]')
       const sessionRows = this.containerTarget.querySelectorAll('[data-from-project="false"]')
-      
+
       // If we removed the last project variable, remove the project section
       if (isProjectVar && projectRows.length === 0) {
         const projectHeader = this.containerTarget.querySelector('[data-section-header="project"]')
@@ -282,12 +282,12 @@ export default class extends Controller {
         if (projectHeader) projectHeader.remove()
         if (divider) divider.remove()
       }
-      
+
       // If no variables remain at all, remove all headers
       if (projectRows.length === 0 && sessionRows.length === 0) {
         this.containerTarget.innerHTML = ''
       }
-      
+
       this.updateTextfield()
     }
   }
@@ -295,7 +295,7 @@ export default class extends Controller {
   updateTextfield() {
     const rows = this.rowTargets
     const variables = []
-    
+
     rows.forEach(row => {
       // Include ALL variables (both project and session) for submission
       // Get inputs from the flex container within the row
@@ -303,12 +303,12 @@ export default class extends Controller {
       const inputs = inputContainer ? inputContainer.querySelectorAll('input[type="text"]') : row.querySelectorAll('input[type="text"]')
       const key = inputs[0]?.value.trim()
       const value = inputs[1]?.value.trim()
-      
+
       if (key && value) {
         variables.push(`${key}=${value}`)
       }
     })
-    
+
     if (this.hasTextFieldTarget) {
       this.textFieldTarget.value = variables.join('\n')
     }

@@ -5,27 +5,27 @@ export default class NodeManager {
     this.nodes = []
     this.nodeIdCounter = 1
   }
-  
+
   // Initialize
   init() {
     this.nodes = []
     this.nodeIdCounter = 1
   }
-  
+
   // Get all nodes
   getNodes() {
     return this.nodes
   }
-  
+
   // Find node by ID
   findNode(nodeId) {
     return this.nodes.find(n => n.id === nodeId)
   }
-  
+
   // Create a new node
   createNode(templateData, position) {
     const nodeId = this.nodeIdCounter++
-    
+
     // Extract system_prompt from config if present
     const config = templateData.config || {}
     let system_prompt = config.system_prompt || ''
@@ -34,11 +34,11 @@ export default class NodeManager {
     if (system_prompt.includes('\\n')) {
       system_prompt = system_prompt.replace(/\\n/g, '\n')
     }
-    
+
     // Remove system_prompt from config since it's stored separately
     const cleanConfig = { ...config }
     delete cleanConfig.system_prompt
-    
+
     const node = {
       id: nodeId,
       data: {
@@ -57,11 +57,11 @@ export default class NodeManager {
         mcps: config.mcps || []  // Preserve MCP servers from template
       }
     }
-    
+
     this.nodes.push(node)
     return node
   }
-  
+
   // Update node position
   updateNodePosition(nodeId, x, y) {
     const node = this.findNode(nodeId)
@@ -70,7 +70,7 @@ export default class NodeManager {
       node.data.y = y
     }
   }
-  
+
   // Update node data
   updateNodeData(nodeId, data) {
     const node = this.findNode(nodeId)
@@ -78,7 +78,7 @@ export default class NodeManager {
       node.data = { ...node.data, ...data }
     }
   }
-  
+
   // Remove a node
   removeNode(nodeId) {
     const index = this.nodes.findIndex(n => n.id === nodeId)
@@ -86,32 +86,32 @@ export default class NodeManager {
       this.nodes.splice(index, 1)
     }
   }
-  
+
   // Clear all nodes
   clearAll() {
     this.nodes = []
     this.nodeIdCounter = 1
   }
-  
+
   // Calculate nodes bounds
   getNodesBounds() {
     if (this.nodes.length === 0) {
       return { minX: 0, minY: 0, maxX: 0, maxY: 0, width: 0, height: 0 }
     }
-    
+
     const nodeWidth = 250
     const nodeHeight = 120
-    
+
     let minX = Infinity, minY = Infinity
     let maxX = -Infinity, maxY = -Infinity
-    
+
     this.nodes.forEach(node => {
       minX = Math.min(minX, node.data.x)
       minY = Math.min(minY, node.data.y)
       maxX = Math.max(maxX, node.data.x + nodeWidth)
       maxY = Math.max(maxY, node.data.y + nodeHeight)
     })
-    
+
     return {
       minX,
       minY,
@@ -121,12 +121,12 @@ export default class NodeManager {
       height: maxY - minY
     }
   }
-  
+
   // Get obstacles for path routing
   getObstacles(excludeNodes = []) {
     const nodeWidth = 250
     const nodeHeight = 120
-    
+
     return this.nodes
       .filter(node => !excludeNodes.includes(node.id))
       .map(node => ({
@@ -136,28 +136,28 @@ export default class NodeManager {
         bottom: node.data.y + this.controller.canvasCenter + nodeHeight
       }))
   }
-  
+
   // Import nodes from data
   importNodes(swarmData) {
     const importOffset = 100
     const bounds = this.getNodesBounds()
     const startX = bounds.maxX > 0 ? bounds.maxX + importOffset : 0
     const startY = 0
-    
+
     const nodeSpacing = 50
     const nodesPerRow = 4
     const nodeWidth = 250
     const nodeHeight = 120
-    
+
     const importedNodes = []
-    
+
     Object.entries(swarmData.instances || {}).forEach(([name, config], index) => {
       const row = Math.floor(index / nodesPerRow)
       const col = index % nodesPerRow
-      
+
       const x = startX + col * (nodeWidth + nodeSpacing) - this.controller.canvasCenter
       const y = startY + row * (nodeHeight + nodeSpacing) - this.controller.canvasCenter
-      
+
       // Extract system_prompt from the YAML 'prompt' field
       let system_prompt = config.prompt || config.system_prompt || ''
       // Convert literal \n to actual newlines if they exist
@@ -165,20 +165,20 @@ export default class NodeManager {
       if (system_prompt.includes('\\n')) {
         system_prompt = system_prompt.replace(/\\n/g, '\n')
       }
-      
+
       // Create clean config without prompt fields
       const cleanConfig = { ...config }
       delete cleanConfig.prompt
       delete cleanConfig.system_prompt
-      
+
       // Add system_prompt to the config for createNode to extract
       cleanConfig.system_prompt = system_prompt
-      
+
       // Preserve MCPs if present
       if (config.mcps) {
         cleanConfig.mcps = config.mcps
       }
-      
+
       const node = this.createNode({
         name: name,
         description: config.description || '',
@@ -186,13 +186,13 @@ export default class NodeManager {
         model: config.model || 'opus',
         provider: config.provider || 'claude'  // Default to claude if not specified
       }, { x, y })
-      
+
       importedNodes.push(node)
     })
-    
+
     return importedNodes
   }
-  
+
   // Serialize nodes for export
   serialize() {
     return this.nodes.map(node => ({
@@ -214,14 +214,14 @@ export default class NodeManager {
       }
     }))
   }
-  
+
   // Load nodes from data
   load(nodesData) {
     this.nodes = []
     this.nodeIdCounter = 1
-    
+
     if (!nodesData || !Array.isArray(nodesData)) return
-    
+
     nodesData.forEach(nodeData => {
       const node = {
         id: this.nodeIdCounter++,

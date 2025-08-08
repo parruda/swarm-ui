@@ -2,20 +2,20 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["tab", "panel"]
-  
+
   connect() {
     // Make sure first tab is selected by default
     this.showTab(this.tabTargets[0])
   }
-  
+
   switchTab(event) {
     const tab = event.currentTarget
     this.showTab(tab)
   }
-  
+
   showTab(selectedTab) {
     const panelName = selectedTab.dataset.tab
-    
+
     // Update tab styles
     this.tabTargets.forEach(tab => {
       if (tab === selectedTab) {
@@ -28,7 +28,7 @@ export default class extends Controller {
         tab.classList.add("border-transparent", "text-gray-500", "dark:text-gray-400", "hover:border-gray-300", "dark:hover:border-gray-600", "hover:text-gray-700", "dark:hover:text-gray-200")
       }
     })
-    
+
     // Show/hide panels
     this.panelTargets.forEach(panel => {
       if (panel.dataset.panel === panelName) {
@@ -37,11 +37,11 @@ export default class extends Controller {
         panel.classList.add("hidden")
       }
     })
-    
+
     // Store active tab in URL hash for direct linking
     window.location.hash = panelName
   }
-  
+
   initialize() {
     // Check if there's a hash in the URL and switch to that tab
     if (window.location.hash) {

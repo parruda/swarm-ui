@@ -76,8 +76,9 @@ class OptimizedGitStatusService
     script = <<~BASH
       cd "#{sanitized_directory}" 2>/dev/null || exit 1
 
-      # Fetch from remote to ensure ahead/behind counts are accurate
-      git fetch --quiet 2>/dev/null || true
+      # Don't fetch by default - it's too expensive for large repos
+      # Users can manually sync when needed
+      # git fetch --quiet 2>/dev/null || true
 
       # Get all info in one go
       echo "BRANCH:"

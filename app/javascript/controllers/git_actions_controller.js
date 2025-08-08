@@ -2,24 +2,24 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["buttonContainer"]
-  
+
   connect() {
     // Find all buttons within this controller's element
     const commitButtons = this.element.querySelectorAll('[data-action*="git-actions#commit"]')
     const pullButtons = this.element.querySelectorAll('[data-action*="git-actions#pull"]')
     const pushButtons = this.element.querySelectorAll('[data-action*="git-actions#push"]')
   }
-  
+
   async pull(event) {
     event.preventDefault()
     event.stopPropagation() // Prevent dropdown from closing
-    
+
     const button = event.currentTarget
     const directory = button.dataset.gitActionsDirectoryParam
     const instanceName = button.dataset.gitActionsInstanceParam
     const sessionId = button.dataset.gitActionsSessionParam
     const statusId = button.dataset.gitActionsStatusIdParam
-    
+
     // Disable button and show loading state with animation
     const originalContent = button.innerHTML
     button.disabled = true
@@ -32,7 +32,7 @@ export default class extends Controller {
       </svg>
       <span class="relative whitespace-nowrap">Pulling...</span>
     `
-    
+
     try {
       const response = await fetch(`/sessions/${sessionId}/git_pull`, {
         method: "POST",
@@ -42,13 +42,13 @@ export default class extends Controller {
         },
         body: JSON.stringify({ directory, instance_name: instanceName })
       })
-      
+
       const data = await response.json()
-      
+
       if (response.ok && data.success) {
         // Show success message with animation
         this.showNotification(`Successfully pulled ${data.commits_pulled} commit${data.commits_pulled === 1 ? '' : 's'} for ${instanceName}`, 'success')
-        
+
         // Animate button success - keep blue color
         button.innerHTML = `
           <span class="absolute inset-0 rounded-md bg-white opacity-10"></span>
@@ -57,7 +57,7 @@ export default class extends Controller {
           </svg>
           <span class="relative whitespace-nowrap">Pulled!</span>
         `
-        
+
         // After animation, disable the button with appropriate styling
         setTimeout(() => {
           // Transition to disabled state
@@ -70,7 +70,7 @@ export default class extends Controller {
             <span>Pull</span>
           `
           button.title = "Nothing to pull"
-          
+
           // Update the tooltip if it exists
           const tooltip = button.parentElement.querySelector('.absolute.bottom-full')
           if (tooltip) {
@@ -82,7 +82,7 @@ export default class extends Controller {
       } else {
         // Show error message
         this.showNotification(data.error || "Failed to pull changes", 'error')
-        
+
         if (data.has_conflicts) {
           // Show additional help for conflicts
           this.showNotification("Please resolve conflicts using your preferred git tool", 'warning')
@@ -99,17 +99,17 @@ export default class extends Controller {
       }
     }
   }
-  
+
   async push(event) {
     event.preventDefault()
     event.stopPropagation() // Prevent dropdown from closing
-    
+
     const button = event.currentTarget
     const directory = button.dataset.gitActionsDirectoryParam
     const instanceName = button.dataset.gitActionsInstanceParam
     const sessionId = button.dataset.gitActionsSessionParam
     const statusId = button.dataset.gitActionsStatusIdParam
-    
+
     // Disable button and show loading state with animation
     const originalContent = button.innerHTML
     button.disabled = true
@@ -122,7 +122,7 @@ export default class extends Controller {
       </svg>
       <span class="relative whitespace-nowrap">Pushing...</span>
     `
-    
+
     try {
       const response = await fetch(`/sessions/${sessionId}/git_push`, {
         method: "POST",
@@ -132,13 +132,13 @@ export default class extends Controller {
         },
         body: JSON.stringify({ directory, instance_name: instanceName })
       })
-      
+
       const data = await response.json()
-      
+
       if (response.ok && data.success) {
         // Show success message with animation
         this.showNotification(`Successfully pushed ${data.commits_pushed} commit${data.commits_pushed === 1 ? '' : 's'} for ${instanceName}`, 'success')
-        
+
         // Animate button success - keep orange color
         button.innerHTML = `
           <span class="absolute inset-0 rounded-md bg-white opacity-10"></span>
@@ -147,7 +147,7 @@ export default class extends Controller {
           </svg>
           <span class="relative whitespace-nowrap">Pushed!</span>
         `
-        
+
         // After animation, disable the button with appropriate styling
         setTimeout(() => {
           // Transition to disabled state
@@ -160,7 +160,7 @@ export default class extends Controller {
             <span>Push</span>
           `
           button.title = "Nothing to push"
-          
+
           // Update the tooltip if it exists
           const tooltip = button.parentElement.querySelector('.absolute.bottom-full')
           if (tooltip) {
@@ -184,12 +184,12 @@ export default class extends Controller {
       }
     }
   }
-  
+
   showNotification(message, type = 'info') {
     // Create notification element
     const notification = document.createElement('div')
     notification.className = `fixed top-4 right-4 z-50 rounded-xl shadow-2xl transform transition-all duration-500 translate-x-full overflow-hidden`
-    
+
     // Set color and icon based on type
     const styles = {
       success: {
@@ -213,9 +213,9 @@ export default class extends Controller {
         ring: 'ring-2 ring-white/20'
       }
     }
-    
+
     const style = styles[type] || styles.info
-    
+
     notification.innerHTML = `
       <div class="bg-gradient-to-r ${style.gradient} ${style.ring} p-4">
         <div class="flex items-center space-x-3">
@@ -236,26 +236,26 @@ export default class extends Controller {
       </div>
       <div class="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
     `
-    
+
     // Add to DOM
     document.body.appendChild(notification)
-    
+
     // Trigger manual git status refresh for success operations
     if (type === 'success') {
       this.triggerGitStatusRefresh()
     }
-    
+
     // Animate in with bounce effect
     requestAnimationFrame(() => {
       notification.classList.remove('translate-x-full')
       notification.classList.add('translate-x-0')
-      
+
       // Add a subtle bounce animation
       setTimeout(() => {
         notification.style.animation = 'bounce-subtle 0.3s ease-out'
       }, 300)
     })
-    
+
     // Add CSS animation
     if (!document.querySelector('#git-actions-animations')) {
       const style = document.createElement('style')
@@ -269,18 +269,18 @@ export default class extends Controller {
       `
       document.head.appendChild(style)
     }
-    
+
     // Auto remove after 5 seconds
     setTimeout(() => {
       this.removeNotification(notification)
     }, 5000)
   }
-  
+
   closeNotification(event) {
     const notification = event.currentTarget.closest('.fixed')
     this.removeNotification(notification)
   }
-  
+
   removeNotification(notification) {
     notification.classList.add('translate-x-full', 'opacity-0')
     notification.classList.remove('translate-x-0')
@@ -288,17 +288,17 @@ export default class extends Controller {
       notification.remove()
     }, 500)
   }
-  
+
   async stage(event) {
     event.preventDefault()
     event.stopPropagation() // Prevent dropdown from closing
-    
+
     const button = event.currentTarget
     const directory = button.dataset.gitActionsDirectoryParam
     const instanceName = button.dataset.gitActionsInstanceParam
     const sessionId = button.dataset.gitActionsSessionParam
     const statusId = button.dataset.gitActionsStatusIdParam
-    
+
     // Disable button and show loading state with animation
     const originalContent = button.innerHTML
     button.disabled = true
@@ -311,7 +311,7 @@ export default class extends Controller {
       </svg>
       <span class="relative whitespace-nowrap">Staging...</span>
     `
-    
+
     try {
       const response = await fetch(`/sessions/${sessionId}/git_stage`, {
         method: "POST",
@@ -321,13 +321,13 @@ export default class extends Controller {
         },
         body: JSON.stringify({ directory, instance_name: instanceName })
       })
-      
+
       const data = await response.json()
-      
+
       if (response.ok && data.success) {
         // Show success message with animation
         this.showNotification(`Successfully staged ${data.files_staged} file${data.files_staged === 1 ? '' : 's'} for ${instanceName}`, 'success')
-        
+
         // Animate button success - keep purple color
         button.innerHTML = `
           <span class="absolute inset-0 rounded-md bg-white opacity-10"></span>
@@ -336,7 +336,7 @@ export default class extends Controller {
           </svg>
           <span class="relative whitespace-nowrap">Staged!</span>
         `
-        
+
         // After animation, re-enable the button
         setTimeout(() => {
           button.disabled = false
@@ -346,7 +346,7 @@ export default class extends Controller {
       } else {
         // Show error message
         this.showNotification(data.error || "Failed to stage changes", 'error')
-        
+
         // Restore button
         button.disabled = false
         button.classList.remove('animate-pulse')
@@ -354,29 +354,29 @@ export default class extends Controller {
       }
     } catch (error) {
       this.showNotification(`Error: ${error.message}`, 'error')
-      
+
       // Restore button
       button.disabled = false
       button.classList.remove('animate-pulse')
       button.innerHTML = originalContent
     }
   }
-  
+
   async reset(event) {
     event.preventDefault()
     event.stopPropagation() // Prevent dropdown from closing
-    
+
     const button = event.currentTarget
     const directory = button.dataset.gitActionsDirectoryParam
     const instanceName = button.dataset.gitActionsInstanceParam
     const sessionId = button.dataset.gitActionsSessionParam
     const statusId = button.dataset.gitActionsStatusIdParam
-    
+
     // Show confirmation dialog
     if (!confirm(`Are you sure you want to reset all changes in ${instanceName}?\n\nThis will:\n• Discard ALL staged and unstaged changes\n• Remove ALL untracked files\n• Reset to the last commit\n\nThis action cannot be undone!`)) {
       return
     }
-    
+
     // Disable button and show loading state with animation
     const originalContent = button.innerHTML
     button.disabled = true
@@ -389,7 +389,7 @@ export default class extends Controller {
       </svg>
       <span class="relative whitespace-nowrap">Resetting...</span>
     `
-    
+
     try {
       const response = await fetch(`/sessions/${sessionId}/git_reset`, {
         method: "POST",
@@ -399,13 +399,13 @@ export default class extends Controller {
         },
         body: JSON.stringify({ directory, instance_name: instanceName })
       })
-      
+
       const data = await response.json()
-      
+
       if (response.ok && data.success) {
         // Show success message with animation
         this.showNotification(`Successfully reset all changes in ${instanceName}`, 'success')
-        
+
         // Animate button success - keep red color briefly
         button.innerHTML = `
           <span class="absolute inset-0 rounded-md bg-white opacity-10"></span>
@@ -414,7 +414,7 @@ export default class extends Controller {
           </svg>
           <span class="relative whitespace-nowrap">Reset!</span>
         `
-        
+
         // After animation, disable the button since there are no changes
         setTimeout(() => {
           // Transition to disabled state
@@ -431,7 +431,7 @@ export default class extends Controller {
       } else {
         // Show error message
         this.showNotification(data.error || "Failed to reset changes", 'error')
-        
+
         // Restore button
         button.disabled = false
         button.classList.remove('animate-pulse')
@@ -439,24 +439,24 @@ export default class extends Controller {
       }
     } catch (error) {
       this.showNotification(`Error: ${error.message}`, 'error')
-      
+
       // Restore button
       button.disabled = false
       button.classList.remove('animate-pulse')
       button.innerHTML = originalContent
     }
   }
-  
+
   async commit(event) {
     event.preventDefault()
     event.stopPropagation() // Prevent dropdown from closing
-    
+
     const button = event.currentTarget
     const directory = button.dataset.gitActionsDirectoryParam
     const instanceName = button.dataset.gitActionsInstanceParam
     const sessionId = button.dataset.gitActionsSessionParam
     const statusId = button.dataset.gitActionsStatusIdParam
-    
+
     // Disable button and show loading state with animation
     const originalContent = button.innerHTML
     button.disabled = true
@@ -469,7 +469,7 @@ export default class extends Controller {
       </svg>
       <span class="relative whitespace-nowrap">Committing...</span>
     `
-    
+
     try {
       const response = await fetch(`/sessions/${sessionId}/git_commit`, {
         method: "POST",
@@ -479,13 +479,13 @@ export default class extends Controller {
         },
         body: JSON.stringify({ directory, instance_name: instanceName })
       })
-      
+
       const data = await response.json()
-      
+
       if (response.ok && data.success) {
         // Show success message with animation
         this.showNotification(`Successfully committed changes: ${data.commit_message}`, 'success')
-        
+
         // Animate button success - keep green color
         button.innerHTML = `
           <span class="absolute inset-0 rounded-md bg-white opacity-10"></span>
@@ -494,7 +494,7 @@ export default class extends Controller {
           </svg>
           <span class="relative whitespace-nowrap">Committed!</span>
         `
-        
+
         // After animation, disable the button with appropriate styling
         setTimeout(() => {
           // Transition to disabled state
@@ -511,7 +511,7 @@ export default class extends Controller {
       } else {
         // Show error message
         this.showNotification(data.error || "Failed to commit changes", 'error')
-        
+
         // Restore button
         button.disabled = false
         button.classList.remove('animate-pulse')
@@ -519,28 +519,28 @@ export default class extends Controller {
       }
     } catch (error) {
       this.showNotification(`Error: ${error.message}`, 'error')
-      
+
       // Restore button
       button.disabled = false
       button.classList.remove('animate-pulse')
       button.innerHTML = originalContent
     }
   }
-  
+
   async openTerminal(event) {
     event.preventDefault()
     event.stopPropagation()
-    
+
     const button = event.currentTarget
     const directory = button.dataset.gitActionsDirectoryParam
     const instanceName = button.dataset.gitActionsInstanceParam
-    
+
     // First hide the dropdown
     const dropdown = button.closest('[data-controller="dropdown-hover"]')
     if (dropdown) {
       dropdown.dispatchEvent(new MouseEvent('mouseleave'))
     }
-    
+
     // Get the terminal tabs controller element and dispatch event
     const terminalTabsElement = document.querySelector('[data-controller~="terminal-tabs"]')
     if (terminalTabsElement) {
@@ -550,21 +550,21 @@ export default class extends Controller {
       }))
     }
   }
-  
+
   async openFileViewer(event) {
     event.preventDefault()
     event.stopPropagation()
-    
+
     const button = event.currentTarget
     const directory = button.dataset.gitActionsDirectoryParam
     const instanceName = button.dataset.gitActionsInstanceParam
-    
+
     // First hide the dropdown
     const dropdown = button.closest('[data-controller="dropdown-smart-position"]')
     if (dropdown) {
       dropdown.dispatchEvent(new MouseEvent('mouseleave'))
     }
-    
+
     // Get the terminal tabs controller element and dispatch event
     const terminalTabsElement = document.querySelector('[data-controller~="terminal-tabs"]')
     if (terminalTabsElement) {
@@ -584,12 +584,12 @@ export default class extends Controller {
       'plus-circle': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
       'arrow-path': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"></path>'
     }
-    
+
     return `<svg class="${className}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       ${icons[name] || ''}
     </svg>`
   }
-  
+
   triggerGitStatusRefresh() {
     // Find the git status visibility controller and trigger a manual refresh
     const gitStatusController = document.querySelector('[data-controller~="git-status-visibility"]')

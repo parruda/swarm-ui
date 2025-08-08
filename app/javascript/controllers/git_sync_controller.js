@@ -4,7 +4,7 @@ export default class extends Controller {
   async sync(event) {
     const button = event.currentTarget
     const projectId = button.dataset.projectId
-    
+
     // Disable button and show loading state
     button.disabled = true
     const originalText = button.innerHTML
@@ -15,7 +15,7 @@ export default class extends Controller {
       </svg>
       Syncing...
     `
-    
+
     try {
       const response = await fetch(`/projects/${projectId}/sync`, {
         method: 'POST',
@@ -25,14 +25,14 @@ export default class extends Controller {
           'Content-Type': 'application/json',
         },
       })
-      
+
       const data = await response.json()
-      
+
       if (response.ok) {
         if (data.success) {
           // Show success message
           this.showNotification('Repository synced successfully', 'success')
-          
+
           // Reload the page to show updated Git status
           setTimeout(() => {
             window.location.reload()
@@ -53,33 +53,33 @@ export default class extends Controller {
       button.innerHTML = originalText
     }
   }
-  
+
   showNotification(message, type) {
     // Create notification element
     const notification = document.createElement('div')
     notification.className = `fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-0 ${
-      type === 'success' 
-        ? 'bg-green-600 text-white' 
+      type === 'success'
+        ? 'bg-green-600 text-white'
         : 'bg-red-600 text-white'
     }`
-    
+
     notification.innerHTML = `
       <div class="flex items-center">
-        ${type === 'success' 
+        ${type === 'success'
           ? '<svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
           : '<svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>'
         }
         <span>${message}</span>
       </div>
     `
-    
+
     document.body.appendChild(notification)
-    
+
     // Animate in
     setTimeout(() => {
       notification.classList.add('translate-x-0')
     }, 10)
-    
+
     // Remove after 3 seconds
     setTimeout(() => {
       notification.classList.add('translate-x-full', 'opacity-0')

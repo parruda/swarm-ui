@@ -1,14 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static values = { 
+  static values = {
     templateId: Number,
     requiredVars: Array
   }
 
   open(event) {
     event.preventDefault()
-    
+
     // Find or create modal container
     let modalContainer = document.getElementById('launch-swarm-modal')
     if (!modalContainer) {
@@ -30,7 +30,7 @@ export default class extends Controller {
     const modalHTML = `
       <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-        
+
         <div class="fixed inset-0 z-50 overflow-y-auto">
           <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             <div class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
@@ -49,7 +49,7 @@ export default class extends Controller {
                   </div>
                 </div>
               </div>
-              
+
               <div class="mt-5">
                 <div class="space-y-4" id="variables-form">
                   ${this.requiredVarsValue.map(varName => `
@@ -57,8 +57,8 @@ export default class extends Controller {
                       <label for="var_${varName}" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         ${varName}
                       </label>
-                      <input type="text" 
-                             name="var_${varName}" 
+                      <input type="text"
+                             name="var_${varName}"
                              id="var_${varName}"
                              data-var-name="${varName}"
                              placeholder="Enter value or leave blank for default"
@@ -67,14 +67,14 @@ export default class extends Controller {
                   `).join('')}
                 </div>
               </div>
-              
+
               <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-                <button type="button" 
+                <button type="button"
                         id="launch-with-vars"
                         class="inline-flex w-full justify-center rounded-md bg-orange-900 dark:bg-orange-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-800 dark:hover:bg-orange-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-900 dark:focus-visible:outline-orange-900 sm:col-start-2">
                   Launch Session
                 </button>
-                <button type="button" 
+                <button type="button"
                         id="cancel-launch"
                         class="mt-3 inline-flex w-full justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 sm:col-start-1 sm:mt-0">
                   Cancel
@@ -85,14 +85,14 @@ export default class extends Controller {
         </div>
       </div>
     `
-    
+
     container.innerHTML = modalHTML
-    
+
     // Add event listeners
     document.getElementById('launch-with-vars').addEventListener('click', () => {
       this.launchWithVariables()
     })
-    
+
     document.getElementById('cancel-launch').addEventListener('click', () => {
       this.closeModal()
     })
@@ -101,14 +101,14 @@ export default class extends Controller {
   launchWithVariables() {
     const variables = {}
     const inputs = document.querySelectorAll('#variables-form input')
-    
+
     inputs.forEach(input => {
       const varName = input.dataset.varName
       if (input.value.trim()) {
         variables[varName] = input.value.trim()
       }
     })
-    
+
     this.launch(variables)
   }
 
@@ -117,7 +117,7 @@ export default class extends Controller {
     const form = document.createElement('form')
     form.method = 'POST'
     form.action = `/swarm_templates/${this.templateIdValue}/launch_session`
-    
+
     // Add CSRF token
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content
     const tokenInput = document.createElement('input')
@@ -125,7 +125,7 @@ export default class extends Controller {
     tokenInput.name = 'authenticity_token'
     tokenInput.value = csrfToken
     form.appendChild(tokenInput)
-    
+
     // Add environment variables
     Object.keys(environmentVariables).forEach(key => {
       const input = document.createElement('input')
@@ -134,7 +134,7 @@ export default class extends Controller {
       input.value = environmentVariables[key]
       form.appendChild(input)
     })
-    
+
     // Submit form
     document.body.appendChild(form)
     form.submit()

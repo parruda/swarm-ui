@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class ProjectsController < ApplicationController
-  before_action :set_project, only: [:show, :edit, :update, :destroy, :archive, :unarchive, :sync, :toggle_webhook, :webhook_status, :git_status, :edit_swarm_file, :show_swarm_editor, :delete_swarm_file]
+  before_action :set_project, only: [:show, :edit, :update, :destroy, :archive, :unarchive, :sync, :toggle_webhook, :webhook_status, :git_status, :git_dirty_check, :swarm_count, :edit_swarm_file, :show_swarm_editor, :delete_swarm_file]
 
   def index
     @filter = params[:filter] || "active"
@@ -19,9 +19,8 @@ class ProjectsController < ApplicationController
   end
 
   def show
-    # Only load swarm files count for the badge, not the full data
-    # The actual swarm files will be loaded via turbo frame
-    @swarm_files = @project.find_swarm_files if request.format.html?
+    # Don't load swarm files synchronously - they'll be loaded async via turbo frame
+    # This significantly improves page load time for large projects
 
     respond_to do |format|
       format.html
@@ -112,8 +111,11 @@ class ProjectsController < ApplicationController
 
     result = @project.git_service.sync_with_remote
 
-    # Clear cached git status after sync
-    @project.clear_git_cache if result[:success]
+    # Clear cached git status after sync and trigger a fresh status check with fetch
+    if result[:success]
+      @project.clear_git_cache
+      @project.git_status_with_fetch # This will cache the fetched status
+    end
 
     render(json: result)
   end
@@ -188,6 +190,25 @@ class ProjectsController < ApplicationController
       ahead: status.dig(:ahead_behind, :ahead) || 0,
       behind: status.dig(:ahead_behind, :behind) || 0,
     })
+  end
+
+  def git_dirty_check
+    unless @project.git?
+      render(json: { git: false })
+      return
+    end
+
+    # Quick dirty check without fetch
+    render(json: {
+      git: true,
+      dirty: @project.git_dirty_quick_check,
+    })
+  end
+
+  def swarm_count
+    # Return just the count for the badge
+    swarm_files = @project.find_swarm_files
+    render(json: { count: swarm_files.size })
   end
 
   def environment_variables
@@ -281,7 +302,8 @@ class ProjectsController < ApplicationController
     begin
       File.delete(resolved_path)
 
-      # Always re-render the swarms tab content since deletion only happens from there
+      # Clear cache and re-render the swarms tab content
+      @project.clear_swarm_files_cache
       @swarm_files = @project.find_swarm_files
       flash.now[:notice] = "Swarm file deleted successfully."
       render(partial: "projects/tabs/swarms", locals: { project: @project, swarm_files: @swarm_files })
@@ -346,6 +368,9 @@ class ProjectsController < ApplicationController
 
       # Write to file
       File.write(resolved_path, yaml_content)
+
+      # Clear the swarm files cache for this project
+      project.clear_swarm_files_cache
 
       render(json: {
         success: true,

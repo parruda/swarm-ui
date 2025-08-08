@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static values = { 
+  static values = {
     interval: { type: Number, default: 3000 }
   }
 
@@ -16,7 +16,7 @@ export default class extends Controller {
   checkAndRefresh() {
     // Check if there are any importing projects
     const hasImportingProjects = !!this.element.querySelector('[data-import-status="importing"]')
-    
+
     if (hasImportingProjects) {
       this.startRefreshing()
     } else {

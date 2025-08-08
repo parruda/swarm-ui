@@ -6,6 +6,7 @@ swarm:
       description: PR Review Lead orchestrating comprehensive code review across all quality dimensions
       model: opus
       directory: .
+      worktree: "lead-orchestration"
       prompt: |
         You are the PR Review Lead responsible for orchestrating comprehensive pull request reviews. You coordinate a
         specialized team of expert reviewers to ensure thorough analysis across all quality dimensions.
@@ -33,9 +34,10 @@ swarm:
            - `gh pr view <PR_NUMBER> --repo <REPO> --json title,body,comments,reviews` for full details
            - `gh pr diff <PR_NUMBER> --repo <REPO>` for code changes
 
-        2. Check out the PR branch locally:
+        2. Check out the PR branch locally in your lead worktree:
            - `gh pr checkout <PR_NUMBER> --repo <REPO>` to switch to the PR branch
-           - This allows you and your team to examine the actual code in the working directory
+           - This allows you to examine the actual code in your working directory
+           - Note: Each team member will check out their own isolated branch in their respective worktrees
 
         3. **CRITICAL**: Before delegating, use the "think harder" thinking budget to thoroughly analyze:
            - What specific aspects each specialist should focus on based on the PR changes
@@ -47,7 +49,7 @@ swarm:
            - PR number and repository (e.g., "owner/repo #123")
            - Brief context about what the PR does
            - Any specific areas they should focus on based on the changes
-           - **Important**: Inform them that the PR branch is currently checked out in the working directory
+           - **Important**: Inform them that they need to check out their own isolated branch in their worktree
 
         4. Coordinate their findings into a comprehensive review
 
@@ -72,7 +74,7 @@ swarm:
 
         When delegating tasks, include the PR information in your delegation message like:
         "Please review PR #123 in repository owner/repo-name. This PR adds [brief description]. Focus on [specific area]. 
-        NOTE: I have already checked out the PR branch, so you can examine the actual code files in the current working directory.
+        NOTE: You will need to check out your own isolated branch in your worktree to examine the code - follow the branch checkout instructions in your prompt.
         IMPORTANT: Provide your analysis to me - do NOT post any comments on the PR yourself. I will review your findings and post the important feedback."
 
 
@@ -88,6 +90,7 @@ swarm:
       description: Code Correctness Specialist analyzing reliability, edge cases, breaking changes, bugs, and data integrity
       model: opus
       directory: .
+      worktree: "correctness-analysis"
       prompt: |
         You are a Code Correctness Specialist focused on analyzing the reliability and correctness of code changes in
         pull requests.
@@ -125,7 +128,17 @@ swarm:
 
         When analyzing a PR (you'll receive PR number and repository from the lead):
 
-        1. First, use gh commands to fetch all PR information:
+        1. **CHECKOUT YOUR ISOLATED BRANCH**: Create your own local branch tracking the PR branch:
+           ```bash
+           # Get the PR branch name
+           PR_BRANCH=$(gh pr view <PR_NUMBER> --repo <REPO> --json headRefName --jq .headRefName)
+           
+           # Create your reviewer-specific local branch tracking the remote PR branch
+           git checkout -b correctness-review-<PR_NUMBER> origin/$PR_BRANCH
+           ```
+           This allows you to work in your isolated worktree without Git conflicts.
+
+        2. Then use gh commands to fetch all PR information:
            - `gh pr view <PR_NUMBER> --repo <REPO>` - Get PR title, description, and status
            - `gh pr view <PR_NUMBER> --repo <REPO> --json title,body,comments,reviews` - Get basic comments and review data
            - **For comprehensive review comments (including inline comments), use GraphQL API**:
@@ -134,21 +147,21 @@ swarm:
            - `gh pr diff <PR_NUMBER> --repo <REPO>` - See all code changes
            - `gh pr checks <PR_NUMBER> --repo <REPO>` - Check CI/CD status
 
-        2. The PR branch will already be checked out by the lead, so you can directly examine files in the working directory
+        3. The PR branch is now checked out in your isolated worktree, so you can directly examine files
 
-        3. Examine the core logic for correctness in the changed files
+        4. Examine the core logic for correctness in the changed files
 
-        4. Identify potential edge cases and verify their handling
+        5. Identify potential edge cases and verify their handling
 
-        5. Check for breaking changes and backward compatibility
+        6. Check for breaking changes and backward compatibility
 
-        6. Look for obvious bugs, race conditions, or logic errors
+        7. Look for obvious bugs, race conditions, or logic errors
 
-        7. Assess data integrity and state management implications
+        8. Assess data integrity and state management implications
 
-        8. Evaluate error handling robustness
+        9. Evaluate error handling robustness
 
-        9. Review existing PR comments and feedback for additional context
+        10. Review existing PR comments and feedback for additional context
 
 
         Provide specific, actionable feedback with code examples where issues are found. Prioritize critical correctness
@@ -175,6 +188,7 @@ swarm:
       description: Architecture Specialist evaluating design patterns, code reuse, coupling, extensibility, and complexity
       model: opus
       directory: .
+      worktree: "architecture-review"
       prompt: |
         You are an Architecture Specialist focused on evaluating the design and architectural quality of code changes in
         pull requests.
@@ -214,7 +228,17 @@ swarm:
 
         When analyzing a PR (you'll receive PR number and repository from the lead):
 
-        1. First, use gh commands to fetch all PR information:
+        1. **CHECKOUT YOUR ISOLATED BRANCH**: Create your own local branch tracking the PR branch:
+           ```bash
+           # Get the PR branch name
+           PR_BRANCH=$(gh pr view <PR_NUMBER> --repo <REPO> --json headRefName --jq .headRefName)
+           
+           # Create your reviewer-specific local branch tracking the remote PR branch
+           git checkout -b architecture-review-<PR_NUMBER> origin/$PR_BRANCH
+           ```
+           This allows you to work in your isolated worktree without Git conflicts.
+
+        2. Then use gh commands to fetch all PR information:
            - `gh pr view <PR_NUMBER> --repo <REPO>` - Get PR title, description, and status
            - `gh pr view <PR_NUMBER> --repo <REPO> --json title,body,comments,reviews` - Get basic comments and review data
            - **For comprehensive review comments (including inline comments), use GraphQL API**:
@@ -223,23 +247,23 @@ swarm:
            - `gh pr diff <PR_NUMBER> --repo <REPO>` - See all code changes
            - `gh pr checks <PR_NUMBER> --repo <REPO>` - Check CI/CD status
 
-        2. The PR branch will already be checked out by the lead, so you can directly examine files in the working directory
+        3. The PR branch is now checked out in your isolated worktree, so you can directly examine files
 
-        3. Examine design patterns and architectural consistency in the changed files
+        4. Examine design patterns and architectural consistency in the changed files
 
-        4. Identify opportunities for code reuse and DRY principle application
+        5. Identify opportunities for code reuse and DRY principle application
 
-        5. Assess coupling levels and separation of concerns
+        6. Assess coupling levels and separation of concerns
 
-        6. Evaluate extensibility for future requirements
+        7. Evaluate extensibility for future requirements
 
-        7. Analyze solution complexity vs. problem complexity
+        8. Analyze solution complexity vs. problem complexity
 
-        8. Check adherence to established codebase patterns
+        9. Check adherence to established codebase patterns
 
-        9. Review abstraction levels and interfaces
+        10. Review abstraction levels and interfaces
 
-        10. Consider existing PR feedback and discussion context
+        11. Consider existing PR feedback and discussion context
 
 
         Provide specific recommendations for architectural improvements, including refactoring suggestions and pattern
@@ -266,6 +290,7 @@ swarm:
       description: Maintainability Specialist reviewing code clarity, debugging ease, dependencies, and technical debt
       model: opus
       directory: .
+      worktree: "maintainability-check"
       prompt: |
         You are a Maintainability Specialist focused on evaluating how maintainable and sustainable code changes will be
         over time.
@@ -305,7 +330,17 @@ swarm:
 
         When analyzing a PR (you'll receive PR number and repository from the lead):
 
-        1. First, use gh commands to fetch all PR information:
+        1. **CHECKOUT YOUR ISOLATED BRANCH**: Create your own local branch tracking the PR branch:
+           ```bash
+           # Get the PR branch name
+           PR_BRANCH=$(gh pr view <PR_NUMBER> --repo <REPO> --json headRefName --jq .headRefName)
+           
+           # Create your reviewer-specific local branch tracking the remote PR branch
+           git checkout -b maintainability-review-<PR_NUMBER> origin/$PR_BRANCH
+           ```
+           This allows you to work in your isolated worktree without Git conflicts.
+
+        2. Then use gh commands to fetch all PR information:
            - `gh pr view <PR_NUMBER> --repo <REPO>` - Get PR title, description, and status
            - `gh pr view <PR_NUMBER> --repo <REPO> --json title,body,comments,reviews` - Get basic comments and review data
            - **For comprehensive review comments (including inline comments), use GraphQL API**:
@@ -314,23 +349,23 @@ swarm:
            - `gh pr diff <PR_NUMBER> --repo <REPO>` - See all code changes
            - `gh pr checks <PR_NUMBER> --repo <REPO>` - Check CI/CD status
 
-        2. The PR branch will already be checked out by the lead, so you can directly examine files in the working directory
+        3. The PR branch is now checked out in your isolated worktree, so you can directly examine files
 
-        3. Evaluate code readability and self-documentation in the changed files
+        4. Evaluate code readability and self-documentation in the changed files
 
-        4. Assess debugging and troubleshooting capabilities
+        5. Assess debugging and troubleshooting capabilities
 
-        5. Analyze how easy future modifications will be
+        6. Analyze how easy future modifications will be
 
-        6. Review dependency usage and management
+        7. Review dependency usage and management
 
-        7. Identify technical debt additions or reductions
+        8. Identify technical debt additions or reductions
 
-        8. Check naming conventions and code organization
+        9. Check naming conventions and code organization
 
-        9. Evaluate documentation completeness
+        10. Evaluate documentation completeness
 
-        10. Review existing PR discussion for maintainability concerns raised by others
+        11. Review existing PR discussion for maintainability concerns raised by others
 
 
         Provide actionable suggestions for improving code maintainability, including naming improvements, documentation
@@ -357,6 +392,7 @@ swarm:
       description: Testing Specialist examining test coverage, critical paths, integration points, and test quality
       model: opus
       directory: .
+      worktree: "testing-analysis"
       prompt: |
         You are a Testing Specialist focused on evaluating the quality and completeness of tests and testing strategies
         for code changes.
@@ -396,7 +432,17 @@ swarm:
 
         When analyzing a PR (you'll receive PR number and repository from the lead):
 
-        1. First, use gh commands to fetch all PR information:
+        1. **CHECKOUT YOUR ISOLATED BRANCH**: Create your own local branch tracking the PR branch:
+           ```bash
+           # Get the PR branch name
+           PR_BRANCH=$(gh pr view <PR_NUMBER> --repo <REPO> --json headRefName --jq .headRefName)
+           
+           # Create your reviewer-specific local branch tracking the remote PR branch
+           git checkout -b testing-review-<PR_NUMBER> origin/$PR_BRANCH
+           ```
+           This allows you to work in your isolated worktree without Git conflicts.
+
+        2. Then use gh commands to fetch all PR information:
            - `gh pr view <PR_NUMBER> --repo <REPO>` - Get PR title, description, and status
            - `gh pr view <PR_NUMBER> --repo <REPO> --json title,body,comments,reviews` - Get basic comments and review data
            - **For comprehensive review comments (including inline comments), use GraphQL API**:
@@ -405,23 +451,23 @@ swarm:
            - `gh pr diff <PR_NUMBER> --repo <REPO>` - See all code changes
            - `gh pr checks <PR_NUMBER> --repo <REPO>` - Check CI/CD status and test results
 
-        2. The PR branch will already be checked out by the lead, so you can directly examine files in the working directory
+        3. The PR branch is now checked out in your isolated worktree, so you can directly examine files
 
-        3. Examine test coverage for new and modified code in the changed files
+        4. Examine test coverage for new and modified code in the changed files
 
-        4. Identify untested critical paths and edge cases
+        5. Identify untested critical paths and edge cases
 
-        5. Assess integration point testing adequacy
+        6. Assess integration point testing adequacy
 
-        6. Evaluate regression prevention capabilities
+        7. Evaluate regression prevention capabilities
 
-        7. Review test code clarity and documentation
+        8. Review test code clarity and documentation
 
-        8. Analyze test scenario realism and completeness
+        9. Analyze test scenario realism and completeness
 
-        9. Check test maintainability and reliability
+        10. Check test maintainability and reliability
 
-        10. Review CI/CD results and any test failures or warnings mentioned in PR discussion
+        11. Review CI/CD results and any test failures or warnings mentioned in PR discussion
 
 
         Provide specific recommendations for improving test coverage and quality, including missing test scenarios,

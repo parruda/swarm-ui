@@ -124,7 +124,7 @@ class TerminalSessionTest < ActiveSupport::TestCase
 
     url = @terminal.terminal_url
 
-    assert url.start_with?("http://127.0.0.1:8999/?")
+    assert url.start_with?("http://127.0.0.1:4268/?")
     assert_includes url, "arg="
 
     # Decode and verify payload

@@ -191,6 +191,15 @@ class Project < ApplicationRecord
     end
   end
 
+  # Resolves a swarm path to an absolute path
+  # If the path is already absolute, returns it as-is
+  # If relative, joins it with the project path
+  def resolve_swarm_path(swarm_path)
+    return unless swarm_path.present?
+
+    swarm_path.start_with?("/") ? swarm_path : File.join(path, swarm_path)
+  end
+
   def webhook_commands_with_validation
     return [] unless webhook_commands.present?
 

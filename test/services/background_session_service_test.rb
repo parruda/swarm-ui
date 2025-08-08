@@ -248,27 +248,27 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
       :session,
       project: @project,
       github_issue_number: 777,
-      configuration_path: "swarms/review.yml",
+      configuration_path: File.join(@project.path, "swarms/review.yml"),
       status: "active",
     )
     session_with_test = create(
       :session,
       project: @project,
       github_issue_number: 777,
-      configuration_path: "swarms/test.yml",
+      configuration_path: File.join(@project.path, "swarms/test.yml"),
       status: "active",
     )
 
-    # Should find the review session when searching with review config
-    result = BackgroundSessionService.find_existing_github_session(@project, 777, nil, "swarms/review.yml")
+    # Should find the review session when searching with review config (absolute path)
+    result = BackgroundSessionService.find_existing_github_session(@project, 777, nil, File.join(@project.path, "swarms/review.yml"))
     assert_equal session_with_review, result
 
-    # Should find the test session when searching with test config
-    result = BackgroundSessionService.find_existing_github_session(@project, 777, nil, "swarms/test.yml")
+    # Should find the test session when searching with test config (absolute path)
+    result = BackgroundSessionService.find_existing_github_session(@project, 777, nil, File.join(@project.path, "swarms/test.yml"))
     assert_equal session_with_test, result
 
-    # Should return nil when searching with different config
-    result = BackgroundSessionService.find_existing_github_session(@project, 777, nil, "swarms/other.yml")
+    # Should return nil when searching with different config (absolute path)
+    result = BackgroundSessionService.find_existing_github_session(@project, 777, nil, File.join(@project.path, "swarms/other.yml"))
     assert_nil result
   end
 
@@ -292,8 +292,8 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
     )
 
     refute_equal session1, session2
-    assert_equal "swarms/review.yml", session1.configuration_path
-    assert_equal "swarms/test.yml", session2.configuration_path
+    assert_equal File.join(@project.path, "swarms/review.yml"), session1.configuration_path
+    assert_equal File.join(@project.path, "swarms/test.yml"), session2.configuration_path
     assert_equal 555, session1.github_issue_number
     assert_equal 555, session2.github_issue_number
   end
@@ -304,7 +304,7 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
       :session,
       project: @project,
       github_issue_number: 666,
-      configuration_path: "swarms/default.yml",
+      configuration_path: File.join(@project.path, "swarms/default.yml"),
       status: "stopped",
     )
 
@@ -321,7 +321,7 @@ class BackgroundSessionServiceTest < ActiveSupport::TestCase
     refute_equal stopped_session, new_session
     assert_equal "active", new_session.status
     assert_equal 666, new_session.github_issue_number
-    assert_equal "swarms/default.yml", new_session.configuration_path
+    assert_equal File.join(@project.path, "swarms/default.yml"), new_session.configuration_path
   end
 
   # Private method tests (testing through public interface)

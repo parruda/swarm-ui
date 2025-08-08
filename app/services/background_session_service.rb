@@ -5,8 +5,8 @@ require "open3"
 class BackgroundSessionService
   class << self
     def find_or_create_session(project:, issue_number: nil, pr_number: nil, issue_type: nil, initial_prompt:, user_login: nil, issue_title: nil, start_background: true, swarm_path: nil)
-      # Use provided swarm_path or fall back to project default
-      config_path = swarm_path || project.default_config_path
+      # Use provided swarm_path or fall back to project default, ensuring absolute path
+      config_path = project.resolve_swarm_path(swarm_path || project.default_config_path)
 
       # Try to find existing session for this issue/PR (if GitHub-related)
       session = if issue_number || pr_number

@@ -1,0 +1,5 @@
+---
+version: 1
+swarm:
+  name: PR Reviewing Team
+  instances: {}

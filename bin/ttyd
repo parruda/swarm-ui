@@ -95,6 +95,7 @@ else
   # Build environment for tmux session
   env = {}
   env["OPENAI_API_KEY"] = openai_api_key if openai_api_key && !openai_api_key.empty?
+  env["SWARM_SESSION_ID"] = session_id
 
   # Parse and add custom environment variables
   if environment_variables && !environment_variables.empty?

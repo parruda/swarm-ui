@@ -90,22 +90,30 @@ log_message(log_file, "Tmux session: #{tmux_session_name}")
 log_message(log_file, "Working directory: #{project_path}")
 log_message(log_file, "Swarm file: #{swarm_file}")
 log_message(log_file, "Command: #{command}")
+log_message(log_file, "Environment variables to set: #{env.inspect}")
+
+# Prepend environment variables to the command
+unless env.empty?
+  env_exports = env.map { |k, v| "export #{k}=#{Shellwords.escape(v)}" }.join("; ")
+  command = "#{env_exports}; #{command}"
+end
 
 # Create a wrapper command that logs failures
 wrapper_command = <<~BASH
-  #{command} || echo "Environment:\n$(env)" && read -p "Press Enter to continue..." && ({
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Claude-swarm command failed with exit code: $?" >> #{log_file}
+  #{command} || read -p "Press Enter to continue..." && {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Claude-swarm command failed" >> #{log_file}
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Session ID: #{session_id}" >> #{log_file}
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ENV: #{env.inspect}" >> #{log_file}
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Command was: #{command}" >> #{log_file}
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Working directory: $(pwd)" >> #{log_file}
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] ========================================" >> #{log_file}
     exit $?
-  })
+  }
 BASH
 
 # Start tmux session in detached mode with the wrapper command
-success = system(env, "tmux", "-f", "config/tmux.conf", "new-session", "-d", "-s", tmux_session_name, "bash", "-c", wrapper_command)
+# Note: We don't pass env to system() because tmux doesn't forward it to the inner shell
+# Instead, we've exported the variables in the wrapper_command itself
+success = system("tmux", "-f", "config/tmux.conf", "new-session", "-d", "-s", tmux_session_name, "bash", "-c", wrapper_command)
 
 if success
   log_message(log_file, "Background session started successfully")

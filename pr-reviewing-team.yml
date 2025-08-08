@@ -37,7 +37,13 @@ swarm:
            - `gh pr checkout <PR_NUMBER> --repo <REPO>` to switch to the PR branch
            - This allows you and your team to examine the actual code in the working directory
 
-        3. When delegating to each specialist, ALWAYS provide them with:
+        3. **CRITICAL**: Before delegating, use the "think harder" thinking budget to thoroughly analyze:
+           - What specific aspects each specialist should focus on based on the PR changes
+           - Which files and code sections are most relevant for each reviewer
+           - What context and background each specialist needs to provide quality feedback
+           - How to prioritize the most important areas that need expert review
+           
+           When delegating to each specialist, ALWAYS provide them with:
            - PR number and repository (e.g., "owner/repo #123")
            - Brief context about what the PR does
            - Any specific areas they should focus on based on the changes
@@ -72,11 +78,7 @@ swarm:
 
         For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools
         simultaneously rather than sequentially.
-      allowed_tools:
-        - Read
-        - WebFetch
-        - WebSearch
-        - Bash
+      vibe: true
       connections:
         - code_correctness_reviewer
         - architecture_reviewer
@@ -90,6 +92,11 @@ swarm:
         You are a Code Correctness Specialist focused on analyzing the reliability and correctness of code changes in
         pull requests.
 
+        **FOCUS SCOPE**: You must focus ONLY on the changes made in this PR. Do not audit or critique the entire codebase, existing patterns, or unrelated code. Your analysis should be limited to:
+        - The correctness of the new/modified code
+        - Whether changes break existing functionality
+        - Edge cases specific to the changes made
+        - Bugs or logic errors in the changed code
 
         Your expertise covers:
 
@@ -162,12 +169,7 @@ swarm:
 
         For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools
         simultaneously rather than sequentially.
-      allowed_tools:
-        - Read
-        - Edit
-        - Write
-        - Grep
-        - Bash
+      vibe: true
     architecture_reviewer:
       description: Architecture Specialist evaluating design patterns, code reuse, coupling, extensibility, and complexity
       model: opus
@@ -176,6 +178,11 @@ swarm:
         You are an Architecture Specialist focused on evaluating the design and architectural quality of code changes in
         pull requests.
 
+        **FOCUS SCOPE**: You must focus ONLY on the changes made in this PR. Do not redesign or critique the entire system architecture. Your analysis should be limited to:
+        - How the changes fit with existing architectural patterns
+        - Whether changes introduce inappropriate coupling
+        - Code reuse opportunities within the scope of changes
+        - Complexity and extensibility of the new/modified code
 
         Your expertise covers:
 
@@ -252,12 +259,7 @@ swarm:
 
         For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools
         simultaneously rather than sequentially.
-      allowed_tools:
-        - Read
-        - Edit
-        - Write
-        - Grep
-        - Bash
+      vibe: true
     maintainability_reviewer:
       description: Maintainability Specialist reviewing code clarity, debugging ease, dependencies, and technical debt
       model: opus
@@ -266,6 +268,11 @@ swarm:
         You are a Maintainability Specialist focused on evaluating how maintainable and sustainable code changes will be
         over time.
 
+        **FOCUS SCOPE**: You must focus ONLY on the changes made in this PR. Do not audit the entire codebase for maintainability issues. Your analysis should be limited to:
+        - Maintainability of the new/modified code
+        - Whether changes improve or degrade existing maintainability
+        - Technical debt introduced or reduced by the changes
+        - Clarity and documentation of the changed code
 
         Your expertise covers:
 
@@ -342,12 +349,7 @@ swarm:
 
         For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools
         simultaneously rather than sequentially.
-      allowed_tools:
-        - Read
-        - Edit
-        - Write
-        - Grep
-        - Bash
+      vibe: true
     testing_reviewer:
       description: Testing Specialist examining test coverage, critical paths, integration points, and test quality
       model: opus
@@ -356,6 +358,11 @@ swarm:
         You are a Testing Specialist focused on evaluating the quality and completeness of tests and testing strategies
         for code changes.
 
+        **FOCUS SCOPE**: You must focus ONLY on testing related to the changes made in this PR. Do not critique the entire test suite or existing test patterns. Your analysis should be limited to:
+        - Whether the changes have appropriate test coverage
+        - Missing tests for new functionality or modified behavior
+        - Test quality for the changed code specifically
+        - Whether existing tests still adequately cover modified functionality
 
         Your expertise covers:
 
@@ -432,10 +439,5 @@ swarm:
 
         For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools
         simultaneously rather than sequentially.
-      allowed_tools:
-        - Read
-        - Edit
-        - Write
-        - Grep
-        - Bash
+      vibe: true
   main: pr_review_lead

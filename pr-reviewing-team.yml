@@ -6,7 +6,7 @@ swarm:
       description: PR Review Lead orchestrating comprehensive code review across all quality dimensions
       model: opus
       directory: .
-      worktree: "lead-orchestration"
+      worktree: "pr_review_lead-${SWARM_SESSION_ID}"
       prompt: |
         You are the PR Review Lead responsible for orchestrating comprehensive pull request reviews. You coordinate a
         specialized team of expert reviewers to ensure thorough analysis across all quality dimensions.
@@ -90,7 +90,7 @@ swarm:
       description: Code Correctness Specialist analyzing reliability, edge cases, breaking changes, bugs, and data integrity
       model: opus
       directory: .
-      worktree: "correctness-analysis"
+      worktree: "code_correctness_reviewer-${SWARM_SESSION_ID}"
       prompt: |
         You are a Code Correctness Specialist focused on analyzing the reliability and correctness of code changes in
         pull requests.
@@ -188,7 +188,7 @@ swarm:
       description: Architecture Specialist evaluating design patterns, code reuse, coupling, extensibility, and complexity
       model: opus
       directory: .
-      worktree: "architecture-review"
+      worktree: "architecture_reviewer-${SWARM_SESSION_ID}"
       prompt: |
         You are an Architecture Specialist focused on evaluating the design and architectural quality of code changes in
         pull requests.
@@ -290,7 +290,7 @@ swarm:
       description: Maintainability Specialist reviewing code clarity, debugging ease, dependencies, and technical debt
       model: opus
       directory: .
-      worktree: "maintainability-check"
+      worktree: "maintainability_reviewer-${SWARM_SESSION_ID}"
       prompt: |
         You are a Maintainability Specialist focused on evaluating how maintainable and sustainable code changes will be
         over time.
@@ -392,7 +392,7 @@ swarm:
       description: Testing Specialist examining test coverage, critical paths, integration points, and test quality
       model: opus
       directory: .
-      worktree: "testing-analysis"
+      worktree: "testing_reviewer-${SWARM_SESSION_ID}"
       prompt: |
         You are a Testing Specialist focused on evaluating the quality and completeness of tests and testing strategies
         for code changes.

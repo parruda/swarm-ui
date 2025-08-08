@@ -10,6 +10,16 @@ export default class extends Controller {
     this.isPolling = false
     this.pollTimer = null
     
+    // Check if we need to do initial load (no git status data present)
+    const gitStatusDisplay = document.getElementById('git-status-display')
+    const needsInitialLoad = gitStatusDisplay &&
+                            gitStatusDisplay.textContent.includes('Loading git status')
+
+    if (needsInitialLoad) {
+      // Trigger immediate refresh for initial load
+      this.manualRefresh()
+    }
+
     // Start polling if page is visible
     if (!document.hidden) {
       this.startPolling()

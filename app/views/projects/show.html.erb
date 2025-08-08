@@ -172,11 +172,11 @@
                   class="cursor-pointer border-orange-500 dark:border-orange-400 text-orange-600 dark:text-orange-400 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
             <%= heroicon "cube", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
             Swarms
-            <% if @swarm_files && @swarm_files.any? %>
-              <span class="ml-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 text-xs font-medium">
-                <%= @swarm_files.count %>
-              </span>
-            <% end %>
+            <span data-controller="swarm-count-badge" 
+                  data-swarm-count-badge-project-id-value="<%= @project.id %>"
+                  data-swarm-count-badge-target="count"
+                  class="ml-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 text-xs font-medium hidden">
+            </span>
           </button>
           
           <button type="button"
@@ -200,14 +200,14 @@
                     data-panel="git"
                     data-frame-url="<%= tab_git_project_path(@project) %>"
                     data-action="click->turbo-tabs#switchTab"
-                    class="cursor-pointer border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200">
+                    class="cursor-pointer border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors duration-200"
+                    data-controller="git-status-badge"
+                    data-git-status-badge-project-id-value="<%= @project.id %>">
               <%= heroicon "code-bracket", variant: :mini, options: { class: "h-4 w-4 inline mr-1" } %>
               Git
-              <% if @project.git_status && @project.git_status[:dirty] %>
-                <span class="ml-2 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-0.5 text-xs font-medium">
-                  <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3 w-3 inline" } %>
-                </span>
-              <% end %>
+              <span data-git-status-badge-target="indicator" class="hidden ml-2 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-2 py-0.5 text-xs font-medium">
+                <%= heroicon "exclamation-triangle", variant: :mini, options: { class: "h-3 w-3 inline" } %>
+              </span>
             </button>
           <% end %>
           

@@ -106,8 +106,29 @@ class Project < ApplicationRecord
     end
   end
 
+  def git_dirty_quick_check
+    # Quick check without caching or fetch - just local status
+    git_service.dirty?
+  end
+
   def git_status
-    Rails.cache.fetch("project_#{id}_git_status", expires_in: 1.minute) do
+    Rails.cache.fetch("project_#{id}_git_status", expires_in: 5.minutes) do
+      return unless git?
+
+      # Don't fetch by default - just use local information
+      {
+        branch: git_service.current_branch,
+        dirty: git_service.dirty?,
+        status_summary: git_service.status_summary,
+        ahead_behind: git_service.ahead_behind,
+        last_commit: git_service.last_commit,
+        remote_url: git_service.remote_url,
+      }
+    end
+  end
+
+  def git_status_with_fetch
+    Rails.cache.fetch("project_#{id}_git_status_with_fetch", expires_in: 1.minute) do
       return unless git?
 
       # Fetch from remote to ensure ahead/behind counts are up-to-date
@@ -128,6 +149,7 @@ class Project < ApplicationRecord
     Rails.cache.delete("project_#{id}_current_branch")
     Rails.cache.delete("project_#{id}_git_dirty")
     Rails.cache.delete("project_#{id}_git_status")
+    Rails.cache.delete("project_#{id}_git_status_with_fetch")
   end
 
   # GitHub webhook methods
@@ -258,32 +280,82 @@ class Project < ApplicationRecord
 
   # Find all swarm YAML files in the project directory
   def find_swarm_files
-    return [] unless File.directory?(path)
+    Rails.cache.fetch("project_#{id}_swarm_files", expires_in: 10.minutes) do
+      return [] unless File.directory?(path)
 
-    swarm_files = []
+      swarm_files = []
 
-    # Scan directory for YAML files
-    Dir.glob(File.join(path, "**/*.{yml,yaml}")).each do |file|
-      next unless valid_swarm_config?(file)
+      # Common directories to exclude for performance
+      excluded_dirs = [
+        "node_modules",
+        "vendor",
+        "tmp",
+        "log",
+        "public/assets",
+        "coverage",
+        "build",
+        "dist",
+        "cache",
+        "target", # Rust
+        "debug", # Rust
+        "release", # Rust
+        "__pycache__", # Python
+        "venv", # Python virtual environments
+        "env", # Python
+        "virtualenv", # Python
+        "pods", # iOS/CocoaPods
+        "Pods", # iOS/CocoaPods
+        "DerivedData", # iOS/Xcode
+      ]
 
-      begin
-        config = YAML.load_file(file)
-        swarm = config["swarm"]
+      # Build the glob pattern with exclusions using Find
+      require "find"
 
-        swarm_files << {
-          path: file,
-          relative_path: file.sub("#{path}/", ""),
-          name: swarm["name"],
-          instance_count: swarm["instances"].size,
-          main_instance: swarm["main"],
-          instances: swarm["instances"].keys,
-        }
-      rescue StandardError => e
-        Rails.logger.warn("Error reading swarm file #{file}: #{e.message}")
+      Find.find(path) do |file|
+        # Skip if it's a directory
+        if File.directory?(file)
+          # Prune excluded directories
+          dir_name = File.basename(file)
+          
+          # Skip all dot directories and explicitly excluded directories
+          if dir_name.start_with?(".") || excluded_dirs.include?(dir_name)
+            Find.prune # Skip this directory and its contents
+          end
+          next
+        end
+
+        # Only process YAML files
+        next unless file.end_with?(".yml", ".yaml")
+
+        # Skip if path is too deep (more than 5 levels)
+        relative_path = file.sub("#{path}/", "")
+        next if relative_path.count("/") > 5
+
+        next unless valid_swarm_config?(file)
+
+        begin
+          config = YAML.load_file(file)
+          swarm = config["swarm"]
+
+          swarm_files << {
+            path: file,
+            relative_path: relative_path,
+            name: swarm["name"],
+            instance_count: swarm["instances"].size,
+            main_instance: swarm["main"],
+            instances: swarm["instances"].keys,
+          }
+        rescue StandardError => e
+          Rails.logger.warn("Error reading swarm file #{file}: #{e.message}")
+        end
       end
-    end
 
-    swarm_files.sort_by { |f| f[:relative_path] }
+      swarm_files.sort_by { |f| f[:relative_path] }
+    end
+  end
+
+  def clear_swarm_files_cache
+    Rails.cache.delete("project_#{id}_swarm_files")
   end
 
   private

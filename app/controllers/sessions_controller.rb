@@ -124,11 +124,9 @@ class SessionsController < ApplicationController
       "Claude Swarm"
     end
 
-    # Fetch initial git status for active sessions
-    if @session.active?
-      git_service = OptimizedGitStatusService.new(@session)
-      @git_statuses = git_service.fetch_all_statuses
-    end
+    # Don't fetch git status synchronously - it will be loaded async via JavaScript
+    # This significantly improves page load time for sessions with large git repos
+    @git_statuses = nil
   end
 
   def kill

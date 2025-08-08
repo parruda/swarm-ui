@@ -150,6 +150,11 @@ export default class YamlProcessor {
         }
       }
       
+      // Handle worktree field
+      if (node.data.worktree !== undefined) {
+        instance.worktree = node.data.worktree
+      }
+      
       // Add MCP servers if present
       if (node.data.mcps && node.data.mcps.length > 0) {
         instance.mcps = node.data.mcps
@@ -190,6 +195,15 @@ export default class YamlProcessor {
     // Only add main key if there are instances and a main is defined
     if (mainKey && Object.keys(instances).length > 0) {
       result.swarm.main = mainKey
+    }
+    
+    // Add before commands if present
+    if (this.controller.beforeCommands && this.controller.beforeCommands.length > 0) {
+      // Filter out empty commands
+      const validCommands = this.controller.beforeCommands.filter(cmd => cmd && cmd.trim() !== '')
+      if (validCommands.length > 0) {
+        result.swarm.before = validCommands
+      }
     }
     
     // Note: tags are NOT included in the YAML - they're for SwarmUI database only
@@ -265,6 +279,13 @@ export default class YamlProcessor {
       this.controller.nameInputTarget.value = swarmName
     }
     
+    // Import before commands
+    if (swarmData.before && Array.isArray(swarmData.before)) {
+      this.controller.beforeCommands = swarmData.before
+    } else {
+      this.controller.beforeCommands = []
+    }
+    
     // Import nodes
     const importedNodes = this.controller.nodeManager.importNodes(swarmData)
     
@@ -320,6 +341,11 @@ export default class YamlProcessor {
     }
     
     this.updateYamlPreview()
+    
+    // Refresh the properties panel to show loaded swarm properties
+    if (!this.controller.selectedNode) {
+      this.controller.uiComponents.showSwarmProperties()
+    }
   }
 
   // Handle canvas refresh when Claude modifies the file

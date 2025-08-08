@@ -73,6 +73,12 @@ export default class extends Controller {
     this.selectedConnection = null
     this.mainNodeId = null
     this.nodeKeyMap = new Map()
+    this.beforeCommands = []  // Initialize before commands array
+    
+    // Set default swarm name if not provided
+    if (this.hasNameInputTarget && !this.nameInputTarget.value) {
+      this.nameInputTarget.value = 'my_swarm'
+    }
     
     // Canvas properties
     this.canvasSize = 10000
@@ -174,6 +180,9 @@ export default class extends Controller {
     // Center viewport initially
     this.centerViewport()
     this.uiComponents.updateEmptyState()
+    
+    // Show swarm properties by default
+    this.uiComponents.showSwarmProperties()
   }
   
   centerViewport() {
@@ -598,6 +607,20 @@ export default class extends Controller {
                    class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm font-mono focus:outline-none">
           </div>
           
+          <!-- Worktree -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Worktree</label>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">
+              Leave empty for default, 'true' for auto-generated name, 'false' to disable, or specify a branch name
+            </p>
+            <input type="text" 
+                   value="${nodeData.worktree !== undefined ? nodeData.worktree : ''}" 
+                   data-property="worktree"
+                   data-node-id="${node.id}"
+                   placeholder="e.g., true, false, or feature-branch"
+                   class="mt-1 block w-full rounded-md border-0 px-3 py-1.5 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-orange-600 dark:focus:ring-orange-500 sm:text-sm font-mono focus:outline-none">
+          </div>
+          
           <!-- Temperature (only for OpenAI) -->
           <div id="temperature-field" style="display: ${isOpenAI ? 'block' : 'none'};">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Temperature</label>
@@ -859,7 +882,7 @@ export default class extends Controller {
           
           this.showNodeProperties(node)
         }
-      } else if (property === 'directory' || property === 'temperature' || property === 'vibe') {
+      } else if (property === 'directory' || property === 'temperature' || property === 'vibe' || property === 'worktree') {
         if (!node.data.config) node.data.config = {}
         
         if (property === 'vibe') {
@@ -868,6 +891,24 @@ export default class extends Controller {
           const toolsField = this.propertiesPanelTarget.querySelector('#tools-field')
           if (toolsField) {
             toolsField.style.display = e.target.checked || node.data.provider === 'openai' ? 'none' : 'block'
+          }
+        } else if (property === 'worktree') {
+          // Handle worktree special values
+          const value = e.target.value.trim()
+          if (value === '') {
+            // Empty means not set
+            delete node.data.worktree
+            delete node.data.config.worktree
+          } else if (value === 'true') {
+            node.data.worktree = true
+            node.data.config.worktree = true
+          } else if (value === 'false') {
+            node.data.worktree = false
+            node.data.config.worktree = false
+          } else {
+            // Branch name
+            node.data.worktree = value
+            node.data.config.worktree = value
           }
         } else {
           node.data[property] = e.target.value
@@ -1503,10 +1544,20 @@ export default class extends Controller {
           this.updateMainNodeBadge(data.mainNodeId)
         }
         
+        // Load beforeCommands if present in the data
+        if (data.beforeCommands && Array.isArray(data.beforeCommands)) {
+          this.beforeCommands = data.beforeCommands
+        }
+        
         this.updateConnections()
         this.updateSocketStates()
         this.uiComponents.updateEmptyState()
         this.updateYamlPreview()
+        
+        // Refresh the properties panel to show loaded swarm properties
+        if (!this.selectedNode) {
+          this.uiComponents.showSwarmProperties()
+        }
       }
       else if (this.existingYamlValue) {
         const yamlData = jsyaml.load(this.existingYamlValue)
@@ -1564,6 +1615,7 @@ export default class extends Controller {
     this.selectedConnection = null
     this.mainNodeId = null
     this.nodeKeyMap.clear()
+    this.beforeCommands = []  // Reset before commands
     
     this.nameInputTarget.value = ''
     
@@ -1641,6 +1693,33 @@ export default class extends Controller {
   
   removeMcpFromNode(e) {
     return this.mcpManager.removeMcpFromNode(e)
+  }
+  
+  // Before commands methods
+  addBeforeCommand() {
+    if (!this.beforeCommands) {
+      this.beforeCommands = []
+    }
+    this.beforeCommands.push('')
+    this.uiComponents.showSwarmProperties()
+    
+    // Focus the new input
+    setTimeout(() => {
+      const inputs = this.propertiesPanelTarget.querySelectorAll('[data-before-index]')
+      if (inputs.length > 0) {
+        inputs[inputs.length - 1].focus()
+      }
+    }, 100)
+  }
+  
+  removeBeforeCommand(e) {
+    const index = parseInt(e.currentTarget.dataset.index)
+    if (!this.beforeCommands) {
+      this.beforeCommands = []
+    }
+    this.beforeCommands.splice(index, 1)
+    this.uiComponents.showSwarmProperties()
+    this.updateYamlPreview()
   }
   
   // YAML Processor methods

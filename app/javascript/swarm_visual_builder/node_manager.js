@@ -54,6 +54,7 @@ export default class NodeManager {
         allowed_tools: config.allowed_tools,
         vibe: config.vibe,
         temperature: config.temperature,
+        worktree: templateData.worktree !== undefined ? templateData.worktree : config.worktree,
         mcps: config.mcps || []  // Preserve MCP servers from template
       }
     }
@@ -179,12 +180,18 @@ export default class NodeManager {
         cleanConfig.mcps = config.mcps
       }
       
+      // Preserve worktree if present
+      if (config.worktree !== undefined) {
+        cleanConfig.worktree = config.worktree
+      }
+      
       const node = this.createNode({
         name: name,
         description: config.description || '',
         config: cleanConfig,
         model: config.model || 'opus',
-        provider: config.provider || 'claude'  // Default to claude if not specified
+        provider: config.provider || 'claude',  // Default to claude if not specified
+        worktree: config.worktree  // Include worktree at top level too
       }, { x, y })
       
       importedNodes.push(node)
@@ -210,6 +217,7 @@ export default class NodeManager {
         allowed_tools: node.data.allowed_tools,
         vibe: node.data.vibe,
         temperature: node.data.temperature,
+        worktree: node.data.worktree,
         mcps: node.data.mcps || []  // Include MCPs in serialization
       }
     }))

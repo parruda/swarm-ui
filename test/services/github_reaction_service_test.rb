@@ -10,6 +10,27 @@ class GithubReactionServiceTest < ActiveSupport::TestCase
   end
 
   # add_thumbs_up_to_comment tests
+  test "handles web URL format for issue comments" do
+    web_comment_url = "https://github.com/rails/rails/issues/1#issuecomment-123456"
+    expected_cmd = [
+      "gh",
+      "api",
+      "--method",
+      "POST",
+      "/repos/#{@repo_full_name}/issues/comments/123456/reactions",
+      "-f",
+      "content=+1",
+    ]
+
+    Open3.expects(:capture3).with(*expected_cmd).returns(["Success", "", stub(success?: true)])
+    Rails.logger.expects(:info).with("Adding thumbs up reaction to comment: #{web_comment_url}")
+    Rails.logger.expects(:info).with("Successfully added thumbs up reaction to comment 123456")
+
+    result = GithubReactionService.add_thumbs_up_to_comment(@repo_full_name, web_comment_url)
+
+    assert result
+  end
+
   test "adds thumbs up to issue comment successfully" do
     expected_cmd = [
       "gh",
@@ -30,17 +51,30 @@ class GithubReactionServiceTest < ActiveSupport::TestCase
     assert result
   end
 
-  test "extracts comment ID from URL correctly" do
-    skip "The service's comment ID extraction logic doesn't handle anchor URLs correctly - it should extract 'issuecomment-888' from 'issues/1#issuecomment-888' but extracts '1#issuecomment-888' instead"
+  test "extracts comment ID from various URL formats correctly" do
+    # Test API URL format
+    api_url = "https://api.github.com/repos/owner/repo/issues/comments/999"
+    assert_equal "999", GithubReactionService.extract_comment_id_from_url(api_url)
 
-    # The service uses comment_url.split("/").last which doesn't handle URLs with anchors
-    # For example, "https://github.com/owner/repo/issues/1#issuecomment-888"
-    # results in "1#issuecomment-888" instead of just "issuecomment-888"
-    #
-    # A fix would be to improve the comment ID extraction logic in the service to handle:
-    # 1. API URLs: https://api.github.com/repos/owner/repo/issues/comments/999
-    # 2. Web URLs with anchors: https://github.com/owner/repo/issues/1#issuecomment-888
-    # 3. Simple paths: some/path/777
+    # Test web URL with issuecomment anchor
+    web_url = "https://github.com/owner/repo/issues/1#issuecomment-888"
+    assert_equal "888", GithubReactionService.extract_comment_id_from_url(web_url)
+
+    # Test PR review comment with discussion_r anchor
+    pr_url = "https://github.com/owner/repo/pull/1#discussion_r123456"
+    assert_equal "123456", GithubReactionService.extract_comment_id_from_url(pr_url)
+
+    # Test simple path
+    simple_path = "some/path/777"
+    assert_equal "777", GithubReactionService.extract_comment_id_from_url(simple_path)
+
+    # Test edge case: fragment with mixed content
+    mixed_fragment = "https://github.com/owner/repo/issues/42#issuecomment-abc123xyz456"
+    assert_equal "123456", GithubReactionService.extract_comment_id_from_url(mixed_fragment)
+
+    # Test URL with query parameters and fragment
+    complex_url = "https://github.com/owner/repo/issues/1?tab=comments#issuecomment-999"
+    assert_equal "999", GithubReactionService.extract_comment_id_from_url(complex_url)
   end
 
   test "handles gh command failure for issue comment" do

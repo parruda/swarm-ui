@@ -76,9 +76,9 @@ export default class extends Controller {
 
   // Name validation methods
   preventInvalidCharacters(event) {
-    // Allow only lowercase letters and underscores
+    // Allow only lowercase letters, underscores, and dashes
     const char = String.fromCharCode(event.which || event.keyCode)
-    const validPattern = /^[a-z_]$/
+    const validPattern = /^[a-z_\-]$/
     
     // Allow control keys (backspace, delete, tab, etc.)
     if (event.which === 0 || event.which === 8 || event.which === 9 || 
@@ -97,7 +97,7 @@ export default class extends Controller {
     
     // Remove any invalid characters and convert to lowercase
     const currentValue = this.nameInputTarget.value
-    const cleanedValue = currentValue.toLowerCase().replace(/[^a-z_]/g, '')
+    const cleanedValue = currentValue.toLowerCase().replace(/[^a-z_\-]/g, '')
     
     if (currentValue !== cleanedValue) {
       this.nameInputTarget.value = cleanedValue

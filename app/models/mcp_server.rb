@@ -20,9 +20,14 @@ class McpServer < ApplicationRecord
 
   # Scopes
   scope :by_type, ->(type) { where(server_type: type) }
-  scope :with_tag, ->(tag) { where("tags @> ?", [tag].to_json) }
+  scope :with_tag, ->(tag) {
+    # SQLite doesn't support @> operator, use LIKE instead
+    where("LOWER(tags) LIKE LOWER(?)", "%\"#{tag}\"%")
+  }
   scope :search, ->(query) {
-    where("name ILIKE :q OR description ILIKE :q OR tags::text ILIKE :q", q: "%#{query}%")
+    # SQLite uses LIKE for case-insensitive searches by default (unless PRAGMA case_sensitive_like is ON)
+    # For consistent case-insensitive behavior, use LOWER()
+    where("LOWER(name) LIKE LOWER(:q) OR LOWER(description) LIKE LOWER(:q) OR LOWER(tags) LIKE LOWER(:q)", q: "%#{query}%")
   }
   scope :ordered, -> { order(:name) }
 
@@ -87,7 +92,7 @@ class McpServer < ApplicationRecord
       new_name = base_name
 
       while McpServer.exists?(name: new_name)
-        new_name = "#{base_name}_#{counter}"
+        new_name = "#{base_name}_#{"a" * counter}"
         counter += 1
       end
 

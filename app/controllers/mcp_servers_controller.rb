@@ -112,38 +112,19 @@ class McpServersController < ApplicationController
       return
     end
 
-    begin
-      file = params[:file]
-      json_content = file.read
-      data = JSON.parse(json_content)
+    result = McpServerImporter.import(params[:file])
 
-      # Handle both single object and array
-      servers_data = data.is_a?(Array) ? data : [data]
-
-      imported_count = 0
-      errors = []
-
-      servers_data.each do |server_data|
-        result = import_server(server_data)
-        if result[:success]
-          imported_count += 1
-        else
-          errors << result[:error]
-        end
-      end
-
-      if errors.any?
-        flash[:alert] = "Imported #{imported_count} server(s). Errors: #{errors.join(", ")}"
+    if result[:success]
+      flash[:notice] = "Successfully imported #{result[:imported_count]} server(s)."
+    elsif result[:errors].any?
+      flash[:alert] = if result[:imported_count] > 0
+        "Imported #{result[:imported_count]} server(s). Errors: #{result[:errors].join(", ")}"
       else
-        flash[:notice] = "Successfully imported #{imported_count} server(s)."
+        result[:errors].join(", ")
       end
-
-      redirect_to(mcp_servers_path)
-    rescue JSON::ParserError => e
-      redirect_to(mcp_servers_path, alert: "Invalid JSON file: #{e.message}")
-    rescue StandardError => e
-      redirect_to(mcp_servers_path, alert: "Import failed: #{e.message}")
     end
+
+    redirect_to(mcp_servers_path)
   end
 
   private
@@ -211,38 +192,5 @@ class McpServersController < ApplicationController
       headers: server.headers,
       tags: server.tags,
     }
-  end
-
-  def import_server(data)
-    # Check for duplicate name
-    name = data["name"] || data[:name]
-
-    if McpServer.exists?(name: name)
-      name = "#{name}_imported"
-      # Keep adding suffix until we find a unique name
-      counter = 1
-      while McpServer.exists?(name: name)
-        name = "#{data["name"] || data[:name]}_imported_#{counter}"
-        counter += 1
-      end
-    end
-
-    server = McpServer.new(
-      name: name,
-      description: data["description"] || data[:description],
-      server_type: data["server_type"] || data[:server_type] || "stdio",
-      command: data["command"] || data[:command],
-      url: data["url"] || data[:url],
-      args: data["args"] || data[:args] || [],
-      env: data["env"] || data[:env] || {},
-      headers: data["headers"] || data[:headers] || {},
-      tags: data["tags"] || data[:tags] || [],
-    )
-
-    if server.save
-      { success: true, server: server }
-    else
-      { success: false, error: "#{name}: #{server.errors.full_messages.join(", ")}" }
-    end
   end
 end

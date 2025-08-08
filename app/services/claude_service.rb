@@ -12,6 +12,7 @@ class ClaudeService
   def generate_commit_message(changes)
     options = ClaudeSDK::ClaudeCodeOptions.new(
       cwd: @working_directory,
+      model: "sonnet",
     )
 
     response_text = ""

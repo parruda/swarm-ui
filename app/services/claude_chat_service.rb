@@ -24,7 +24,7 @@ class ClaudeChatService
         append_system_prompt: build_append_system_prompt,
         allowed_tools: ["Read", "Write", "Edit", "MultiEdit", "Bash", "LS", "Grep"],
         permission_mode: :accept_edits,
-        model: "opus", # Use Opus model
+        model: "sonnet", # Use Sonnet model
       )
 
       # If we have a session_id from a previous message, use resume to continue the conversation

@@ -97,7 +97,7 @@ The project uses RuboCop with Shopify's style guide. Always run `bin/rubocop -A`
 
 ## Development Workflow
 
-1. Start the development server with `bin/dev`
+1. NEVER START OR RESTART THE DEVELOPMENT SERVER
 2. The server runs on http://localhost:3000 by default
 3. Tailwind CSS compilation happens automatically
 4. Rails automatically reloads on code changes

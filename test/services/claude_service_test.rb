@@ -42,7 +42,7 @@ class ClaudeServiceTest < ActiveSupport::TestCase
   end
 
   test "builds proper query with changes" do
-    expected_query = "Generate a concise git commit message for the following changes. ONLY output the commit message, no other text. The changes are:\n\n#{@changes}"
+    expected_query = "Generate a concise git commit message for the following changes. ONLY output the commit message, no other text. The changes are:\n\n#{@changes}\n\n YOU MUST NOT OUTPUT ANYTHING ELSE. ONLY THE COMMIT MESSAGE."
 
     ClaudeSDK.expects(:query).with(
       expected_query,

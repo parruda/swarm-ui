@@ -18,10 +18,14 @@ class ClaudeChatService
     end
 
     begin
+      system_prompt = build_append_system_prompt
+
+      Rails.logger.info("[ClaudeChatService] System prompt: #{system_prompt}")
+
       # Configure options for Claude SDK
       options = ClaudeSDK::ClaudeCodeOptions.new(
         cwd: @project.path,
-        append_system_prompt: build_append_system_prompt,
+        append_system_prompt: system_prompt,
         allowed_tools: ["Read", "Write", "Edit", "MultiEdit", "Bash", "LS", "Grep"],
         permission_mode: :accept_edits,
         model: "sonnet", # Use Sonnet model
@@ -190,6 +194,41 @@ class ClaudeChatService
     erb = ERB.new(template_content)
 
     # Render with binding that includes the required variables
-    erb.result(binding)
+    base_prompt = erb.result(binding)
+
+    # Add important instructions
+    base_prompt += "\n\n**IMPORTANT INSTRUCTIONS:**\n"
+    base_prompt += "- Do not create circular dependencies when configuring swarms or adding MCP servers.\n"
+    base_prompt += "- Do not provide users with commands to run claude-swarm. Instead, tell them to click the Launch button to start the swarm.\n"
+
+    # Append MCP servers information
+    mcp_servers = McpServer.ordered
+    if mcp_servers.any?
+      mcp_info = "\n\n## Available MCP Servers\n\n"
+      mcp_info += "The following MCP servers are available and can be integrated into your swarm:\n\n"
+
+      mcp_servers.each do |server|
+        mcp_info += "### #{server.display_name} (#{server.name})\n"
+        mcp_info += "- **Type:** #{server.server_type_display}\n"
+        mcp_info += "- **Description:** #{server.description}\n" if server.description.present?
+        mcp_info += "- **Tags:** #{server.tags_string}\n" if server.tags.present? && server.tags.any?
+
+        if server.stdio?
+          mcp_info += "- **Command:** `#{server.command}`\n"
+          mcp_info += "- **Args:** #{server.args.join(", ")}\n" if server.args.present? && server.args.any?
+        elsif server.sse?
+          mcp_info += "- **URL:** #{server.url}\n"
+        end
+
+        mcp_info += "\n"
+      end
+
+      mcp_info += "To use any of these MCP servers in your swarm, add them as allowed tools with the 'mcp__' prefix.\n"
+      mcp_info += "For example, to use '#{mcp_servers.first.name}', add 'mcp__#{mcp_servers.first.name}' to the allowed_tools array.\n"
+
+      base_prompt + mcp_info
+    else
+      base_prompt
+    end
   end
 end
